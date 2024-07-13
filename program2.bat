@@ -3,7 +3,7 @@
     (x-draw-string ?display ?window ?gc (+ 5 ?x) (integer (+ (/ ?height 2) ?y)) ?text)
 )
 (defrule always =>
-	(bind ?display (x-open-display :17))
+	(bind ?display (x-open-display :0))
 	(bind ?screen (default-screen ?display))
 	(bind ?window (x-create-simple-window ?display (root-window ?display ?screen) 10 10 500 300 1 (black-pixel ?display ?screen) (white-pixel ?display ?screen)))
 	(x-map-window ?display ?window)

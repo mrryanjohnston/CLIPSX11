@@ -446,6 +446,8 @@ void XPeekEventFunction(
 	MultifieldBuilder *mb;
 	char buffer[32];
 	KeySym keysym;
+	FactBuilder *fb;
+	Fact *f;
 	UDFValue theArg;
 
 	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
@@ -453,126 +455,305 @@ void XPeekEventFunction(
 
 	XPeekEvent(display, &event);
 
-	mb = CreateMultifieldBuilder(theEnv, 5);
-	MBAppendInteger(mb, event.xany.serial);
+	mb = CreateMultifieldBuilder(theEnv, 0);
+	fb = CreateFactBuilder(theEnv, "x-event");
+	FBPutSlotInteger(fb, "serial", event.xany.serial);
 	if (event.xany.send_event)
 	{
-		MBAppendSymbol(mb, "TRUE");
+		FBPutSlotSymbol(fb, "send-event", "TRUE");
 	}
 	else
 	{
-		MBAppendSymbol(mb, "FALSE");
+		FBPutSlotSymbol(fb, "send-event", "FALSE");
 	}
-	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, event.xany.display));
-	MBAppendInteger(mb, event.xany.window);
+	FBPutSlotExternalAddress(fb, "display", CreateCExternalAddress(theEnv, event.xany.display));
+	FBPutSlotInteger(fb, "window", event.xany.window);
 	switch (event.type)
 	{
 		case KeyPress:
-			MBAppendSymbol(mb, "KeyPress");
-			MBAppendInteger(mb, event.xkey.root);
-			MBAppendInteger(mb, event.xkey.subwindow);
-			MBAppendInteger(mb, event.xkey.time);
-			MBAppendInteger(mb, event.xkey.x);
-			MBAppendInteger(mb, event.xkey.y);
-			MBAppendInteger(mb, event.xkey.x_root);
-			MBAppendInteger(mb, event.xkey.y_root);
-			MBAppendInteger(mb, event.xkey.state);
-			MBAppendInteger(mb, event.xkey.keycode);
+			FBPutSlotSymbol(fb, "type", "KeyPress");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-key-event");
+			FBPutSlotInteger(fb, "root", event.xkey.root);
+			FBPutSlotInteger(fb, "subwindow", event.xkey.subwindow);
+			FBPutSlotInteger(fb, "time", event.xkey.time);
+			FBPutSlotInteger(fb, "x", event.xkey.x);
+			FBPutSlotInteger(fb, "y", event.xkey.y);
+			FBPutSlotInteger(fb, "x-root", event.xkey.x_root);
+			FBPutSlotInteger(fb, "y-root", event.xkey.y_root);
+			if (event.xkey.state & Button1Mask) {
+				MBAppendSymbol(mb, "Button1");
+			}
+			if (event.xkey.state & Button2Mask) {
+				MBAppendSymbol(mb, "Button2");
+			}
+			if (event.xkey.state & Button3Mask) {
+				MBAppendSymbol(mb, "Button3");
+			}
+			if (event.xkey.state & Button4Mask) {
+				MBAppendSymbol(mb, "Button4");
+			}
+			if (event.xkey.state & Button5Mask) {
+				MBAppendSymbol(mb, "Button5");
+			}
+			if (event.xkey.state & ShiftMask) {
+				MBAppendSymbol(mb, "Shift");
+			}
+			if (event.xkey.state & LockMask) {
+				MBAppendSymbol(mb, "Lock");
+			}
+			if (event.xkey.state & ControlMask) {
+				MBAppendSymbol(mb, "Control");
+			}
+			if (event.xkey.state & Mod1Mask) {
+				MBAppendSymbol(mb, "Mod1");
+			}
+			if (event.xkey.state & Mod2Mask) {
+				MBAppendSymbol(mb, "Mod2");
+			}
+			if (event.xkey.state & Mod3Mask) {
+				MBAppendSymbol(mb, "Mod3");
+			}
+			if (event.xkey.state & Mod4Mask) {
+				MBAppendSymbol(mb, "Mod4");
+			}
+			if (event.xkey.state & Mod5Mask) {
+				MBAppendSymbol(mb, "Mod5");
+			}
+			FBPutSlotMultifield(fb, "state", MBCreate(mb));
+			MBDispose(mb);
+			FBPutSlotInteger(fb, "keycode", event.xkey.keycode);
 			if (event.xkey.same_screen)
 			{
-				MBAppendSymbol(mb, "TRUE");
+				FBPutSlotSymbol(fb, "same-screen", "TRUE");
 			}
 			else
 			{
-				MBAppendSymbol(mb, "FALSE");
+				FBPutSlotSymbol(fb, "same-screen", "FALSE");
 			}
 			XLookupString(&event.xkey, buffer, sizeof(buffer), &keysym, &compose);
-			MBAppendSymbol(mb, buffer);
-			MBAppendInteger(mb, keysym);
-			MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, compose.compose_ptr));
-			MBAppendInteger(mb, compose.chars_matched);
+			FBPutSlotString(fb, "buffer", buffer);
+			FBPutSlotInteger(fb, "keysym", keysym);
+			FBPutSlotExternalAddress(fb, "compose-ptr", CreateCExternalAddress(theEnv, compose.compose_ptr));
+			FBPutSlotInteger(fb, "chars-matched", compose.chars_matched);
 			break;
 		case KeyRelease:
-			MBAppendSymbol(mb, "KeyRelease");
-			MBAppendInteger(mb, event.xkey.root);
-			MBAppendInteger(mb, event.xkey.subwindow);
-			MBAppendInteger(mb, event.xkey.time);
-			MBAppendInteger(mb, event.xkey.x);
-			MBAppendInteger(mb, event.xkey.y);
-			MBAppendInteger(mb, event.xkey.x_root);
-			MBAppendInteger(mb, event.xkey.y_root);
-			MBAppendInteger(mb, event.xkey.state);
-			MBAppendInteger(mb, event.xkey.keycode);
+			FBPutSlotSymbol(fb, "type", "KeyPress");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-key-event");
+			FBPutSlotInteger(fb, "root", event.xkey.root);
+			FBPutSlotInteger(fb, "subwindow", event.xkey.subwindow);
+			FBPutSlotInteger(fb, "time", event.xkey.time);
+			FBPutSlotInteger(fb, "x", event.xkey.x);
+			FBPutSlotInteger(fb, "y", event.xkey.y);
+			FBPutSlotInteger(fb, "x-root", event.xkey.x_root);
+			FBPutSlotInteger(fb, "y-root", event.xkey.y_root);
+			if (event.xkey.state & Button1Mask) {
+				MBAppendSymbol(mb, "Button1");
+			}
+			if (event.xkey.state & Button2Mask) {
+				MBAppendSymbol(mb, "Button2");
+			}
+			if (event.xkey.state & Button3Mask) {
+				MBAppendSymbol(mb, "Button3");
+			}
+			if (event.xkey.state & Button4Mask) {
+				MBAppendSymbol(mb, "Button4");
+			}
+			if (event.xkey.state & Button5Mask) {
+				MBAppendSymbol(mb, "Button5");
+			}
+			if (event.xkey.state & ShiftMask) {
+				MBAppendSymbol(mb, "Shift");
+			}
+			if (event.xkey.state & LockMask) {
+				MBAppendSymbol(mb, "Lock");
+			}
+			if (event.xkey.state & ControlMask) {
+				MBAppendSymbol(mb, "Control");
+			}
+			if (event.xkey.state & Mod1Mask) {
+				MBAppendSymbol(mb, "Mod1");
+			}
+			if (event.xkey.state & Mod2Mask) {
+				MBAppendSymbol(mb, "Mod2");
+			}
+			if (event.xkey.state & Mod3Mask) {
+				MBAppendSymbol(mb, "Mod3");
+			}
+			if (event.xkey.state & Mod4Mask) {
+				MBAppendSymbol(mb, "Mod4");
+			}
+			if (event.xkey.state & Mod5Mask) {
+				MBAppendSymbol(mb, "Mod5");
+			}
+			FBPutSlotMultifield(fb, "state", MBCreate(mb));
+			MBDispose(mb);
+
+			FBPutSlotInteger(fb, "keycode", event.xkey.keycode);
 			if (event.xkey.same_screen)
 			{
-				MBAppendSymbol(mb, "TRUE");
+				FBPutSlotSymbol(fb, "same-screen", "TRUE");
 			}
 			else
 			{
-				MBAppendSymbol(mb, "FALSE");
+				FBPutSlotSymbol(fb, "same-screen", "FALSE");
 			}
 			XLookupString(&event.xkey, buffer, sizeof(buffer), &keysym, &compose);
-			MBAppendSymbol(mb, buffer);
-			MBAppendInteger(mb, keysym);
-			MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, compose.compose_ptr));
-			MBAppendInteger(mb, compose.chars_matched);
+			FBPutSlotString(fb, "buffer", buffer);
+			FBPutSlotInteger(fb, "keysym", keysym);
+			FBPutSlotExternalAddress(fb, "compose-ptr", CreateCExternalAddress(theEnv, compose.compose_ptr));
+			FBPutSlotInteger(fb, "chars-matched", compose.chars_matched);
 			break;
 		case ButtonPress:
-			MBAppendSymbol(mb, "ButtonPress");
-			MBAppendInteger(mb, event.xbutton.root);
-			MBAppendInteger(mb, event.xbutton.subwindow);
-			MBAppendInteger(mb, event.xbutton.time);
-			MBAppendInteger(mb, event.xbutton.x);
-			MBAppendInteger(mb, event.xbutton.y);
-			MBAppendInteger(mb, event.xbutton.x_root);
-			MBAppendInteger(mb, event.xbutton.y_root);
+			FBPutSlotSymbol(mb, "type", "ButtonPress");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-button-event");
+			FBPutSlotInteger(fb, "root", event.xbutton.root);
+			FBPutSlotInteger(fb, "subwindow", event.xbutton.subwindow);
+			FBPutSlotInteger(fb, "time", event.xbutton.time);
+			FBPutSlotInteger(fb, "x", event.xbutton.x);
+			FBPutSlotInteger(fb, "y", event.xbutton.y);
+			FBPutSlotInteger(fb, "x-root", event.xbutton.x_root);
+			FBPutSlotInteger(fb, "y-root", event.xbutton.y_root);
 			MBAppendInteger(mb, event.xbutton.state);
-			MBAppendInteger(mb, event.xbutton.button);
+			if (event.xbutton.state & Button1Mask) {
+				MBAppendSymbol(mb, "Button1");
+			}
+			if (event.xbutton.state & Button2Mask) {
+				MBAppendSymbol(mb, "Button2");
+			}
+			if (event.xbutton.state & Button3Mask) {
+				MBAppendSymbol(mb, "Button3");
+			}
+			if (event.xbutton.state & Button4Mask) {
+				MBAppendSymbol(mb, "Button4");
+			}
+			if (event.xbutton.state & Button5Mask) {
+				MBAppendSymbol(mb, "Button5");
+			}
+			if (event.xbutton.state & ShiftMask) {
+				MBAppendSymbol(mb, "Shift");
+			}
+			if (event.xbutton.state & LockMask) {
+				MBAppendSymbol(mb, "Lock");
+			}
+			if (event.xbutton.state & ControlMask) {
+				MBAppendSymbol(mb, "Control");
+			}
+			if (event.xbutton.state & Mod1Mask) {
+				MBAppendSymbol(mb, "Mod1");
+			}
+			if (event.xbutton.state & Mod2Mask) {
+				MBAppendSymbol(mb, "Mod2");
+			}
+			if (event.xbutton.state & Mod3Mask) {
+				MBAppendSymbol(mb, "Mod3");
+			}
+			if (event.xbutton.state & Mod4Mask) {
+				MBAppendSymbol(mb, "Mod4");
+			}
+			if (event.xbutton.state & Mod5Mask) {
+				MBAppendSymbol(mb, "Mod5");
+			}
+			FBPutSlotMultifield(fb, "state", MBCreate(mb));
+			MBDispose(mb);
+			FBPutSlotInteger(fb, "button", event.xbutton.button);
 			if (event.xbutton.same_screen)
 			{
-				MBAppendSymbol(mb, "TRUE");
+				FBAppendSymbol(mb, "same-screen", "TRUE");
 			}
 			else
 			{
-				MBAppendSymbol(mb, "FALSE");
+				FBAppendSymbol(mb, "same-screen", "FALSE");
 			}
 			break;
 		case ButtonRelease:
-			MBAppendSymbol(mb, "ButtonRelease");
-			MBAppendInteger(mb, event.xbutton.root);
-			MBAppendInteger(mb, event.xbutton.subwindow);
-			MBAppendInteger(mb, event.xbutton.time);
-			MBAppendInteger(mb, event.xbutton.x);
-			MBAppendInteger(mb, event.xbutton.y);
-			MBAppendInteger(mb, event.xbutton.x_root);
-			MBAppendInteger(mb, event.xbutton.y_root);
+			FBPutSlotSymbol(mb, "type", "ButtonRelease");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-button-event");
+			FBPutSlotInteger(fb, "root", event.xbutton.root);
+			FBPutSlotInteger(fb, "subwindow", event.xbutton.subwindow);
+			FBPutSlotInteger(fb, "time", event.xbutton.time);
+			FBPutSlotInteger(fb, "x", event.xbutton.x);
+			FBPutSlotInteger(fb, "y", event.xbutton.y);
+			FBPutSlotInteger(fb, "x-root", event.xbutton.x_root);
+			FBPutSlotInteger(fb, "y-root", event.xbutton.y_root);
 			MBAppendInteger(mb, event.xbutton.state);
-			MBAppendInteger(mb, event.xbutton.button);
+			if (event.xbutton.state & Button1Mask) {
+				MBAppendSymbol(mb, "Button1");
+			}
+			if (event.xbutton.state & Button2Mask) {
+				MBAppendSymbol(mb, "Button2");
+			}
+			if (event.xbutton.state & Button3Mask) {
+				MBAppendSymbol(mb, "Button3");
+			}
+			if (event.xbutton.state & Button4Mask) {
+				MBAppendSymbol(mb, "Button4");
+			}
+			if (event.xbutton.state & Button5Mask) {
+				MBAppendSymbol(mb, "Button5");
+			}
+			if (event.xbutton.state & ShiftMask) {
+				MBAppendSymbol(mb, "Shift");
+			}
+			if (event.xbutton.state & LockMask) {
+				MBAppendSymbol(mb, "Lock");
+			}
+			if (event.xbutton.state & ControlMask) {
+				MBAppendSymbol(mb, "Control");
+			}
+			if (event.xbutton.state & Mod1Mask) {
+				MBAppendSymbol(mb, "Mod1");
+			}
+			if (event.xbutton.state & Mod2Mask) {
+				MBAppendSymbol(mb, "Mod2");
+			}
+			if (event.xbutton.state & Mod3Mask) {
+				MBAppendSymbol(mb, "Mod3");
+			}
+			if (event.xbutton.state & Mod4Mask) {
+				MBAppendSymbol(mb, "Mod4");
+			}
+			if (event.xbutton.state & Mod5Mask) {
+				MBAppendSymbol(mb, "Mod5");
+			}
+			FBPutSlotMultifield(fb, "state", MBCreate(mb));
+			MBDispose(mb);
+			FBPutSlotInteger(fb, "button", event.xbutton.button);
 			if (event.xbutton.same_screen)
 			{
-				MBAppendSymbol(mb, "TRUE");
+				FBAppendSymbol(mb, "same-screen", "TRUE");
 			}
 			else
 			{
-				MBAppendSymbol(mb, "FALSE");
+				FBAppendSymbol(mb, "same-screen", "FALSE");
 			}
 			break;
 		case MotionNotify:
-			MBAppendSymbol(mb, "MotionNotify");
-			MBAppendInteger(mb, event.xmotion.root);
-			MBAppendInteger(mb, event.xmotion.subwindow);
-			MBAppendInteger(mb, event.xmotion.time);
-			MBAppendInteger(mb, event.xmotion.x);
-			MBAppendInteger(mb, event.xmotion.y);
-			MBAppendInteger(mb, event.xmotion.x_root);
-			MBAppendInteger(mb, event.xmotion.y_root);
+			FBPutSlotSymbol(fb, "type", "MotionNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-motion-event");
+			FBPutSlotInteger(fb, "root", event.xmotion.root);
+			FBPutSlotInteger(fb, "subwindow", event.xmotion.subwindow);
+			FBPutSlotInteger(fb, "time", event.xmotion.time);
+			FBPutSlotInteger(fb, "x", event.xmotion.x);
+			FBPutSlotInteger(fb, "y", event.xmotion.y);
+			FBPutSlotInteger(fb, "x-root", event.xmotion.x_root);
+			FBPutSlotInteger(fb, "y-root", event.xmotion.y_root);
 			switch(event.xmotion.is_hint)
 			{
 				case NotifyNormal:
-					MBAppendSymbol(mb, "NotifyNormal");
+					FBPutSlotSymbol(fb, "is-hint", "NotifyNormal");
 					break;
 				case NotifyHint:
-					MBAppendSymbol(mb, "NotifyHint");
+					FBPutSlotSymbol(fb, "is-hint", "NotifyHint");
 					break;
 				default:
 					WriteString(theEnv,STDERR,"Notify hint type ");
@@ -583,29 +764,35 @@ void XPeekEventFunction(
 			}
 			if (event.xmotion.same_screen)
 			{
-				MBAppendSymbol(mb, "TRUE");
+				FBPutSlotSymbol(fb, "same-screen", "TRUE");
 			}
 			else
 			{
-				MBAppendSymbol(mb, "FALSE");
+				FBPutSlotSymbol(fb, "same-screen", "FALSE");
 			}
 			break;
 		case EnterNotify:
-			MBAppendSymbol(mb, "EnterNotify");
-			MBAppendInteger(mb, event.xcrossing.root);
-			MBAppendInteger(mb, event.xcrossing.subwindow);
-			MBAppendInteger(mb, event.xcrossing.time);
-			MBAppendInteger(mb, event.xcrossing.x);
-			MBAppendInteger(mb, event.xcrossing.y);
-			MBAppendInteger(mb, event.xcrossing.x_root);
-			MBAppendInteger(mb, event.xcrossing.y_root);
+			FBPutSlotSymbol(fb, "type", "EnterNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-crossing-event");
+			FBPutSlotInteger(fb, "root", event.xcrossing.root);
+			FBPutSlotInteger(fb, "subwindow", event.xcrossing.subwindow);
+			FBPutSlotInteger(fb, "time", event.xcrossing.time);
+			FBPutSlotInteger(fb, "x", event.xcrossing.x);
+			FBPutSlotInteger(fb, "y", event.xcrossing.y);
+			FBPutSlotInteger(fb, "x-root", event.xcrossing.x_root);
+			FBPutSlotInteger(fb, "y-root", event.xcrossing.y_root);
 			switch(event.xcrossing.mode)
 			{
 				case NotifyNormal:
+					FBPutSlotSymbol(fb, "mode", "NotifyNormal");
 					break;
 				case NotifyGrab:
+					FBPutSlotSymbol(fb, "mode", "NotifyGrab");
 					break;
 				case NotifyUngrab:
+					FBPutSlotSymbol(fb, "mode", "NotifyUngrab");
 					break;
 				default:
 					WriteString(theEnv,STDERR,"EnterNotify mode ");
@@ -617,14 +804,19 @@ void XPeekEventFunction(
 			switch(event.xcrossing.detail)
 			{
 				case NotifyAncestor:
+					FBPutSlotSymbol(fb, "detail", "NotifyAncestor");
 					break;
 				case NotifyVirtual:
+					FBPutSlotSymbol(fb, "detail", "NotifyVirtual");
 					break;
 				case NotifyInferior:
+					FBPutSlotSymbol(fb, "detail", "NotifyInferior");
 					break;
 				case NotifyNonlinear:
+					FBPutSlotSymbol(fb, "detail", "NotifyNonlinear");
 					break;
 				case NotifyNonlinearVirtual:
+					FBPutSlotSymbol(fb, "detail", "NotifyNonlinearVirtual");
 					break;
 				default:
 					WriteString(theEnv,STDERR,"EnterNotify detail ");
@@ -635,19 +827,19 @@ void XPeekEventFunction(
 			}
 			if (event.xcrossing.same_screen)
 			{
-				MBAppendSymbol(mb, "TRUE");
+				FBPutSlotSymbol(fb, "same-screen", "TRUE");
 			}
 			else
 			{
-				MBAppendSymbol(mb, "FALSE");
+				FBPutSlotSymbol(fb, "same-screen", "FALSE");
 			}
 			if (event.xcrossing.focus)
 			{
-				MBAppendSymbol(mb, "TRUE");
+				FBPutSlotSymbol(fb, "focus", "TRUE");
 			}
 			else
 			{
-				MBAppendSymbol(mb, "FALSE");
+				FBPutSlotSymbol(fb, "focus", "FALSE");
 			}
 			if (event.xcrossing.state & Button1Mask) {
 				MBAppendSymbol(mb, "Button1");
@@ -688,23 +880,31 @@ void XPeekEventFunction(
 			if (event.xcrossing.state & Mod5Mask) {
 				MBAppendSymbol(mb, "Mod5");
 			}
+			FBPutSlotMultifield(fb, "state", MBCreate(mb));
+			MBDispose(mb);
 			break;
 		case LeaveNotify:
-			MBAppendSymbol(mb, "LeaveNotify");
-			MBAppendInteger(mb, event.xcrossing.root);
-			MBAppendInteger(mb, event.xcrossing.subwindow);
-			MBAppendInteger(mb, event.xcrossing.time);
-			MBAppendInteger(mb, event.xcrossing.x);
-			MBAppendInteger(mb, event.xcrossing.y);
-			MBAppendInteger(mb, event.xcrossing.x_root);
-			MBAppendInteger(mb, event.xcrossing.y_root);
+			FBPutSlotSymbol(fb, "type", "LeaveNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-crossing-event");
+			FBPutSlotInteger(fb, "root", event.xcrossing.root);
+			FBPutSlotInteger(fb, "subwindow", event.xcrossing.subwindow);
+			FBPutSlotInteger(fb, "time", event.xcrossing.time);
+			FBPutSlotInteger(fb, "x", event.xcrossing.x);
+			FBPutSlotInteger(fb, "y", event.xcrossing.y);
+			FBPutSlotInteger(fb, "x-root", event.xcrossing.x_root);
+			FBPutSlotInteger(fb, "y-root", event.xcrossing.y_root);
 			switch(event.xcrossing.mode)
 			{
 				case NotifyNormal:
+					FBPutSlotSymbol(fb, "mode", "NotifyNormal");
 					break;
 				case NotifyGrab:
+					FBPutSlotSymbol(fb, "mode", "NotifyGrab");
 					break;
 				case NotifyUngrab:
+					FBPutSlotSymbol(fb, "mode", "NotifyUngrab");
 					break;
 				default:
 					WriteString(theEnv,STDERR,"LeaveNotify mode ");
@@ -716,14 +916,19 @@ void XPeekEventFunction(
 			switch(event.xcrossing.detail)
 			{
 				case NotifyAncestor:
+					FBPutSlotSymbol(fb, "detail", "NotifyAncestor");
 					break;
 				case NotifyVirtual:
+					FBPutSlotSymbol(fb, "detail", "NotifyVirtual");
 					break;
 				case NotifyInferior:
+					FBPutSlotSymbol(fb, "detail", "NotifyInferior");
 					break;
 				case NotifyNonlinear:
+					FBPutSlotSymbol(fb, "detail", "NotifyNonlinear");
 					break;
 				case NotifyNonlinearVirtual:
+					FBPutSlotSymbol(fb, "detail", "NotifyNonlinearVirtual");
 					break;
 				default:
 					WriteString(theEnv,STDERR,"LeaveNotify detail ");
@@ -734,19 +939,19 @@ void XPeekEventFunction(
 			}
 			if (event.xcrossing.same_screen)
 			{
-				MBAppendSymbol(mb, "TRUE");
+				FBPutSlotSymbol(fb, "same-screen", "TRUE");
 			}
 			else
 			{
-				MBAppendSymbol(mb, "FALSE");
+				FBPutSlotSymbol(fb, "same-screen", "FALSE");
 			}
 			if (event.xcrossing.focus)
 			{
-				MBAppendSymbol(mb, "TRUE");
+				FBPutSlotSymbol(fb, "focus", "TRUE");
 			}
 			else
 			{
-				MBAppendSymbol(mb, "FALSE");
+				FBPutSlotSymbol(fb, "focus", "FALSE");
 			}
 			if (event.xcrossing.state & Button1Mask) {
 				MBAppendSymbol(mb, "Button1");
@@ -787,23 +992,31 @@ void XPeekEventFunction(
 			if (event.xcrossing.state & Mod5Mask) {
 				MBAppendSymbol(mb, "Mod5");
 			}
+			FBPutSlotMultifield(fb, "state", MBCreate(mb));
+			MBDispose(mb);
 			break;
 		case FocusIn:
-			MBAppendSymbol(mb, "FocusIn");
-			MBAppendInteger(mb, event.xcrossing.root);
-			MBAppendInteger(mb, event.xcrossing.subwindow);
-			MBAppendInteger(mb, event.xcrossing.time);
-			MBAppendInteger(mb, event.xcrossing.x);
-			MBAppendInteger(mb, event.xcrossing.y);
-			MBAppendInteger(mb, event.xcrossing.x_root);
-			MBAppendInteger(mb, event.xcrossing.y_root);
+			FBPutSlotSymbol(fb, "type", "FocusIn");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-focus-event");
+			FBPutSlotInteger(fb, "root", event.xcrossing.root);
+			FBPutSlotInteger(fb, "subwindow", event.xcrossing.subwindow);
+			FBPutSlotInteger(fb, "time", event.xcrossing.time);
+			FBPutSlotInteger(fb, "x", event.xcrossing.x);
+			FBPutSlotInteger(fb, "y", event.xcrossing.y);
+			FBPutSlotInteger(fb, "x-root", event.xcrossing.x_root);
+			FBPutSlotInteger(fb, "y-root", event.xcrossing.y_root);
 			switch(event.xcrossing.mode)
 			{
 				case NotifyNormal:
+					FBPutSlotSymbol(fb, "mode", "NotifyNormal");
 					break;
 				case NotifyGrab:
+					FBPutSlotSymbol(fb, "mode", "NotifyGrab");
 					break;
 				case NotifyUngrab:
+					FBPutSlotSymbol(fb, "mode", "NotifyUngrab");
 					break;
 				default:
 					WriteString(theEnv,STDERR,"FocusIn mode ");
@@ -815,20 +1028,28 @@ void XPeekEventFunction(
 			switch(event.xcrossing.detail)
 			{
 				case NotifyAncestor:
+					FBPutSlotSymbol(fb, "detail", "NotifyAncestor");
 					break;
 				case NotifyVirtual:
+					FBPutSlotSymbol(fb, "detail", "NotifyVirtual");
 					break;
 				case NotifyInferior:
+					FBPutSlotSymbol(fb, "detail", "NotifyInferior");
 					break;
 				case NotifyNonlinear:
+					FBPutSlotSymbol(fb, "detail", "NotifyNonlinear");
 					break;
 				case NotifyNonlinearVirtual:
+					FBPutSlotSymbol(fb, "detail", "NotifyNonlinearVirtual");
 					break;
 				case NotifyPointer:
+					FBPutSlotSymbol(fb, "detail", "NotifyPointer");
 					break;
 				case NotifyPointerRoot:
+					FBPutSlotSymbol(fb, "detail", "NotifyPointerRoot");
 					break;
 				case NotifyDetailNone:
+					FBPutSlotSymbol(fb, "detail", "NotifyDetailNone");
 					break;
 				default:
 					WriteString(theEnv,STDERR,"FocusIn detail ");
@@ -839,21 +1060,27 @@ void XPeekEventFunction(
 			}
 			break;
 		case FocusOut:
-			MBAppendSymbol(mb, "FocusOut");
-			MBAppendInteger(mb, event.xcrossing.root);
-			MBAppendInteger(mb, event.xcrossing.subwindow);
-			MBAppendInteger(mb, event.xcrossing.time);
-			MBAppendInteger(mb, event.xcrossing.x);
-			MBAppendInteger(mb, event.xcrossing.y);
-			MBAppendInteger(mb, event.xcrossing.x_root);
-			MBAppendInteger(mb, event.xcrossing.y_root);
+			FBPutSlotSymbol(fb, "type", "FocusOut");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-focus-event");
+			FBPutSlotInteger(fb, "root", event.xcrossing.root);
+			FBPutSlotInteger(fb, "subwindow", event.xcrossing.subwindow);
+			FBPutSlotInteger(fb, "time", event.xcrossing.time);
+			FBPutSlotInteger(fb, "x", event.xcrossing.x);
+			FBPutSlotInteger(fb, "y", event.xcrossing.y);
+			FBPutSlotInteger(fb, "x-root", event.xcrossing.x_root);
+			FBPutSlotInteger(fb, "y-root", event.xcrossing.y_root);
 			switch(event.xcrossing.mode)
 			{
 				case NotifyNormal:
+					FBPutSlotSymbol(fb, "mode", "NotifyNormal");
 					break;
 				case NotifyGrab:
+					FBPutSlotSymbol(fb, "mode", "NotifyGrab");
 					break;
 				case NotifyUngrab:
+					FBPutSlotSymbol(fb, "mode", "NotifyUngrab");
 					break;
 				default:
 					WriteString(theEnv,STDERR,"FocusOut mode ");
@@ -865,67 +1092,94 @@ void XPeekEventFunction(
 			switch(event.xcrossing.detail)
 			{
 				case NotifyAncestor:
+					FBPutSlotSymbol(fb, "detail", "NotifyAncestor");
 					break;
 				case NotifyVirtual:
+					FBPutSlotSymbol(fb, "detail", "NotifyVirtual");
 					break;
 				case NotifyInferior:
+					FBPutSlotSymbol(fb, "detail", "NotifyInferior");
 					break;
 				case NotifyNonlinear:
+					FBPutSlotSymbol(fb, "detail", "NotifyNonlinear");
 					break;
 				case NotifyNonlinearVirtual:
+					FBPutSlotSymbol(fb, "detail", "NotifyNonlinearVirtual");
 					break;
 				case NotifyPointer:
+					FBPutSlotSymbol(fb, "detail", "NotifyPointer");
 					break;
 				case NotifyPointerRoot:
+					FBPutSlotSymbol(fb, "detail", "NotifyPointerRoot");
 					break;
 				case NotifyDetailNone:
+					FBPutSlotSymbol(fb, "detail", "NotifyDetailNone");
 					break;
 				default:
-					WriteString(theEnv,STDERR,"FocusIn detail ");
+					WriteString(theEnv,STDERR,"FocusOut detail ");
 					WriteInteger(theEnv,STDERR,event.xcrossing.detail);
 					WriteString(theEnv,STDERR," not supported.\n");
 					returnValue->lexemeValue = FalseSymbol(theEnv);
 					return;
 			}
-			MBAppendSymbol(mb, "FocusOut");
-			break;
 		case KeymapNotify:
-			MBAppendSymbol(mb, "KeymapNotify");
-			MBAppendString(mb, event.xkeymap.key_vector);
+			FBPutSlotSymbol(fb, "type", "KeymapNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-keymap-event");
+			for (int x = 0; x < 32; x++)
+			{
+				MBAppendInteger(mb, event.xkeymap.key_vector[x]);
+			}
+			FBPutSlotMultifield(fb, "key-vector", MBCreate(mb));
+			MBDispose(mb);
 			break;
 		case Expose:
-			MBAppendSymbol(mb, "Expose");
-			MBAppendInteger(mb, event.xexpose.x);
-			MBAppendInteger(mb, event.xexpose.y);
-			MBAppendInteger(mb, event.xexpose.width);
-			MBAppendInteger(mb, event.xexpose.height);
-			MBAppendInteger(mb, event.xexpose.count);
+			FBPutSlotSymbol(fb, "type", "Expose");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-expose-event");
+			FBPutSlotInteger(fb, "x", event.xexpose.x);
+			FBPutSlotInteger(fb, "y", event.xexpose.y);
+			FBPutSlotInteger(fb, "width", event.xexpose.width);
+			FBPutSlotInteger(fb, "height", event.xexpose.height);
+			FBPutSlotInteger(fb, "count", event.xexpose.count);
 			break;
 		case GraphicsExpose:
-			MBAppendSymbol(mb, "GraphicsExpose");
-			MBAppendInteger(mb, event.xgraphicsexpose.drawable);
-			MBAppendInteger(mb, event.xgraphicsexpose.x);
-			MBAppendInteger(mb, event.xgraphicsexpose.y);
-			MBAppendInteger(mb, event.xgraphicsexpose.width);
-			MBAppendInteger(mb, event.xgraphicsexpose.height);
-			MBAppendInteger(mb, event.xgraphicsexpose.count);
-			MBAppendInteger(mb, event.xgraphicsexpose.major_code);
-			MBAppendInteger(mb, event.xgraphicsexpose.minor_code);
+			FBPutSlotSymbol(fb, "type", "GraphicsExpose");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-graphics-expose-event");
+			FBPutSlotInteger(fb, "x", event.xgraphicsexpose.x);
+			FBPutSlotInteger(fb, "y", event.xgraphicsexpose.y);
+			FBPutSlotInteger(fb, "width", event.xgraphicsexpose.width);
+			FBPutSlotInteger(fb, "height", event.xgraphicsexpose.height);
+			FBPutSlotInteger(fb, "count", event.xgraphicsexpose.count);
+			FBPutSlotInteger(fb, "major-code", event.xgraphicsexpose.major_code);
+			FBPutSlotInteger(fb, "minor-code", event.xgraphicsexpose.minor_code);
 			break;
 		case NoExpose:
-			MBAppendSymbol(mb, "NoExpose");
-			MBAppendInteger(mb, event.xnoexpose.drawable);
-			MBAppendInteger(mb, event.xnoexpose.major_code);
-			MBAppendInteger(mb, event.xnoexpose.minor_code);
+			FBPutSlotSymbol(fb, "type", "NoExpose");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-no-expose-event");
+			FBPutSlotInteger(fb, "drawable", event.xnoexpose.drawable);
+			FBPutSlotInteger(fb, "major-code", event.xnoexpose.major_code);
+			FBPutSlotInteger(fb, "minor-code", event.xnoexpose.minor_code);
 			break;
 		case CirculateRequest:
-			MBAppendSymbol(mb, "CirculateRequest");
-			MBAppendInteger(mb, event.xcirculaterequest.parent);
+			FBPutSlotSymbol(fb, "type", "CirculateRequest");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-circulate-request-event");
+			FBPutSlotInteger(fb, "parent", event.xcirculaterequest.parent);
 			switch(event.xcirculaterequest.place)
 			{
 				case PlaceOnTop:
+					FBPutSlotSymbol(fb, "place", "PlaceOnTop");
 					break;
 				case PlaceOnBottom:
+					FBPutSlotSymbol(fb, "place", "PlaceOnBottom");
 					break;
 				default:
 					WriteString(theEnv,STDERR,"CirculateRequest place ");
@@ -936,25 +1190,33 @@ void XPeekEventFunction(
 			}
 			break;
 		case ConfigureRequest:
-			MBAppendSymbol(mb, "ConfigureRequest");
-			MBAppendInteger(mb, event.xconfigurerequest.parent);
-			MBAppendInteger(mb, event.xconfigurerequest.x);
-			MBAppendInteger(mb, event.xconfigurerequest.y);
-			MBAppendInteger(mb, event.xconfigurerequest.width);
-			MBAppendInteger(mb, event.xconfigurerequest.height);
-			MBAppendInteger(mb, event.xconfigurerequest.border_width);
-			MBAppendInteger(mb, event.xconfigurerequest.above);
+			FBPutSlotSymbol(fb, "type", "ConfigureRequest");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-configure-request-event");
+			FBPutSlotInteger(fb, "parent", event.xconfigurerequest.parent);
+			FBPutSlotInteger(fb, "x", event.xconfigurerequest.x);
+			FBPutSlotInteger(fb, "y", event.xconfigurerequest.y);
+			FBPutSlotInteger(fb, "width", event.xconfigurerequest.width);
+			FBPutSlotInteger(fb, "height", event.xconfigurerequest.height);
+			FBPutSlotInteger(fb, "border-width", event.xconfigurerequest.border_width);
+			FBPutSlotInteger(fb, "above", event.xconfigurerequest.above);
 			switch(event.xconfigurerequest.detail)
 			{
 				case Above:
+					FBPutSlotSymbol(fb, "detail", "Above");
 					break;
 				case Below:
+					FBPutSlotSymbol(fb, "detail", "Below");
 					break;
 				case TopIf:
+					FBPutSlotSymbol(fb, "detail", "TopIf");
 					break;
 				case BottomIf:
+					FBPutSlotSymbol(fb, "detail", "BottomIf");
 					break;
 				case Opposite:
+					FBPutSlotSymbol(fb, "detail", "Opposite");
 					break;
 				default:
 					WriteString(theEnv,STDERR,"ConfigureRequest detail ");
@@ -963,25 +1225,36 @@ void XPeekEventFunction(
 					returnValue->lexemeValue = FalseSymbol(theEnv);
 					return;
 			}
-			MBAppendInteger(mb, event.xconfigurerequest.value_mask);
+			FBPutSlotInteger(fb, "value-mask", event.xconfigurerequest.value_mask);
 			break;
 		case MapRequest:
-			MBAppendSymbol(mb, "MapRequest");
-			MBAppendInteger(mb, event.xmaprequest.parent);
+			FBPutSlotSymbol(fb, "type", "MapRequest");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-map-request-event");
+			FBPutSlotInteger(fb, "parent", event.xmaprequest.parent);
 			break;
 		case ResizeRequest:
-			MBAppendSymbol(mb, "ResizeRequest");
-			MBAppendInteger(mb, event.xresizerequest.width);
-			MBAppendInteger(mb, event.xresizerequest.height);
+			FBPutSlotSymbol(fb, "type", "ResizeRequest");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-resize-request-event");
+			FBPutSlotInteger(fb, "width", event.xresizerequest.width);
+			FBPutSlotInteger(fb, "height", event.xresizerequest.height);
 			break;
 		case CirculateNotify:
-			MBAppendSymbol(mb, "CirculateNotify");
-			MBAppendInteger(mb, event.xcirculate.event);
+			FBPutSlotSymbol(fb, "type", "CirculateNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-circulate-event");
+			FBPutSlotInteger(fb, "event", event.xcirculate.event);
 			switch(event.xcirculate.place)
 			{
 				case PlaceOnTop:
+					FBPutSlotInteger(fb, "place", "PlaceOnTop");
 					break;
 				case PlaceOnBottom:
+					FBPutSlotInteger(fb, "place", "PlaceOnBottom");
 					break;
 				default:
 					WriteString(theEnv,STDERR,"CirculateNotify place ");
@@ -992,88 +1265,122 @@ void XPeekEventFunction(
 			}
 			break;
 		case ConfigureNotify:
-			MBAppendSymbol(mb, "ConfigureNotify");
-			MBAppendInteger(mb, event.xconfigure.event);
-			MBAppendInteger(mb, event.xconfigure.x);
-			MBAppendInteger(mb, event.xconfigure.y);
-			MBAppendInteger(mb, event.xconfigure.width);
-			MBAppendInteger(mb, event.xconfigure.height);
-			MBAppendInteger(mb, event.xconfigure.border_width);
-			MBAppendInteger(mb, event.xconfigure.above);
+			FBPutSlotSymbol(fb, "type", "ConfigureNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-configure-event");
+			FBPutSlotInteger(fb, "event", event.xconfigure.event);
+			FBPutSlotInteger(fb, "x", event.xconfigure.x);
+			FBPutSlotInteger(fb, "y", event.xconfigure.y);
+			FBPutSlotInteger(fb, "width", event.xconfigure.width);
+			FBPutSlotInteger(fb, "height", event.xconfigure.height);
+			FBPutSlotInteger(fb, "border-width", event.xconfigure.border_width);
+			FBPutSlotInteger(fb, "above", event.xconfigure.above);
 			if (event.xconfigure.override_redirect)
 			{
-				MBAppendSymbol(mb, "TRUE");
+				FBPutSlotSymbol(fb, "override-redirect", "TRUE");
 			}
 			else
 			{
-				MBAppendSymbol(mb, "FALSE");
+				FBPutSlotSymbol(fb, "override-redirect", "FALSE");
 			}
 			break;
 		case CreateNotify:
-			MBAppendSymbol(mb, "CreateNotify");
-			MBAppendInteger(mb, event.xcreatewindow.parent);
-			MBAppendInteger(mb, event.xcreatewindow.x);
-			MBAppendInteger(mb, event.xcreatewindow.y);
-			MBAppendInteger(mb, event.xcreatewindow.width);
-			MBAppendInteger(mb, event.xcreatewindow.height);
-			MBAppendInteger(mb, event.xcreatewindow.border_width);
+			FBPutSlotSymbol(fb, "type", "CreateNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-create-window-event");
+			FBPutSlotInteger(fb, "parent", event.xcreatewindow.parent);
+			FBPutSlotInteger(fb, "x", event.xcreatewindow.x);
+			FBPutSlotInteger(fb, "y", event.xcreatewindow.y);
+			FBPutSlotInteger(fb, "width", event.xcreatewindow.width);
+			FBPutSlotInteger(fb, "height", event.xcreatewindow.height);
+			FBPutSlotInteger(fb, "border-width", event.xcreatewindow.border_width);
 			if (event.xcreatewindow.override_redirect)
 			{
-				MBAppendSymbol(mb, "TRUE");
+				FBPutSlotSymbol(fb, "override-redirect", "TRUE");
 			}
 			else
 			{
-				MBAppendSymbol(mb, "FALSE");
+				FBPutSlotSymbol(fb, "override-redirect", "FALSE");
 			}
 			break;
 		case DestroyNotify:
-			MBAppendSymbol(mb, "DestroyNotify");
-			MBAppendInteger(mb, event.xdestroywindow.event);
+			FBPutSlotSymbol(fb, "type", "DestroyNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-destroy-window-event");
+			FBPutSlotInteger(fb, "event", event.xdestroywindow.event);
 			break;
 		case GravityNotify:
-			MBAppendSymbol(mb, "GravityNotify");
-			MBAppendInteger(mb, event.xgravity.event);
+			FBPutSlotSymbol(fb, "type", "GravityNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-gravity-event");
+			FBPutSlotInteger(fb, "event", event.xgravity.event);
 			break;
 		case MapNotify:
-			MBAppendSymbol(mb, "MapNotify");
-			MBAppendInteger(mb, event.xmap.event);
-			MBAppendInteger(mb, event.xmap.override_redirect);
-			break;
-		case MappingNotify:
-			MBAppendSymbol(mb, "MappingNotify");
-			MBAppendInteger(mb, event.xmapping.request);
-			MBAppendInteger(mb, event.xmapping.first_keycode);
-			MBAppendInteger(mb, event.xmapping.count);
-			break;
-		case ReparentNotify:
-			MBAppendSymbol(mb, "ReparentNotify");
-			MBAppendInteger(mb, event.xreparent.event);
-			MBAppendInteger(mb, event.xreparent.parent);
-			MBAppendInteger(mb, event.xreparent.x);
-			MBAppendInteger(mb, event.xreparent.y);
-			if (event.xreparent.override_redirect)
+			FBPutSlotSymbol(fb, "type", "MapNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-map-event");
+			FBPutSlotInteger(fb, "event", event.xmap.event);
+			if (event.xmap.override_redirect)
 			{
-				MBAppendSymbol(mb, "TRUE");
+				FBPutSlotSymbol(fb, "override-redirect", "TRUE");
 			}
 			else
 			{
-				MBAppendSymbol(mb, "FALSE");
+				FBPutSlotSymbol(fb, "override-redirect", "FALSE");
+			}
+			break;
+		case MappingNotify:
+			FBPutSlotSymbol(fb, "type", "MappingNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-mapping-event");
+			FBPutSlotInteger(fb, "request", event.xmapping.request);
+			FBPutSlotInteger(fb, "first-keycode", event.xmapping.first_keycode);
+			FBPutSlotInteger(fb, "count", event.xmapping.count);
+			break;
+		case ReparentNotify:
+			FBPutSlotSymbol(fb, "type", "ReparentNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-reparent-event");
+			FBPutSlotInteger(fb, "event", event.xreparent.event);
+			FBPutSlotInteger(fb, "parent", event.xreparent.parent);
+			FBPutSlotInteger(fb, "x", event.xreparent.x);
+			FBPutSlotInteger(fb, "y", event.xreparent.y);
+			if (event.xreparent.override_redirect)
+			{
+				FBPutSlotSymbol(fb, "override-redirect", "TRUE");
+			}
+			else
+			{
+				FBPutSlotSymbol(fb, "override-redirect", "FALSE");
 			}
 			break;
 		case UnmapNotify:
-			MBAppendSymbol(mb, "UnmapNotify");
-			MBAppendInteger(mb, event.xunmap.event);
+			FBPutSlotSymbol(fb, "type", "UnmapNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-reparent-event");
+			FBPutSlotInteger(fb, "event", event.xunmap.event);
 			if (event.xunmap.from_configure)
 			{
-				MBAppendSymbol(mb, "TRUE");
+				FBPutSlotSymbol(fb, "from-configure", "TRUE");
 			}
 			else
 			{
-				MBAppendSymbol(mb, "FALSE");
+				FBPutSlotSymbol(fb, "from-configure", "FALSE");
 			}
 			break;
 		case VisibilityNotify:
-			MBAppendSymbol(mb, "VisibilityNotify");
+			FBPutSlotSymbol(fb, "type", "VisibilityNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-visibility-event");
 			if (event.xvisibility.state & VisibilityUnobscured) {
 				MBAppendSymbol(mb, "VisibilityUnobscured");
 			}
@@ -1083,36 +1390,49 @@ void XPeekEventFunction(
 			if (event.xvisibility.state & VisibilityFullyObscured) {
 				MBAppendSymbol(mb, "VisibilityFullyObscured");
 			}
+			FBPutSlotMultifield(fb, "state", MBCreate(mb));
+			MBDispose(mb);
 			break;
 		case ColormapNotify:
-			MBAppendSymbol(mb, "ColormapNotify");
+			FBPutSlotSymbol(fb, "type", "ColormapNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-colormap-event");
 			if (event.xcolormap.colormap == None)
 			{
-				MBAppendSymbol(mb, "None");
+				FBPutSlotSymbol(fb, "colormap", "None");
 			}
 			else
 			{
-				MBAppendInteger(mb, event.xcolormap.colormap);
+				FBPutSlotInteger(fb, "colormap", event.xcolormap.colormap);
 			}
 			if (event.xcolormap.new)
 			{
-				MBAppendSymbol(mb, "TRUE");
+				FBPutSlotSymbol(fb, "new", "TRUE");
 			}
 			else
 			{
-				MBAppendSymbol(mb, "FALSE");
+				FBPutSlotSymbol(fb, "new", "FALSE");
 			}
-			if (event.xcolormap.state & ColormapInstalled) {
-				MBAppendSymbol(mb, "ColormapInstalled");
-			}
-			if (event.xcolormap.state & ColormapUninstalled) {
-				MBAppendSymbol(mb, "ColormapUninstalled");
+			switch(event.xcolormap.state)
+			{	
+				case ColormapInstalled:
+					FBPutSlotSymbol(fb, "state", "ColormapInstalled");
+					break;
+				case ColormapUninstalled:
+					FBPutSlotSymbol(fb, "state", "ColormapUninstalled");
+					break;
+				default:
+					break;
 			}
 			break;
 		case ClientMessage:
-			MBAppendSymbol(mb, "ClientMessage");
-			MBAppendInteger(mb, event.xclient.message_type);
-			MBAppendInteger(mb, event.xclient.format);
+			FBPutSlotSymbol(fb, "type", "ClientMessage");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-client-message-event");
+			FBPutSlotInteger(fb, "message-type", event.xclient.message_type);
+			FBPutSlotInteger(fb, "format", event.xclient.format);
 			if (event.xclient.format == 8)
 			{
 				for (int x = 0; x < 20; x++)
@@ -1134,41 +1454,58 @@ void XPeekEventFunction(
 					MBAppendInteger(mb, event.xclient.data.l[x]);
 				}
 			}
+			FBPutSlotMultifield(fb, "data", MBCreate(mb));
+			MBDispose(mb);
 			break;
 		case PropertyNotify:
-			MBAppendSymbol(mb, "PropertyNotify");
-			MBAppendInteger(mb, event.xproperty.atom);
-			MBAppendInteger(mb, event.xproperty.time);
-			if (event.xproperty.state & PropertyNewValue)
+			FBPutSlotSymbol(fb, "type", "PropertyNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-property-event");
+			FBPutSlotInteger(fb, "atom", event.xproperty.atom);
+			FBPutSlotInteger(fb, "time", event.xproperty.time);
+			switch(event.xproperty.state)
 			{
-				MBAppendSymbol(mb, "PropertyNewValue");
-			}
-			else if (event.xproperty.state & PropertyDelete)
-			{
-				MBAppendSymbol(mb, "PropertyDelete");
+				case PropertyNewValue:
+					FBPutSlotSymbol(fb, "state", "PropertyNewValue");
+					break;
+				case PropertyDelete:
+					FBPutSlotSymbol(fb, "state", "PropertyDelete");
+					break;
+				default:
+					break;
 			}
 			break;
 		case SelectionClear:
-			MBAppendSymbol(mb, "SelectionClear");
-			MBAppendInteger(mb, event.xselectionclear.selection);
-			MBAppendInteger(mb, event.xselectionclear.time);
+			FBPutSlotSymbol(fb, "type", "SelectionClear");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-selection-clear-event");
+			FBPutSlotInteger(fb, "selection", event.xselectionclear.selection);
+			FBPutSlotInteger(fb, "time", event.xselectionclear.time);
 			break;
 		case SelectionNotify:
-			MBAppendSymbol(mb, "SelectionNotify");
-			MBAppendInteger(mb, event.xselection.requestor);
-			MBAppendInteger(mb, event.xselection.selection);
-			MBAppendInteger(mb, event.xselection.target);
-			MBAppendInteger(mb, event.xselection.property);
-			MBAppendInteger(mb, event.xselection.time);
+			FBPutSlotSymbol(fb, "type", "SelectionNotify");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-selection-notify-event");
+			FBPutSlotInteger(fb, "requestor", event.xselection.requestor);
+			FBPutSlotInteger(fb, "selection", event.xselection.selection);
+			FBPutSlotInteger(fb, "target", event.xselection.target);
+			FBPutSlotInteger(fb, "property", event.xselection.property);
+			FBPutSlotInteger(fb, "time", event.xselection.time);
 			break;
 		case SelectionRequest:
-			MBAppendSymbol(mb, "SelectionRequest");
-			MBAppendInteger(mb, event.xselectionrequest.owner);
-			MBAppendInteger(mb, event.xselectionrequest.requestor);
-			MBAppendInteger(mb, event.xselectionrequest.selection);
-			MBAppendInteger(mb, event.xselectionrequest.target);
-			MBAppendInteger(mb, event.xselectionrequest.property);
-			MBAppendInteger(mb, event.xselectionrequest.time);
+			FBPutSlotSymbol(fb, "type", "SelectionRequest");
+			f = FBAssert(fb);
+			FBDispose(fb);
+			fb = CreateFactBuilder(theEnv, "x-selection-notify-event");
+			FBPutSlotInteger(fb, "owner", event.xselectionrequest.owner);
+			FBPutSlotInteger(fb, "requestor", event.xselectionrequest.requestor);
+			FBPutSlotInteger(fb, "selection", event.xselectionrequest.selection);
+			FBPutSlotInteger(fb, "target", event.xselectionrequest.target);
+			FBPutSlotInteger(fb, "property", event.xselectionrequest.property);
+			FBPutSlotInteger(fb, "time", event.xselectionrequest.time);
 			break;
 		default:
 			WriteString(theEnv,STDERR,"Event Type ");

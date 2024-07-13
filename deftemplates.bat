@@ -108,7 +108,15 @@
 		(type INTEGER))
 	(slot same-screen
 		(type SYMBOL)
-		(allowed-values TRUE FALSE)))
+		(allowed-values TRUE FALSE))
+	(slot buffer
+		(type STRING))
+	(slot keysym
+		(type INTEGER))
+	(slot compose-ptr
+		(type FACT-ADDRESS))
+	(slot chars-matched
+		(type INTEGER)))
 
 (deftemplate x-motion-event
 	(slot x-event
@@ -370,4 +378,163 @@
 	(slot width
 		(type INTEGER))
 	(slot height
+		(type INTEGER)))
+
+(deftemplate x-configure-request-event
+	(slot x-event
+		(type FACT-ADDRESS))
+	(slot parent
+		(type INTEGER))
+	(slot x
+		(type INTEGER))
+	(slot y
+		(type INTEGER))
+	(slot width
+		(type INTEGER))
+	(slot height
+		(type INTEGER))
+	(slot border-width
+		(type INTEGER))
+	(slot above
+		(type INTEGER))
+	(slot detail
+		(type SYMBOL)
+		(allowed-values Above Below TopIf BottomIf Opposite))
+	(multislot value-mask
+		(type SYMBOL)
+		(allowed-values
+			CWX
+			CWY
+			CWWidth
+			CWHeight
+			CWBorderWidth
+			CWSibling
+			CWStackMode)))
+
+(deftemplate x-circulate-event
+	(slot x-event
+		(type FACT-ADDRESS))
+	(slot event
+		(type INTEGER))
+	(slot place
+		(type SYMBOL)
+		(allowed-values
+			PlaceOnTop
+			PlaceOnBottom)))
+
+(deftemplate x-circulate-request-event
+	(slot x-event
+		(type FACT-ADDRESS))
+	(slot parent
+		(type INTEGER))
+	(slot place
+		(type SYMBOL)
+		(allowed-values
+			PlaceOnTop
+			PlaceOnBottom)))
+
+(deftemplate x-property-event
+	(slot x-event
+		(type FACT-ADDRESS))
+	(slot atom
+		(type INTEGER))
+	(slot time
+		(type INTEGER))
+	(slot state
+		(type SYMBOL)
+		(allowed-values
+			PropertyNewValue
+			PropertyDelete)))
+
+(deftemplate x-selection-clear-event
+	(slot x-event
+		(type FACT-ADDRESS))
+	(slot selection
+		(type INTEGER))
+	(slot time
+		(type INTEGER)))
+
+(deftemplate x-selection-request-event
+	(slot x-event
+		(type FACT-ADDRESS))
+	(slot owner
+		(type INTEGER))
+	(slot requestor
+		(type INTEGER))
+	(slot selection
+		(type INTEGER))
+	(slot target
+		(type INTEGER))
+	(slot property
+		(type INTEGER SYMBOL))
+	(slot time
+		(type INTEGER)))
+
+(deftemplate x-selection-event
+	(slot x-event
+		(type FACT-ADDRESS))
+	(slot requestor
+		(type INTEGER))
+	(slot selection
+		(type INTEGER))
+	(slot target
+		(type INTEGER))
+	(slot property
+		(type INTEGER SYMBOL))
+	(slot time
+		(type INTEGER)))
+
+(deftemplate x-colormap-event
+	(slot x-event
+		(type FACT-ADDRESS))
+	(slot colormap
+		(type INTEGER SYMBOL))
+	(slot new
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot state
+		(type SYMBOL)
+		(allowed-values
+			ColormapInstalled
+			ColormapUninstalled)))
+
+(deftemplate x-client-message-event
+	(slot x-event
+		(type FACT-ADDRESS))
+	(slot message-type
+		(type INTEGER))
+	(slot format
+		(type INTEGER))
+	(multislot data))
+
+(deftemplate x-mapping-event
+	(slot x-event
+		(type FACT-ADDRESS))
+	(slot request
+		(type SYMBOL)
+		(allowed-values
+			MappingModifier
+			MappingKeyboard
+			MappingPointer))
+	(slot first-keycode
+		(type INTEGER))
+	(slot count
+		(type INTEGER)))
+
+(deftemplate x-keymap-event
+	(slot x-event
+		(type FACT-ADDRESS))
+	(multislot key-vector
+		(type SYMBOL)))
+
+(deftemplate x-error-event
+	(slot x-event
+		(type FACT-ADDRESS))
+	(slot error-code
+		(type INTEGER))
+	(slot request-code
+		(type INTEGER))
+	(slot minor-code
+		(type INTEGER))
+	(slot resourceid
 		(type INTEGER)))
