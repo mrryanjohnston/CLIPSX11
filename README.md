@@ -46,3 +46,292 @@ exec clipsmwm.sh
 
 There are two other files `program.clp` `program2.clp`
 showcasing some of the other functions provided by this library.
+
+### Documentation
+
+1. [Display Management](#display-management)
+2. [Window Creation & Management](#window-creation--management)
+3. [Cursor, Font & Color](#cursor-font--color)
+4. [Graphics Context & Drawing](#graphics-context--drawing)
+5. [Event Handling](#event-handling)
+6. [Keyboard Utilities](#keyboard-utilities)
+7. [Screen Conversion](#screen-conversion)
+
+#### Display Management
+
+##### `x-open-display`
+
+```clips
+(x-open-display [<display-name>]) → <DISPLAY-ADDRESS> | FALSE
+```
+
+**Description** Connects to the X server.
+**Parameters** - `display-name` (SYMBOL, optional) - hostname and display number (e.g. `"localhost:0"`). If omitted, uses `DISPLAY` env var.
+**Returns** - External address wrapping `Display*` on success. - `FALSE` if connection fails (prints error to STDERR).
+**Example**
+
+```clips
+(bind ?d (x-open-display ":0"))
+```
+
+##### `default-screen`
+
+```clips
+(default-screen <display>) → <screen-number>
+```
+
+**Description** Retrieves the default screen index for a display.
+**Parameters**
+- `display` (EXTERNAL-ADDRESS) - a `Display*` returned by `x-open-display`.
+**Returns** - Integer index of the default screen. 
+
+##### `default-screen-of-display`
+
+```clips
+(default-screen-of-display <display>) → <screen-address>
+```
+
+**Description** Returns the `Screen*` pointer for the default screen.
+**Parameters** - `display` (EXTERNAL-ADDRESS)
+**Returns** - External address wrapping `Screen*`.
+
+##### `default-root-window`
+
+```clips
+(default-root-window <display>) → <window-id>
+```
+
+**Description** Fetches the root window ID of the default screen.
+**Parameters** - `display` (EXTERNAL-ADDRESS)
+**Returns** - Window ID (INTEGER).
+
+##### `root-window`
+
+```clips
+(root-window <display> <screen>) → <window-id>
+```
+
+**Description** Fetches the root window ID for a specified screen index.
+**Parameters** - `display` (EXTERNAL-ADDRESS) - `screen` (INTEGER)
+**Returns** - Window ID (INTEGER).
+
+#### Window Creation & Management
+
+##### `x-create-simple-window`
+
+```clips
+(x-create-simple-window <display> <parent> <x> <y> <width> <height> <border-width> <border> <background>) → <window-id>
+```
+
+**Description** Creates a basic window.
+**Parameters**
+
+1. `display` (EXTERNAL-ADDRESS) - `Display*`
+2. `parent` (INTEGER) - parent window ID
+3. `x`, `y` (INTEGER) - position
+4. `width`, `height` (INTEGER) - dimensions
+5. `border-width` (INTEGER)
+6. `border`, `background` (INTEGER) - pixel values
+
+**Returns** - New window ID (INTEGER).
+**Example**
+
+```clips
+(bind ?w (x-create-simple-window ?d ?parent 10 10 400 300 1 0 65535))
+```
+
+##### `x-create-window`
+
+```clips
+(x-create-window <display> <parent> <x> <y> <width> <height> <border-width> <depth> <class> <visual> <valuemask> <attributes>) → <window-id>
+```
+
+**Description** Creates a window with full attribute control.
+**Parameters** - Same as `XCreateWindow`: includes `depth`, `class`, `visual` (EXTERNAL-ADDRESS), `valuemask`, and pointer to `XSetWindowAttributes`.
+**Returns** - New window ID (INTEGER).
+
+##### `x-map-window`
+
+```clips
+(x-map-window <display> <window>) → VOID
+```
+
+**Description** Maps (shows) a window.
+**Parameters**
+
+1. `display` (EXTERNAL-ADDRESS)
+2. `window` (INTEGER)
+
+##### `x-move-resize-window`
+
+```clips
+(x-move-resize-window <display> <window> <x> <y> <width> <height>) → <status>
+```
+
+**Description** Moves and resizes a window in one call.
+**Parameters** - As per `XMoveResizeWindow`.
+**Returns** - Status code (INTEGER, non-zero on success).
+
+##### `x-circulate-subwindows-up`
+
+```clips
+(x-circulate-subwindows-up <display> <window>) → <status>
+```
+
+**Description** Raises all child windows of `window`.
+
+##### `x-kill-client`
+
+```
+clips (x-kill-client <display> <resource>) → <status>
+```
+
+**Description** Forces the X server to close a client identified by `resource` (window or pixmap).
+
+#### Cursor, Font & Color
+
+##### `x-create-font-cursor`
+
+```clips
+(x-create-font-cursor <display> <shape-symbol>) → <cursor-id> | FALSE
+```
+
+**Description** Creates a cursor from the X11 font cursor set.
+**Parameters** - `shape-symbol` (e.g. `"XC_left_ptr"`) - only this shape supported; others yield `FALSE`.
+
+##### `x-define-cursor`
+
+```clips
+(x-define-cursor <display> <window> <cursor>) → VOID
+```
+
+**Description** Associates a cursor with a window.
+
+##### `black-pixel`
+##### `white-pixel`
+
+```clips
+(black-pixel <display> <screen>) → <pixel>
+(white-pixel <display> <screen>) → <pixel>
+```
+
+**Description** Fetches the black or white pixel value for a screen.
+
+#### Graphics Context & Drawing
+
+##### `x-create-gc`
+
+```clips
+(x-create-gc <display> <drawable> <valuemask>) → <GC-ADDRESS>
+```
+
+**Description** Creates a graphics context; returns an external address. Uses default `XGCValues`.
+
+##### `x-set-foreground`
+
+```clips
+(x-set-foreground <display> <gc> <pixel>) → <status>
+```
+
+**Description** Sets the foreground color for drawing operations in a `GC`.
+
+##### Drawing Primitives
+
+```clips
+(x-draw-arc <display> <drawable> <gc> <x> <y> <width> <height> <angle1> <angle2>)
+(x-draw-line <display> <drawable> <gc> <x1> <y1> <x2> <y2>)
+(x-draw-point <display> <drawable> <gc> <x> <y>)
+(x-draw-rectangle <display> <drawable> <gc> <x> <y> <width> <height>)
+(x-draw-string <display> <drawable> <gc> <x> <y> <text>)
+```
+
+Each wraps the corresponding `XDraw*` call and returns `VOID`.
+
+#### Event Handling
+
+##### `x-pending`
+
+```clips
+(x-pending <display>) → <count>
+```
+
+**Description** Checks how many events are queued.
+
+##### `x-pop-event`
+
+```clips
+(x-pop-event <display>) → VOID
+```
+
+**Description** Removes the next event without returning it.
+
+##### `x-peek-event`
+##### `x-next-event`
+
+```clips
+(x-peek-event <display>) → <multifield> (x-next-event <display>) → <multifield>
+```
+
+**Description** Retrieves (or waits for) the next `XEvent`, converts it into a CLIPS multifield: 
+
+`[ <xany> <type-symbol> <typed-detail> ]`
+
+##### Fact-Based Variants
+
+```clips
+(x-peek-event-to-fact <display>) → <fact>
+(x-next-event-to-fact <display>) → <fact>
+```
+
+As above, but asserts an `x-event` fact template.
+
+#### Keyboard Utilities
+
+##### `x-lookup-string`
+
+```clips
+(x-lookup-string <event-address>) → [ <string> <keysym> ]
+```
+
+**Description** Converts a `KeyPress` event to its text and keysym.
+
+##### `x-string-to-keysym`
+
+```clips
+(x-string-to-keysym <symbol>) → <keysym>
+```
+
+**Description** Maps a key name (e.g. `"Return"`) to its keysym.
+
+##### `x-keysym-to-keycode`
+
+```clips
+(x-keysym-to-keycode <display> <keysym>) → <keycode>
+```
+
+##### `x-grab-key`
+
+```clips
+(x-grab-key <display> <keycode> <modifiers> <window> <owner-events?> <pointer-mode> <keyboard-mode>) → <status>
+```
+
+**Description** Grabs a key combination on a window for exclusive handling.
+**Modifiers** may be a single symbol (`"Shift"`) or a multifield of symbols.
+
+#### Screen Conversion
+
+##### `screen-to-fact`
+
+```clips
+(screen-to-fact <screen-address>) → <fact>
+```
+
+**Description** Builds and asserts a `screen` fact with slots: - `c-pointer`, `ext-data`, `display`, `root`, `width`, `height`, `mwidth`, `mheight`, `ndepths`, `root-depth`, `white-pixel`, `black-pixel`, `max-maps`, `min-maps`, `backing-store`, `save-unders`, `root-input-mask`.
+
+##### `screen-to-multifield`
+
+```clips
+(screen-to-multifield <screen-address>) → <multifield>
+```
+
+**Description** Returns the same information as a multifield vector.
