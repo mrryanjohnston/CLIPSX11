@@ -1,0 +1,6 @@
+;(load @DATADIR@/clipsmwm.multifield.clp)
+(load @DATADIR@/deftemplates.clp)
+(load @DATADIR@/clipsmwm.fact.clp)
+(reset)
+(run)
+(exit)

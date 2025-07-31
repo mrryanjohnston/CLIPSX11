@@ -1,3 +1,4 @@
+(watch all)
 (deffunction draw-textbox (?display ?window ?gc ?x ?y ?width ?height ?text)
     (x-draw-rectangle ?display ?window ?gc ?x ?y ?width ?height)
     (x-draw-string ?display ?window ?gc (+ 5 ?x) (integer (+ (/ ?height 2) ?y)) ?text)
@@ -62,4 +63,12 @@
 	(println "Got " ?name " event " ?keycode " " ?state " (" ?x ", " ?y ") " ?rest)
 	(retract ?event)
 	(assert (next-event (x-next-event ?display))))
+
+(defrule anything-else
+	?event <- (next-event ? ? ?display ? ?name&~KeyPress&~KeyRelease&~ButtonPress $?)
+	=>
+	(retract ?event)
+	(assert (next-event (x-next-event ?display))))
+	
 (run)
+(facts)
