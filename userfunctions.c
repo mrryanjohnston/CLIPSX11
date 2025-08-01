@@ -257,9 +257,313 @@ void XCreateFontCursorFunction(
 	display = theArg.externalAddressValue->contents;
 
 	UDFNextArgument(context,SYMBOL_BIT,&theArg);
-	if (0 == strcmp(theArg.lexemeValue->contents, "XC_left_ptr"))
+	if (0 == strcmp(theArg.lexemeValue->contents, "XC_X_cursor"))
+	{
+		shape = XC_X_cursor;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_arrow"))
+	{
+		shape = XC_arrow;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_based_arrow_down"))
+	{
+		shape = XC_based_arrow_down;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_based_arrow_up"))
+	{
+		shape = XC_based_arrow_up;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_boat"))
+	{
+		shape = XC_boat;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_bogosity"))
+	{
+		shape = XC_bogosity;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_bottom_left_corner"))
+	{
+		shape = XC_bottom_left_corner;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_bottom_right_corner"))
+	{
+		shape = XC_bottom_right_corner;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_bottom_side"))
+	{
+		shape = XC_bottom_side;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_bottom_tee"))
+	{
+		shape = XC_bottom_tee;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_box_spiral"))
+	{
+		shape = XC_box_spiral;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_center_ptr"))
+	{
+		shape = XC_center_ptr;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_circle"))
+	{
+		shape = XC_circle;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_clock"))
+	{
+		shape = XC_clock;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_coffee_mug"))
+	{
+		shape = XC_coffee_mug;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_cross"))
+	{
+		shape = XC_cross;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_cross_reverse"))
+	{
+		shape = XC_cross_reverse;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_crosshair"))
+	{
+		shape = XC_crosshair;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_diamond_cross"))
+	{
+		shape = XC_diamond_cross;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_dot"))
+	{
+		shape = XC_dot;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_dotbox"))
+	{
+		shape = XC_dotbox;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_double_arrow"))
+	{
+		shape = XC_double_arrow;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_draft_large"))
+	{
+		shape = XC_draft_large;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_draft_small"))
+	{
+		shape = XC_draft_small;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_draped_box"))
+	{
+		shape = XC_draped_box;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_exchange"))
+	{
+		shape = XC_exchange;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_fleur"))
+	{
+		shape = XC_fleur;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_gobbler"))
+	{
+		shape = XC_gobbler;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_gumby"))
+	{
+		shape = XC_gumby;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_hand1"))
+	{
+		shape = XC_hand1;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_hand2"))
+	{
+		shape = XC_hand2;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_heart"))
+	{
+		shape = XC_heart;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_icon"))
+	{
+		shape = XC_icon;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_iron_cross"))
+	{
+		shape = XC_iron_cross;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_left_ptr"))
 	{
 		shape = XC_left_ptr;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_left_side"))
+	{
+		shape = XC_left_side;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_left_tee"))
+	{
+		shape = XC_left_tee;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_leftbutton"))
+	{
+		shape = XC_leftbutton;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_ll_angle"))
+	{
+		shape = XC_ll_angle;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_lr_angle"))
+	{
+		shape = XC_lr_angle;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_man"))
+	{
+		shape = XC_man;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_middlebutton"))
+	{
+		shape = XC_middlebutton;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_mouse"))
+	{
+		shape = XC_mouse;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_pencil"))
+	{
+		shape = XC_pencil;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_pirate"))
+	{
+		shape = XC_pirate;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_plus"))
+	{
+		shape = XC_plus;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_question_arrow"))
+	{
+		shape = XC_question_arrow;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_right_ptr"))
+	{
+		shape = XC_right_ptr;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_right_side"))
+	{
+		shape = XC_right_side;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_right_tee"))
+	{
+		shape = XC_right_tee;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_rightbutton"))
+	{
+		shape = XC_rightbutton;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_rtl_logo"))
+	{
+		shape = XC_rtl_logo;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_sailboat"))
+	{
+		shape = XC_sailboat;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_sb_down_arrow"))
+	{
+		shape = XC_sb_down_arrow;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_sb_h_double_arrow"))
+	{
+		shape = XC_sb_h_double_arrow;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_sb_left_arrow"))
+	{
+		shape = XC_sb_left_arrow;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_sb_right_arrow"))
+	{
+		shape = XC_sb_right_arrow;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_sb_up_arrow"))
+	{
+		shape = XC_sb_up_arrow;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_sb_v_double_arrow"))
+	{
+		shape = XC_sb_v_double_arrow;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_shuttle"))
+	{
+		shape = XC_shuttle;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_sizing"))
+	{
+		shape = XC_sizing;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_spider"))
+	{
+		shape = XC_spider;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_spraycan"))
+	{
+		shape = XC_spraycan;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_star"))
+	{
+		shape = XC_star;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_target"))
+	{
+		shape = XC_target;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_tcross"))
+	{
+		shape = XC_tcross;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_top_left_arrow"))
+	{
+		shape = XC_top_left_arrow;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_top_left_corner"))
+	{
+		shape = XC_top_left_corner;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_top_right_corner"))
+	{
+		shape = XC_top_right_corner;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_top_side"))
+	{
+		shape = XC_top_side;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_top_tee"))
+	{
+		shape = XC_top_tee;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_trek"))
+	{
+		shape = XC_trek;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_ul_angle"))
+	{
+		shape = XC_ul_angle;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_umbrella"))
+	{
+		shape = XC_umbrella;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_ur_angle"))
+	{
+		shape = XC_ur_angle;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_watch"))
+	{
+		shape = XC_watch;
+	}
+	else if (0 == strcmp(theArg.lexemeValue->contents, "XC_xterm"))
+	{
+		shape = XC_xterm;
 	}
 	else
 	{
