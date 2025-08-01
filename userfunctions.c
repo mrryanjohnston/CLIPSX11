@@ -4108,6 +4108,42 @@ void XGrabKeyFunction(
 	returnValue->integerValue = CreateInteger(theEnv, XGrabKey(display, keycode, modifiers, grab_window, owner_events, pointer_mode, keyboard_mode));
 }
 
+void XFlushFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+
+	returnValue->integerValue = CreateInteger(theEnv, XFlush(theArg.externalAddressValue->contents));
+}
+
+void XSyncFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *d;
+	bool discard;
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	d = theArg.externalAddressValue->contents;
+
+	discard = false;
+	if (UDFHasNextArgument(context))
+	{
+		UDFNextArgument(context,SYMBOL_BIT,&theArg);
+		if (theArg.lexemeValue == theEnv->TrueSymbol)
+		{
+			discard = true;
+		}
+	}
+
+	returnValue->integerValue = CreateInteger(theEnv, XSync(d, discard));
+}
 
 /*********************************************************/
 /* UserFunctions: Informs the expert system environment  */
@@ -4172,4 +4208,7 @@ void UserFunctions(
 	  AddUDF(env,"x-keysym-to-keycode","l",2,2,";e;l",XKeysymToKeycodeFunction,"XKeysymToKeycodeFunction",NULL);
 
 	  AddUDF(env,"x-grab-key","l",7,7,";e;l;ym;l;b;y;y",XGrabKeyFunction,"XGrabKeyFunction",NULL);
+
+	  AddUDF(env,"x-flush","l",1,1,";e",XFlushFunction,"XFlushFunction",NULL);
+	  AddUDF(env,"x-sync","l",1,2,";e;b",XSyncFunction,"XSyncFunction",NULL);
   }

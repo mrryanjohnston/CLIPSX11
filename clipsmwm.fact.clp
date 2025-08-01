@@ -6,8 +6,6 @@
 	(bind ?display (x-open-display :0))
 	(screen-to-fact (default-screen-of-display ?display))
 	(bind ?window (default-root-window ?display))
-	(bind ?cursor (x-create-font-cursor ?display XC_left_ptr))
-	(x-define-cursor ?display ?window ?cursor)
 	(x-select-input ?display ?window SubstructureRedirectMask)
 	(grab-keys ?display ?window "e" "n" "q")
 	(x-next-event-to-fact ?display))
