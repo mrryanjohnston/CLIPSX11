@@ -3726,21 +3726,21 @@ void XGrabKeyFunction(
 	{
 		const char *mod = theArg.lexemeValue->contents;
 
-		if (strcmp(mod, "Shift") == 0) {
+		if (strcmp(mod, "ShiftMask") == 0) {
 			modifiers |= ShiftMask;
-		} else if (strcmp(mod, "Lock") == 0) {
+		} else if (strcmp(mod, "LockMask") == 0) {
 			modifiers |= LockMask;
-		} else if (strcmp(mod, "Control") == 0) {
+		} else if (strcmp(mod, "ControlMask") == 0) {
 			modifiers |= ControlMask;
-		} else if (strcmp(mod, "Mod1") == 0) {
+		} else if (strcmp(mod, "Mod1Mask") == 0) {
 			modifiers |= Mod1Mask;
-		} else if (strcmp(mod, "Mod2") == 0) {
+		} else if (strcmp(mod, "Mod2Mask") == 0) {
 			modifiers |= Mod2Mask;
-		} else if (strcmp(mod, "Mod3") == 0) {
+		} else if (strcmp(mod, "Mod3Mask") == 0) {
 			modifiers |= Mod3Mask;
-		} else if (strcmp(mod, "Mod4") == 0) {
+		} else if (strcmp(mod, "Mod4Mask") == 0) {
 			modifiers |= Mod4Mask;
-		} else if (strcmp(mod, "Mod5") == 0) {
+		} else if (strcmp(mod, "Mod5Mask") == 0) {
 			modifiers |= Mod5Mask;
 		} else if (strcmp(mod, "AnyModifier") == 0) {
 			modifiers = AnyModifier;
@@ -3754,19 +3754,19 @@ void XGrabKeyFunction(
 
 			if (strcmp(mod, "Shift") == 0) {
 				modifiers |= ShiftMask;
-			} else if (strcmp(mod, "Lock") == 0) {
+			} else if (strcmp(mod, "LockMask") == 0) {
 				modifiers |= LockMask;
-			} else if (strcmp(mod, "Control") == 0) {
+			} else if (strcmp(mod, "ControlMask") == 0) {
 				modifiers |= ControlMask;
-			} else if (strcmp(mod, "Mod1") == 0) {
+			} else if (strcmp(mod, "Mod1Mask") == 0) {
 				modifiers |= Mod1Mask;
-			} else if (strcmp(mod, "Mod2") == 0) {
+			} else if (strcmp(mod, "Mod2Mask") == 0) {
 				modifiers |= Mod2Mask;
-			} else if (strcmp(mod, "Mod3") == 0) {
+			} else if (strcmp(mod, "Mod3Mask") == 0) {
 				modifiers |= Mod3Mask;
-			} else if (strcmp(mod, "Mod4") == 0) {
+			} else if (strcmp(mod, "Mod4Mask") == 0) {
 				modifiers |= Mod4Mask;
-			} else if (strcmp(mod, "Mod5") == 0) {
+			} else if (strcmp(mod, "Mod5Mask") == 0) {
 				modifiers |= Mod5Mask;
 			} else if (strcmp(mod, "AnyModifier") == 0) {
 				modifiers = AnyModifier;

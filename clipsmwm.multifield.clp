@@ -6,9 +6,9 @@
 	(bind ?cursor (x-create-font-cursor ?display XC_left_ptr))
 	(x-define-cursor ?display ?window ?cursor)
 	(x-select-input ?display ?window SubstructureRedirectMask)
-	(x-grab-key ?display (x-keysym-to-keycode ?display (x-string-to-keysym "n")) Mod4 ?window TRUE GrabModeAsync GrabModeAsync)
-	(x-grab-key ?display (x-keysym-to-keycode ?display (x-string-to-keysym "q")) Mod4 ?window TRUE GrabModeAsync GrabModeAsync)
-	(x-grab-key ?display (x-keysym-to-keycode ?display (x-string-to-keysym "e")) Mod4 ?window TRUE GrabModeAsync GrabModeAsync)
+	(x-grab-key ?display (x-keysym-to-keycode ?display (x-string-to-keysym "n")) Mod4Mask ?window TRUE GrabModeAsync GrabModeAsync)
+	(x-grab-key ?display (x-keysym-to-keycode ?display (x-string-to-keysym "q")) Mod4Mask ?window TRUE GrabModeAsync GrabModeAsync)
+	(x-grab-key ?display (x-keysym-to-keycode ?display (x-string-to-keysym "e")) Mod4Mask ?window TRUE GrabModeAsync GrabModeAsync)
 	(assert (next-event (x-next-event ?display))))
 
 (defrule on-map-request

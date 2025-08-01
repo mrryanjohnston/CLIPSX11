@@ -1,6 +1,6 @@
 (deffunction grab-keys (?display ?window $?keys)
 	(foreach ?key ?keys 
-		(x-grab-key ?display (x-keysym-to-keycode ?display (x-string-to-keysym ?key)) Mod4 ?window TRUE GrabModeAsync GrabModeAsync)))
+		(x-grab-key ?display (x-keysym-to-keycode ?display (x-string-to-keysym ?key)) Mod4Mask ?window TRUE GrabModeAsync GrabModeAsync)))
 
 (defrule always =>
 	(bind ?display (x-open-display :0))
@@ -36,8 +36,8 @@
 	(x-next-event-to-fact ?display))
 
 (defrule on-key-press-q
-	?aevent <- (x-any-event (display ?display) (window ?window))
-	?tevent <- (x-key-event (root ?root) (keycode ?keycode) (subwindow ?subwindow))
+	?aevent <- (x-any-event (display ?display))
+	?tevent <- (x-key-event (keycode ?keycode) (subwindow ?subwindow))
 	?event <- (x-event (type KeyPress) (x-any-event ?aevent) (typed-event ?tevent))
 	(test (= ?keycode (x-keysym-to-keycode ?display (x-string-to-keysym "q"))))
 	=>
@@ -46,8 +46,8 @@
 	(x-next-event-to-fact ?display))
 
 (defrule on-key-press-e
-	?aevent <- (x-any-event (display ?display) (window ?window))
-	?tevent <- (x-key-event (root ?root) (keycode ?keycode))
+	?aevent <- (x-any-event (display ?display))
+	?tevent <- (x-key-event (keycode ?keycode))
 	?event <- (x-event (type KeyPress) (x-any-event ?aevent) (typed-event ?tevent))
 	(test (= ?keycode (x-keysym-to-keycode ?display (x-string-to-keysym "e"))))
 	=>
