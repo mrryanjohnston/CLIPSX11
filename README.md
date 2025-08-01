@@ -511,7 +511,7 @@ Sets the foreground color for drawing operations in a `GC`.
 
 ---
 
-##### Drawing Primitives
+#### Drawing Primitives
 
 ```clips
 (x-draw-arc <display> <drawable> <gc> <x> <y> <width> <height> <angle1> <angle2>)
