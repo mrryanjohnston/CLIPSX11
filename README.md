@@ -65,7 +65,7 @@ showcasing some of the other functions provided by this library.
 (x-open-display [<display-name>]) → <DISPLAY-ADDRESS> | FALSE
 ```
 
-###### Descriptiono
+###### Description
 
 Connects to the X server.
 
@@ -83,6 +83,8 @@ Connects to the X server.
 ```clips
 (bind ?d (x-open-display ":0"))
 ```
+
+---
 
 ##### `default-screen`
 
@@ -102,6 +104,8 @@ Retrieves the default screen index for a display.
 
 - Integer index of the default screen. 
 
+---
+
 ##### `default-screen-of-display`
 
 ```clips
@@ -119,6 +123,8 @@ Returns the `Screen*` pointer for the default screen.
 ##### Returns
 
 - External address wrapping `Screen*`.
+
+---
 
 ##### `default-root-window`
 
@@ -138,6 +144,8 @@ Fetches the root window ID of the default screen.
 
 - Window ID (INTEGER).
 
+---
+
 ##### `root-window`
 
 ```clips
@@ -156,6 +164,8 @@ Fetches the root window ID for a specified screen index.
 ##### Returns
 
 - Window ID (INTEGER).
+
+---
 
 #### Window Creation & Management
 
@@ -188,6 +198,8 @@ Creates a basic window.
 (bind ?w (x-create-simple-window ?d ?parent 10 10 400 300 1 0 65535))
 ```
 
+---
+
 ##### `x-create-window`
 
 ```clips
@@ -202,7 +214,11 @@ Creates a window with full attribute control.
 
 - Same as `XCreateWindow`: includes `depth`, `class`, `visual` (EXTERNAL-ADDRESS), `valuemask`, and pointer to `XSetWindowAttributes`.
 
-##### Returns - New window ID (INTEGER).
+##### Returns
+
+- New window ID (INTEGER).
+
+---
 
 ##### `x-map-window`
 
@@ -218,6 +234,8 @@ Maps (shows) a window.
 
 1. `display` (EXTERNAL-ADDRESS)
 2. `window` (INTEGER)
+
+---
 
 ##### `x-move-resize-window`
 
@@ -242,6 +260,8 @@ Moves and resizes a window in one call.
 
 - Status code (INTEGER, non-zero on success).
 
+---
+
 ##### `x-circulate-subwindows-up`
 
 ```clips
@@ -252,6 +272,8 @@ Moves and resizes a window in one call.
 
 Raises all child windows of `window`.
 
+---
+
 ##### `x-kill-client`
 
 ```
@@ -261,6 +283,8 @@ clips (x-kill-client <display> <resource>) → <status>
 ##### Description
 
 Forces the X server to close a client identified by `resource` (window or pixmap).
+
+---
 
 ##### `remove-hints-flags-from-window`
 
@@ -297,6 +321,8 @@ Clears (removes) one or more size/position-related hint flags from the `WM_NORMA
 ```clips
 (remove-hints-flags-from-window ?display ?window USPosition PSize)
 ```
+
+---
 
 ##### `set-window-gravity`
 
@@ -335,6 +361,8 @@ Sets the window gravity in the `WM_NORMAL_HINTS` property for a given X11 window
 (set-window-gravity ?display ?window CenterGravity)
 ```
 
+---
+
 #### Cursor, Font & Color
 
 ##### `x-create-font-cursor`
@@ -350,6 +378,8 @@ Creates a cursor from the X11 font cursor set.
 ##### Parameters
 
 - `shape-symbol` (e.g. `"XC_left_ptr"`) - only this shape supported; others yield `FALSE`.
+
+---
 
 ##### `x-define-cursor`
 
@@ -372,6 +402,8 @@ Associates a cursor with a window.
 ##### Description
 
 Fetches the black or white pixel value for a screen.
+
+---
 
 #### Graphics Context & Drawing
 
@@ -404,6 +436,8 @@ Sets the foreground color for drawing operations in a `GC`.
 ```
 
 Each wraps the corresponding `XDraw*` call and returns `VOID`.
+
+---
 
 #### Event Handling
 
@@ -442,6 +476,8 @@ Retrieves (or waits for) the next `XEvent`, converts it into a CLIPS multifield:
 
 As above, but asserts an `x-event` fact template.
 
+---
+
 ##### `x-pop-event`
 
 ```clips
@@ -452,6 +488,8 @@ As above, but asserts an `x-event` fact template.
 
 Removes the next event without returning it. Useful after an `x-peek-event`
 to remove it from the event queue.
+
+---
 
 #### Keyboard Utilities
 
@@ -520,6 +558,8 @@ Grabs a specific key (with optional modifier masks) on a given window so that th
 (x-grab-key ?display (x-keysym-to-keycode ?display (x-string-to-keysym "t")) Mod4Mask ?window TRUE GrabModeAsync GrabModeAsync)))
 ```
 
+---
+
 #### Screen Conversion
 
 ##### `screen-to-fact`
@@ -549,6 +589,8 @@ Builds and asserts a `screen` fact with slots:
 - `backing-store`
 - `save-unders`
 - `root-input-mask`.
+
+---
 
 ##### `screen-to-multifield`
 
