@@ -47,7 +47,7 @@ exec clipsmwm.sh
 There are two other files `program.clp` `program2.clp`
 showcasing some of the other functions provided by this library.
 
-### Documentation
+## Documentation
 
 1. [Display Management](#display-management)
 2. [Window Creation & Management](#window-creation--management)
@@ -57,28 +57,28 @@ showcasing some of the other functions provided by this library.
 6. [Keyboard Utilities](#keyboard-utilities)
 7. [Screen Conversion](#screen-conversion)
 
-#### Display Management
+### Display Management
 
-##### `x-open-display`
+#### `x-open-display`
 
 ```clips
 (x-open-display [<display-name>]) → <DISPLAY-ADDRESS> | FALSE
 ```
 
-###### Description
+##### Description
 
 Connects to the X server.
 
-###### Parameters
+##### Parameters
 
 - `display-name` (SYMBOL, optional) - hostname and display number (e.g. `"localhost:0"`). If omitted, uses `DISPLAY` env var.
 
-###### Returns
+##### Returns
 
 - External address wrapping `Display*` on success.
 - `FALSE` if connection fails (prints error to STDERR).
 
-###### Example
+##### Example
 
 ```clips
 (bind ?d (x-open-display ":0"))
@@ -86,80 +86,59 @@ Connects to the X server.
 
 ---
 
-##### `default-screen`
+#### `default-screen`
 
 ```clips
 (default-screen <display>) → <screen-number>
 ```
 
-###### Description
+##### Description
 
 Retrieves the default screen index for a display.
 
-###### Parameters
+##### Parameters
 
 - `display` (EXTERNAL-ADDRESS) - a `Display*` returned by `x-open-display`.
 
-###### Returns
+##### Returns
 
 - Integer index of the default screen. 
 
 ---
 
-##### `default-screen-of-display`
+#### `default-screen-of-display`
 
 ```clips
 (default-screen-of-display <display>) → <screen-address>
 ```
 
-###### Description
+##### Description
 
 Returns the `Screen*` pointer for the default screen.
 
-###### Parameters
+##### Parameters
 
 - `display` (EXTERNAL-ADDRESS)
 
-###### Returns
+##### Returns
 
 - External address wrapping `Screen*`.
 
 ---
 
-##### `default-root-window`
+#### `default-root-window`
 
 ```clips
 (default-root-window <display>) → <window-id>
 ```
 
-###### Description
-
-Fetches the root window ID of the default screen.
-
-###### Parameters
-
-- `display` (EXTERNAL-ADDRESS)
-
-###### Returns
-
-- Window ID (INTEGER).
-
----
-
-##### `root-window`
-
-```clips
-(root-window <display> <screen>) → <window-id>
-```
-
 ##### Description
 
-Fetches the root window ID for a specified screen index.
+Fetches the root window ID of the default screen.
 
 ##### Parameters
 
 - `display` (EXTERNAL-ADDRESS)
-- `screen` (INTEGER)
 
 ##### Returns
 
@@ -167,19 +146,40 @@ Fetches the root window ID for a specified screen index.
 
 ---
 
-#### Window Creation & Management
+#### `root-window`
 
-##### `x-create-simple-window`
+```clips
+(root-window <display> <screen>) → <window-id>
+```
+
+#### Description
+
+Fetches the root window ID for a specified screen index.
+
+#### Parameters
+
+- `display` (EXTERNAL-ADDRESS)
+- `screen` (INTEGER)
+
+#### Returns
+
+- Window ID (INTEGER).
+
+---
+
+### Window Creation & Management
+
+#### `x-create-simple-window`
 
 ```clips
 (x-create-simple-window <display> <parent> <x> <y> <width> <height> <border-width> <border> <background>) → <window-id>
 ```
 
-###### Description
+##### Description
 
 Creates a basic window.
 
-###### Parameters
+##### Parameters
 
 1. `display` (EXTERNAL-ADDRESS) - `Display*`
 2. `parent` (INTEGER) - parent window ID
@@ -188,11 +188,11 @@ Creates a basic window.
 5. `border-width` (INTEGER)
 6. `border`, `background` (INTEGER) - pixel values
 
-###### Returns
+##### Returns
 
 - New window ID (INTEGER).
 
-###### Example
+##### Example
 
 ```clips
 (bind ?w (x-create-simple-window ?d ?parent 10 10 400 300 1 0 65535))
@@ -200,54 +200,54 @@ Creates a basic window.
 
 ---
 
-##### `x-create-window`
+#### `x-create-window`
 
 ```clips
 (x-create-window <display> <parent> <x> <y> <width> <height> <border-width> <depth> <class> <visual> <valuemask> <attributes>) → <window-id>
 ```
 
-###### Description
+##### Description
 
 Creates a window with full attribute control.
 
-###### Parameters
+##### Parameters
 
 - Same as `XCreateWindow`: includes `depth`, `class`, `visual` (EXTERNAL-ADDRESS), `valuemask`, and pointer to `XSetWindowAttributes`.
 
-###### Returns
+##### Returns
 
 - New window ID (INTEGER).
 
 ---
 
-##### `x-map-window`
+#### `x-map-window`
 
 ```clips
 (x-map-window <display> <window>) → VOID
 ```
 
-###### Description
+##### Description
 
 Maps (shows) a window.
 
-###### Parameters
+##### Parameters
 
 1. `display` (EXTERNAL-ADDRESS)
 2. `window` (INTEGER)
 
 ---
 
-##### `x-move-resize-window`
+#### `x-move-resize-window`
 
 ```clips
 (x-move-resize-window <display> <window> <x> <y> <width> <height>) → <status>
 ```
 
-###### Description
+##### Description
 
 Moves and resizes a window in one call.
 
-###### Parameters
+##### Parameters
 
 1. `<display>` – External address to an X11 Display object. Represents the connection to the X server.
 2. `<window>` – Integer handle identifying the window to move/resize.
@@ -256,51 +256,51 @@ Moves and resizes a window in one call.
 5. `<width>` – Integer giving the new width of the window in pixels.
 6. `<height>` – Integer giving the new height of the window in pixels.
 
-###### Returns
+##### Returns
 
 - Status code (INTEGER, non-zero on success).
 
 ---
 
-##### `x-circulate-subwindows-up`
+#### `x-circulate-subwindows-up`
 
 ```clips
 (x-circulate-subwindows-up <display> <window>) → <status>
 ```
 
-###### Description
+##### Description
 
 Raises all child windows of `window`.
 
 ---
 
-###### `x-kill-client`
+##### `x-kill-client`
 
 ```
 clips (x-kill-client <display> <resource>) → <status>
 ```
 
-###### Description
+##### Description
 
 Forces the X server to close a client identified by `resource` (window or pixmap).
 
 ---
 
-##### `remove-hints-flags-from-window`
+#### `remove-hints-flags-from-window`
 
 ```
 (remove-hints-flags-from-window <display> <window> [<hint-symbol> ...])
 ```
 
-###### Returns
+##### Returns
 
 void
 
-###### Description
+##### Description
 
 Clears (removes) one or more size/position-related hint flags from the `WM_NORMAL_HINTS` property of a given X11 window. These hints influence how window managers position, size, and interpret the window; removing flags allows the application or window manager to ignore previously set constraints.
 
-###### Arguments
+##### Arguments
 
 1. `<display>` – External address to an X11 `Display` object.  
 2. `<window>` – Integer representing the X11 `Window` whose hints are to be modified.  
@@ -316,7 +316,7 @@ Clears (removes) one or more size/position-related hint flags from the `WM_NORMA
    - `PBaseSize` – Base size.
    - `PWinGravity` – Window gravity.
 
-###### Example
+##### Example
 
 ```clips
 (remove-hints-flags-from-window ?display ?window USPosition PSize)
@@ -324,21 +324,21 @@ Clears (removes) one or more size/position-related hint flags from the `WM_NORMA
 
 ---
 
-##### `set-window-gravity`
+#### `set-window-gravity`
 
 ```
 (set-window-gravity <display> <window> <gravity-symbol>)  
 ```
 
-###### Returns
+##### Returns
 
 void (v)
 
-###### Description
+##### Description
 
 Sets the window gravity in the `WM_NORMAL_HINTS` property for a given X11 window. Window gravity controls how the window's position is interpreted when its size or parent changes—for example, whether the origin stays fixed or is adjusted relative to a particular corner or edge.
 
-###### Arguments
+##### Arguments
 
 1. <display> – External address to an X11 Display object.
 2. <window> – Integer representing the X11 Window whose gravity is to be set.
@@ -355,7 +355,7 @@ Sets the window gravity in the `WM_NORMAL_HINTS` property for a given X11 window
    - SouthEastGravity
    - StaticGravity
 
-###### Example
+##### Example
 
 ```
 (set-window-gravity ?display ?window CenterGravity)
@@ -363,19 +363,19 @@ Sets the window gravity in the `WM_NORMAL_HINTS` property for a given X11 window
 
 ---
 
-#### Cursor, Font & Color
+### Cursor, Font & Color
 
-##### `x-create-font-cursor`
+#### `x-create-font-cursor`
 
 ```clips
 (x-create-font-cursor <display> <shape-symbol>) → <cursor-id> | FALSE
 ```
 
-###### Description
+##### Description
 
 Creates a cursor from the X11 font cursor set.
 
-###### Parameters
+##### Parameters
 
 - `display` (EXTERNAL-ADDRESS)
 - `shape-symbol` - The following symbol strings are recognised and mapped to their respective X cursor shapes:
@@ -459,59 +459,59 @@ Creates a cursor from the X11 font cursor set.
 
 ---
 
-##### `x-define-cursor`
+#### `x-define-cursor`
 
 ```clips
 (x-define-cursor <display> <window> <cursor>) → VOID
 ```
 
-###### Description
+##### Description
 
 Associates a cursor with a window.
 
 ---
 
-##### `black-pixel`
-##### `white-pixel`
+#### `black-pixel`
+#### `white-pixel`
 
 ```clips
 (black-pixel <display> <screen>) → <pixel>
 (white-pixel <display> <screen>) → <pixel>
 ```
 
-###### Description
+##### Description
 
 Fetches the black or white pixel value for a screen.
 
 ---
 
-#### Graphics Context & Drawing
+### Graphics Context & Drawing
 
-##### `x-create-gc`
+#### `x-create-gc`
 
 ```clips
 (x-create-gc <display> <drawable> <valuemask>) → <GC-ADDRESS>
 ```
 
-###### Description
+##### Description
 
 Creates a graphics context; returns an external address. Uses default `XGCValues`.
 
 ---
 
-##### `x-set-foreground`
+#### `x-set-foreground`
 
 ```clips
 (x-set-foreground <display> <gc> <pixel>) → <status>
 ```
 
-###### Description
+##### Description
 
 Sets the foreground color for drawing operations in a `GC`.
 
 ---
 
-###### Drawing Primitives
+##### Drawing Primitives
 
 ```clips
 (x-draw-arc <display> <drawable> <gc> <x> <y> <width> <height> <angle1> <angle2>)
@@ -525,95 +525,95 @@ Each wraps the corresponding `XDraw*` call and returns `VOID`.
 
 ---
 
-#### Event Handling
+### Event Handling
 
-##### `x-pending`
+#### `x-pending`
 
 ```clips
 (x-pending <display>) → <count>
 ```
 
-###### Description
+##### Description
 
 Checks how many events are queued.
 
 ---
 
-##### `x-peek-event`
-##### `x-next-event`
+#### `x-peek-event`
+#### `x-next-event`
 
 ```clips
 (x-peek-event <display>) → <multifield>
 (x-next-event <display>) → <multifield>
 ```
 
-###### Description
+##### Description
 
 Retrieves (or waits for) the next `XEvent`, converts it into a CLIPS multifield: 
 
 `[ <xany> <type-symbol> <typed-detail> ]`
 
-###### Return
+##### Return
 
 A multifield consisting of fields combined from the XAny event as well as the type-specific event.
 
 ---
 
-##### `x-peek-event-to-fact`
-##### `x-next-event-to-fact`
+#### `x-peek-event-to-fact`
+#### `x-next-event-to-fact`
 
 ```clips
 (x-peek-event-to-fact <display>) → <fact>
 (x-next-event-to-fact <display>) → <fact>
 ```
 
-###### Description
+##### Description
 
 As above, but asserts an `x-event`, `x-any-event`, and a typed fact template.
 Check `deftemplates.clp` to see the structure of these deftemplates.
 
 ---
 
-##### `x-pop-event`
+#### `x-pop-event`
 
 ```clips
 (x-pop-event <display>) → VOID
 ```
 
-###### Description
+##### Description
 
 Removes the next event without returning it. Useful after an `x-peek-event`
 to remove it from the event queue.
 
 ---
 
-#### Keyboard Utilities
+### Keyboard Utilities
 
-##### `x-lookup-string`
+#### `x-lookup-string`
 
 ```clips
 (x-lookup-string <event-address>) → [ <string> <keysym> ]
 ```
 
-###### Description
+##### Description
 
 Converts a `KeyPress` event to its text and keysym.
 
 ---
 
-##### `x-string-to-keysym`
+#### `x-string-to-keysym`
 
 ```clips
 (x-string-to-keysym <symbol>) → <keysym>
 ```
 
-###### Description
+##### Description
 
 Maps a key name (e.g. `"Return"`) to its keysym.
 
 ---
 
-##### `x-keysym-to-keycode`
+#### `x-keysym-to-keycode`
 
 ```clips
 (x-keysym-to-keycode <display> <keysym>) → <keycode>
@@ -621,17 +621,17 @@ Maps a key name (e.g. `"Return"`) to its keysym.
 
 ---
 
-##### `x-grab-key`
+#### `x-grab-key`
 
 ```clips
 (x-grab-key <display> <keycode> <modifiers> <window> <owner-events?> <pointer-mode> <keyboard-mode>) → <status>
 ```
 
-###### Description
+##### Description
 
 Grabs a specific key (with optional modifier masks) on a given window so that the application receives key events even if another client would normally have focus. This is an X11 passive key grab.
 
-###### Arguments
+##### Arguments
 
 1. `<display>` – External address to an X11 Display object.
 2. `<keycode>` – Integer keycode to grab.
@@ -653,7 +653,7 @@ Grabs a specific key (with optional modifier masks) on a given window so that th
      * anything else (typically "GrabModeAsync") – pointer operates asynchronously (maps to GrabModeAsync)
 7. `<keyboard-mode-symbol>` – Symbol controlling keyboard freezing behavior during the grab. Same semantics as pointer-mode-symbol.
 
-###### Example
+##### Example
 
 ```clips
 ;grabs key t when mod4 (typically windows key) is held down
@@ -662,15 +662,15 @@ Grabs a specific key (with optional modifier masks) on a given window so that th
 
 ---
 
-#### Screen Conversion
+### Screen Conversion
 
-##### `screen-to-fact`
+#### `screen-to-fact`
 
 ```clips
 (screen-to-fact <screen-address>) → <fact>
 ```
 
-###### Description
+##### Description
 
 Builds and asserts a `screen` fact with slots:
 
@@ -694,12 +694,12 @@ Builds and asserts a `screen` fact with slots:
 
 ---
 
-##### `screen-to-multifield`
+#### `screen-to-multifield`
 
 ```clips
 (screen-to-multifield <screen-address>) → <multifield>
 ```
 
-###### Description
+##### Description
 
 Returns the same information as a multifield vector.
