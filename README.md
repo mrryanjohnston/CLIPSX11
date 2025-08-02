@@ -398,9 +398,58 @@ A multifield of symbols: each is the string name of a property currently set on 
 
 ##### Returns
 
-- STRING of the value
-- INTEGER of the value
-- MULTIFIELD containing STRINGs or INTEGERs
+- MULTIFIELD containing:
+    1. SYMBOL representing the actual type of the value
+    2. INTEGER representing the actual format of the value
+    3. A series of STRINGs or INTEGERs which are the actual values
+
+---
+
+#### `x-change-property`
+
+```
+(x-change-property <display> <window> <property-name> <type-name> <format> <mode> [?data])
+```
+
+##### Arguments
+
+- `<display>`: External address of the opened X display (from `x-open-display`).
+- `<window>`: Integer window ID to operate on.
+- `<property-name>`: Symbol/string naming the property to change (will be interned via `XInternAtom`).
+- `<type-name>`: Symbol/string naming the type of the property (interned similarly).
+- `<format>`: Integer; one of `8`, `16`, or `32`. Specifies the data format bits per item.
+- `<mode>`: One of the symbols `"Replace"`, `"Append"`, or `"Prepend"`. Determines how the new data is combined with existing property data.
+- `?data` (optional): The value to set. Accepts:
+  - A single integer (interpreted according to `format`).
+  - A string or symbol (automatically coerced to format `8`).
+  - A multifield of integers (each mapped according to `format`).
+
+If `?data` is omitted, the property is updated with zero elements (effectively clearing it or setting an empty value depending on mode).
+
+##### Examples
+
+```clips
+(x-change-property ?display ?window "_NET_WM_NAME" "UTF8_STRING" 8 "Replace" "MyWindow")
+(x-change-property ?display ?window "_NET_WM_NAME" "UTF8_STRING" 8 Append " - more")
+(x-change-property ?display ?window "MY_PROP" "CARDINAL" 32 Prepend (create$ 1 2 3 4))
+(x-change-property ?display ?window "MY_PROP" "CARDINAL" 32 "Replace")
+```
+
+---
+
+#### `x-delete-property`
+
+```
+(x-delete-property <display> <window> <name>)
+```
+
+##### Arguments
+
+- `<display>`: External address to `Display *`.
+- `<window>`: Integer window ID.
+- `<name>`: Name of the property
+
+---
 
 #### `x-get-geometry`
 

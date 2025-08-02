@@ -1023,7 +1023,14 @@ void XGetPropertyFunction(
 		return;
 	}
 
-	// Case: string-like (UTF8 or legacy)
+	MultifieldBuilder *mb = CreateMultifieldBuilder(theEnv, nitems);
+
+	char *actual_type_str = XGetAtomName(display, actual_type);
+	MBAppendSymbol(mb, actual_type_str);
+	XFree(actual_type_str);
+
+	MBAppendInteger(mb, actual_format);
+
 	utf8 = XInternAtom(display, "UTF8_STRING", False);
 	if (actual_format == 8 && (actual_type == utf8 || actual_type == XA_STRING)) {
 		size_t len = (size_t)nitems;
@@ -1033,7 +1040,10 @@ void XGetPropertyFunction(
 		}
 		buf[len] = '\0';
 
-		returnValue->lexemeValue = CreateString(theEnv, buf);
+		MBAppendString(mb, buf);
+
+		returnValue->multifieldValue = MBCreate(mb);
+		MBDispose(mb);
 		XFree(data);
 		return;
 	}
@@ -1041,7 +1051,6 @@ void XGetPropertyFunction(
 	// 32-bit decoding
 	if (actual_format == 32) {
 		unsigned long *arr = (unsigned long *)data;
-		void *mb = CreateMultifieldBuilder(theEnv, nitems);
 
 		if (actual_type == XA_ATOM) {
 			for (unsigned long i = 0; i < nitems; ++i) {
@@ -1083,7 +1092,6 @@ void XGetPropertyFunction(
 	// 16-bit: return each as integer
 	if (actual_format == 16) {
 		unsigned short *arr16 = (unsigned short *)data;
-		void *mb = CreateMultifieldBuilder(theEnv, nitems);
 		for (unsigned long i = 0; i < nitems; ++i) {
 			MBAppendInteger(mb, (long long)arr16[i]);
 		}
@@ -1096,7 +1104,6 @@ void XGetPropertyFunction(
 	// 8-bit fallback: raw bytes as integers
 	if (actual_format == 8) {
 		unsigned char *arr8 = (unsigned char *)data;
-		void *mb = CreateMultifieldBuilder(theEnv, nitems);
 		for (unsigned long i = 0; i < nitems; ++i) {
 			MBAppendInteger(mb, (long long)arr8[i]);
 		}
@@ -1111,6 +1118,184 @@ void XGetPropertyFunction(
 	WriteString(theEnv,STDERR,"Got window property ");
 	WriteString(theEnv,STDERR,theArg.lexemeValue->contents);
 	WriteString(theEnv,STDERR,", but it was an unknown format: empty\n");
+}
+
+void XChangePropertyFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue) {
+
+	Display *display;
+	Window window;
+	Atom prop, type;
+	int format;
+	int mode = PropModeReplace;
+	unsigned long nelements = 0;
+	unsigned char *raw_bytes = NULL;
+	UDFValue theArg;
+
+	union {
+		unsigned long u32;
+		unsigned short u16;
+		unsigned char u8;
+	} single;
+
+	/* display */
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = theArg.externalAddressValue->contents;
+
+	/* window */
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = theArg.integerValue->contents;
+
+	/* property name */
+	UDFNextArgument(context, LEXEME_BITS, &theArg);
+	prop = XInternAtom(display, theArg.lexemeValue->contents, False);
+	if (prop == None) {
+		WriteString(theEnv, STDERR, "Could not intern atom (property) ");
+		WriteString(theEnv, STDERR, theArg.lexemeValue->contents);
+		WriteString(theEnv, STDERR, "\n");
+		return;
+	}
+
+	/* type name */
+	UDFNextArgument(context, LEXEME_BITS, &theArg);
+	type = XInternAtom(display, theArg.lexemeValue->contents, False);
+	if (type == None) {
+		WriteString(theEnv, STDERR, "Could not intern atom (type) ");
+		WriteString(theEnv, STDERR, theArg.lexemeValue->contents);
+		WriteString(theEnv, STDERR, "\n");
+		return;
+	}
+
+	/* format */
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	format = (int)theArg.integerValue->contents;
+
+	/* mode */
+	UDFNextArgument(context, SYMBOL_BIT, &theArg);
+	if (0 == strcmp(theArg.lexemeValue->contents, "Replace")) {
+		mode = PropModeReplace;
+	} else if (0 == strcmp(theArg.lexemeValue->contents, "Append")) {
+		mode = PropModeAppend;
+	} else if (0 == strcmp(theArg.lexemeValue->contents, "Prepend")) {
+		mode = PropModePrepend;
+	} else {
+		mode = PropModeReplace;
+	}
+
+	/* data: could be string or multifield or integers */
+	if (!UDFHasNextArgument(context)) {
+		nelements = 0;
+		raw_bytes = NULL;
+	} else {
+		UDFNextArgument(context, MULTIFIELD_BIT | SYMBOL_BIT | STRING_BIT | INTEGER_BIT, &theArg);
+		if (theArg.header->type == MULTIFIELD_TYPE) {
+			size_t count = theArg.multifieldValue->length;
+			if (format == 32) {
+				unsigned long *arr32 = (unsigned long *)alloca(sizeof(unsigned long) * count);
+				for (size_t i = 0; i < count; ++i) {
+					if (theArg.multifieldValue->contents[i].header->type == INTEGER_TYPE) {
+						arr32[i] = (unsigned long)theArg.multifieldValue->contents[i].integerValue->contents;
+					} else {
+						arr32[i] = 0;
+					}
+				}
+				nelements = count;
+				raw_bytes = (unsigned char *)arr32;
+			} else if (format == 16) {
+				unsigned short *arr16 = (unsigned short *)alloca(sizeof(unsigned short) * count);
+				for (size_t i = 0; i < count; ++i) {
+					if (theArg.multifieldValue->contents[i].header->type == INTEGER_TYPE) {
+						arr16[i] = (unsigned short)theArg.multifieldValue->contents[i].integerValue->contents;
+					} else {
+						arr16[i] = 0;
+					}
+				}
+				nelements = count;
+				raw_bytes = (unsigned char *)arr16;
+			} else if (format == 8) {
+				unsigned char *b = (unsigned char *)alloca(count);
+				for (size_t i = 0; i < count; ++i) {
+					if (theArg.multifieldValue->contents[i].header->type == INTEGER_TYPE) {
+						b[i] = (unsigned char)theArg.multifieldValue->contents[i].integerValue->contents;
+					} else {
+						b[i] = 0;
+					}
+				}
+				nelements = count;
+				raw_bytes = b;
+			} else {
+				nelements = 0;
+				raw_bytes = NULL;
+			}
+		} else if (theArg.header->type == STRING_TYPE || theArg.header->type == SYMBOL_TYPE) {
+			const char *s = theArg.lexemeValue->contents;
+			size_t len = strlen(s);
+			if (format != 8) {
+				format = 8;
+			}
+			nelements = len;
+			raw_bytes = (unsigned char *)s;
+		} else if (theArg.header->type == INTEGER_TYPE) {
+			if (format == 32) {
+				single.u32 = (unsigned long)theArg.integerValue->contents;
+				raw_bytes = (unsigned char *)&single.u32;
+				nelements = 1;
+			} else if (format == 16) {
+				single.u16 = (unsigned short)theArg.integerValue->contents;
+				raw_bytes = (unsigned char *)&single.u16;
+				nelements = 1;
+			} else if (format == 8) {
+				single.u8 = (unsigned char)theArg.integerValue->contents;
+				raw_bytes = (unsigned char *)&single.u8;
+				nelements = 1;
+			} else {
+				nelements = 0;
+				raw_bytes = NULL;
+			}
+		} else {
+			nelements = 0;
+			raw_bytes = NULL;
+		}
+	}
+
+	XChangeProperty(display,
+			window,
+			prop,
+			type,
+			format,
+			mode,
+			raw_bytes,
+			nelements);
+}
+
+void XDeletePropertyFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue) {
+
+	Display *display;
+	Window window;
+	Atom prop;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = theArg.integerValue->contents;
+
+	UDFNextArgument(context, LEXEME_BITS, &theArg);
+	prop = XInternAtom(display, theArg.lexemeValue->contents, False);
+	if (prop == None) {
+		WriteString(theEnv, STDERR, "Could not intern atom (property) ");
+		WriteString(theEnv, STDERR, theArg.lexemeValue->contents);
+		WriteString(theEnv, STDERR, "\n");
+		return;
+	}
+
+	XDeleteProperty(display, window, prop);
 }
 
 void XGetGeometryFunction(
@@ -4559,6 +4744,8 @@ void UserFunctions(
 	  AddUDF(env,"set-window-gravity","v",3,3,";e;l;y",SetWindowGravityFunction,"SetWindowGravityFunction",NULL);
 	  AddUDF(env,"x-list-properties","m",2,2,";e;l",XListPropertiesFunction,"XListPropertiesFunction",NULL);
 	  AddUDF(env,"x-get-property","ms",3,3,";e;l;sy",XGetPropertyFunction,"XGetPropertyFunction",NULL);
+	  AddUDF(env,"x-change-property","v",6,7,";e;l;sy;sy;l;y;lmsy",XChangePropertyFunction,"XChangePropertyFunction",NULL);
+	  AddUDF(env,"x-delete-property","v",3,3,";e;l;sy",XDeletePropertyFunction,"XDeletePropertyFunction",NULL);
 	  AddUDF(env,"x-get-geometry","m",2,2,";e;l",XGetGeometryFunction,"XGetGeometryFunction",NULL);
 	  AddUDF(env,"x-fetch-name","s",2,2,";e;l",XFetchNameFunction,"XFetchNameFunction",NULL);
 	  AddUDF(env,"x-store-name","v",3,3,";e;l;sy",XStoreNameFunction,"XStoreNameFunction",NULL);
