@@ -396,6 +396,12 @@ A multifield of symbols: each is the string name of a property currently set on 
 - `<window>`: Integer window ID.
 - `<name>`: Name of the property
 
+##### Returns
+
+- STRING of the value
+- INTEGER of the value
+- MULTIFIELD containing STRINGs or INTEGERs
+
 ### Cursor, Font & Color
 
 #### `x-create-font-cursor`
