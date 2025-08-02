@@ -1149,6 +1149,57 @@ void XGetGeometryFunction(
 	MBDispose(mb);
 }
 
+void XFetchNameFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window window;
+	char *name = NULL;
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	if (XFetchName(display, window, &name) && (name != NULL))
+	{
+		returnValue->lexemeValue = CreateString(theEnv, name);
+		XFree(name);
+	}
+	else
+	{
+		WriteString(theEnv, STDERR, "x-fetch-name failed for window ");
+		WriteInteger(theEnv, STDERR, window);
+		WriteString(theEnv, STDERR, "\n");
+	}
+}
+
+void XStoreNameFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window window;
+	const char *name;
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	UDFNextArgument(context,LEXEME_BITS,&theArg);
+	name = theArg.lexemeValue->contents;
+
+	XStoreName(display, window, name);
+}
+
 void BlackPixelFunction(
 		Environment *theEnv,
 		UDFContext *context,
@@ -4392,6 +4443,8 @@ void UserFunctions(
 	  AddUDF(env,"x-list-properties","m",2,2,";e;l",XListPropertiesFunction,"XListPropertiesFunction",NULL);
 	  AddUDF(env,"x-get-property","ms",3,3,";e;l;sy",XGetPropertyFunction,"XGetPropertyFunction",NULL);
 	  AddUDF(env,"x-get-geometry","m",2,2,";e;l",XGetGeometryFunction,"XGetGeometryFunction",NULL);
+	  AddUDF(env,"x-fetch-name","s",2,2,";e;l",XFetchNameFunction,"XFetchNameFunction",NULL);
+	  AddUDF(env,"x-store-name","v",3,3,";e;l;sy",XStoreNameFunction,"XStoreNameFunction",NULL);
 
 	  AddUDF(env,"black-pixel","l",2,2,";e;l",BlackPixelFunction,"BlackPixelFunction",NULL);
 	  AddUDF(env,"white-pixel","l",2,2,";e;l",WhitePixelFunction,"WhitePixelFunction",NULL);

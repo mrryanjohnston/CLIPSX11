@@ -424,6 +424,39 @@ A multifield of symbols: each is the string name of a property currently set on 
     6. `border_width` of the Window ID in pixels
     7. `depth` of the drawable (bits per pixels of the object)
 
+#### `x-fetch-name`
+
+```
+(x-fetch-name ?display ?window)
+```
+
+##### Arguments
+
+- `<display>`: External address to `Display *`.
+- `<window>`: Integer window ID.
+
+##### Returns
+
+` STRING of the window name
+
+#### `x-store-name`
+
+```
+(x-fetch-name ?display ?window ?name)
+```
+
+##### Arguments
+
+- `<display>`: External address to `Display *`.
+- `<window>`: Integer window ID.
+- `<name>`: The new name to set on the window
+
+##### Example
+
+```clips
+(x-store-name ?window ?display "My new window!")
+```
+
 ### Cursor, Font & Color
 
 #### `x-create-font-cursor`
