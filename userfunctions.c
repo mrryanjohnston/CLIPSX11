@@ -54,6 +54,8 @@
 #include <X11/Xlib.h>
 #include <X11/Xos.h>
 #include <X11/Xutil.h>
+#include <X11/Xatom.h>
+#include <alloca.h>
 
 void UserFunctions(Environment *);
 
@@ -707,7 +709,7 @@ void ReportFBAssertError(
 	}
 }
 
-void ScreenToFact(
+void ScreenToFactFunction(
 		Environment *theEnv,
 		UDFContext *context,
 		UDFValue *returnValue)
@@ -754,7 +756,7 @@ void ScreenToFact(
 	FBDispose(fb);
 }
 
-void ScreenToMultifield(
+void ScreenToMultifieldFunction(
 		Environment *theEnv,
 		UDFContext *context,
 		UDFValue *returnValue)
@@ -793,7 +795,7 @@ void ScreenToMultifield(
 	returnValue->multifieldValue = MBCreate(mb);
 }
 
-void RemoveHintsFlagsFromWindow(
+void RemoveHintsFlagsFromWindowFunction(
 		Environment *theEnv,
 		UDFContext *context,
 		UDFValue *returnValue)
@@ -864,7 +866,7 @@ void RemoveHintsFlagsFromWindow(
 	XFree(hints);
 }
 
-void SetWindowGravity(
+void SetWindowGravityFunction(
 		Environment *theEnv,
 		UDFContext *context,
 		UDFValue *returnValue)
@@ -935,6 +937,180 @@ void SetWindowGravity(
 	}
 
 	XFree(hints);
+}
+
+void XListPropertiesFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Atom *props;
+	int n;
+	Display *display;
+	unsigned long window;
+	MultifieldBuilder *mb;
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	window = theArg.integerValue->contents;
+
+	if ((props = XListProperties(display, window, &n)))
+	{
+		mb = CreateMultifieldBuilder(theEnv, 0);
+		for (int i = 0; i < n; i++)
+		{
+			char *name = XGetAtomName(display, props[i]);
+			MBAppendSymbol(mb, name);
+			XFree(name);
+		}
+		XFree(props);
+
+		returnValue->multifieldValue = MBCreate(mb);
+		MBDispose(mb);
+	}
+	else
+	{
+		WriteString(theEnv,STDERR,"Could not list properties of window\n");
+	}
+}
+
+void XGetPropertyFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue) {
+
+	Atom actual_type, prop, utf8;
+	int actual_format, status;
+	Display *display;
+	unsigned long nitems, bytes_after, window;
+	unsigned char *data = NULL;
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	window = theArg.integerValue->contents;
+
+	UDFNextArgument(context,LEXEME_BITS,&theArg);
+
+	prop = XInternAtom(display, theArg.lexemeValue->contents, False);
+	if (prop == None) {
+		WriteString(theEnv,STDERR,"Could not intern atom ");
+		WriteString(theEnv,STDERR,theArg.lexemeValue->contents);
+		WriteString(theEnv,STDERR,"\n");
+		return;
+	}
+
+	status = XGetWindowProperty(display, window, prop,
+			0, (~0L),
+			False,
+			AnyPropertyType,
+			&actual_type,
+			&actual_format,
+			&nitems,
+			&bytes_after,
+			&data);
+	if (status != Success || (data == NULL && nitems == 0)) {
+		// no property or failure: empty multifield
+		if (data) XFree(data);
+		WriteString(theEnv,STDERR,"Could not get window property ");
+		WriteString(theEnv,STDERR,theArg.lexemeValue->contents);
+		WriteString(theEnv,STDERR,"\n");
+		return;
+	}
+
+	// Case: string-like (UTF8 or legacy)
+	utf8 = XInternAtom(display, "UTF8_STRING", False);
+	if (actual_format == 8 && (actual_type == utf8 || actual_type == XA_STRING)) {
+		size_t len = (size_t)nitems;
+		char *buf = alloca(len + 1);
+		for (size_t i = 0; i < len; ++i) {
+			buf[i] = ((char *)data)[i];
+		}
+		buf[len] = '\0';
+
+		returnValue->lexemeValue = CreateString(theEnv, buf);
+		XFree(data);
+		return;
+	}
+
+	// 32-bit decoding
+	if (actual_format == 32) {
+		unsigned long *arr = (unsigned long *)data;
+		void *mb = CreateMultifieldBuilder(theEnv, nitems);
+
+		if (actual_type == XA_ATOM) {
+			for (unsigned long i = 0; i < nitems; ++i) {
+				Atom a = (Atom)(arr[i] & 0xFFFFFFFFUL);
+				char *name = XGetAtomName(display, a);
+				if (name) {
+					MBAppendSymbol(mb, name);
+					XFree(name);
+				} else {
+					MBAppendSymbol(mb, "<unknown>");
+				}
+			}
+			returnValue->multifieldValue = MBCreate(mb);
+			MBDispose(mb);
+			XFree(data);
+			return;
+		}
+
+		if (actual_type == XA_WINDOW || actual_type == XA_CARDINAL || actual_type == XA_INTEGER) {
+			for (unsigned long i = 0; i < nitems; ++i) {
+				MBAppendInteger(mb, (long long)arr[i]);
+			}
+			returnValue->multifieldValue = MBCreate(mb);
+			MBDispose(mb);
+			XFree(data);
+			return;
+		}
+
+		// fallback: treat as generic 32-bit ints
+		for (unsigned long i = 0; i < nitems; ++i) {
+			MBAppendInteger(mb, (long long)arr[i]);
+		}
+		returnValue->multifieldValue = MBCreate(mb);
+		MBDispose(mb);
+		XFree(data);
+		return;
+	}
+
+	// 16-bit: return each as integer
+	if (actual_format == 16) {
+		unsigned short *arr16 = (unsigned short *)data;
+		void *mb = CreateMultifieldBuilder(theEnv, nitems);
+		for (unsigned long i = 0; i < nitems; ++i) {
+			MBAppendInteger(mb, (long long)arr16[i]);
+		}
+		returnValue->multifieldValue = MBCreate(mb);
+		MBDispose(mb);
+		XFree(data);
+		return;
+	}
+
+	// 8-bit fallback: raw bytes as integers
+	if (actual_format == 8) {
+		unsigned char *arr8 = (unsigned char *)data;
+		void *mb = CreateMultifieldBuilder(theEnv, nitems);
+		for (unsigned long i = 0; i < nitems; ++i) {
+			MBAppendInteger(mb, (long long)arr8[i]);
+		}
+		returnValue->multifieldValue = MBCreate(mb);
+		MBDispose(mb);
+		XFree(data);
+		return;
+	}
+
+	// Unknown format: empty
+	if (data) XFree(data);
+	WriteString(theEnv,STDERR,"Got window property ");
+	WriteString(theEnv,STDERR,theArg.lexemeValue->contents);
+	WriteString(theEnv,STDERR,", but it was an unknown format: empty\n");
 }
 
 void BlackPixelFunction(
@@ -4173,10 +4349,12 @@ void UserFunctions(
 	  AddUDF(env,"x-move-resize-window","l",6,6,";e;l;l;l;l;l",XMoveResizeWindowFunction,"XMoveResizeWindowFunction",NULL);
 	  AddUDF(env,"x-circulate-subwindows-up","l",2,2,";e;l",XCirculateSubwindowsUpFunction,"XCirculateSubwindowsUpFunction",NULL);
 	  AddUDF(env,"x-kill-client","l",2,2,";e;l",XKillClientFunction,"XKillClientFunction",NULL);
-	  AddUDF(env,"screen-to-fact","f",1,1,";e",ScreenToFact,"ScreenToFact",NULL);
-	  AddUDF(env,"screen-to-multifield","m",1,1,";e",ScreenToMultifield,"ScreenToMultifield",NULL);
-	  AddUDF(env,"remove-hints-flags-from-window","v",3,12,";e;l;y;y;y;y;y;y;y;y;y;y",RemoveHintsFlagsFromWindow,"RemoveHintsFlagsFromWindow",NULL);
-	  AddUDF(env,"set-window-gravity","v",3,3,";e;l;y",SetWindowGravity,"SetWindowGravity",NULL);
+	  AddUDF(env,"screen-to-fact","f",1,1,";e",ScreenToFactFunction,"ScreenToFactFunction",NULL);
+	  AddUDF(env,"screen-to-multifield","m",1,1,";e",ScreenToMultifieldFunction,"ScreenToMultifieldFunction",NULL);
+	  AddUDF(env,"remove-hints-flags-from-window","v",3,12,";e;l;y;y;y;y;y;y;y;y;y;y",RemoveHintsFlagsFromWindowFunction,"RemoveHintsFlagsFromWindowFunction",NULL);
+	  AddUDF(env,"set-window-gravity","v",3,3,";e;l;y",SetWindowGravityFunction,"SetWindowGravityFunction",NULL);
+	  AddUDF(env,"x-list-properties","m",2,2,";e;l",XListPropertiesFunction,"XListPropertiesFunction",NULL);
+	  AddUDF(env,"x-get-property","ms",3,3,";e;l;sy",XGetPropertyFunction,"XGetPropertyFunction",NULL);
 
 	  AddUDF(env,"black-pixel","l",2,2,";e;l",BlackPixelFunction,"BlackPixelFunction",NULL);
 	  AddUDF(env,"white-pixel","l",2,2,";e;l",WhitePixelFunction,"WhitePixelFunction",NULL);

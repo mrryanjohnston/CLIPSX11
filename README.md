@@ -363,6 +363,39 @@ Sets the window gravity in the `WM_NORMAL_HINTS` property for a given X11 window
 
 ---
 
+#### `x-list-properties`
+
+```
+(x-list-properties <display> <window>)  
+```
+
+##### Arguments
+
+- `<display>`: External address to `Display *`.
+- `<window>`: Integer window ID.
+
+##### Return
+
+A multifield of symbols: each is the string name of a property currently set on the window. If no properties or on failure, returns an empty multifield.
+
+##### Behavior
+
+- Internally calls `XListProperties`.
+- Converts each returned atom to its name via `XGetAtomName`.
+- Returns names as CLIPS symbols.
+
+#### `x-get-property`
+
+```
+(x-get-property <display> <window> <name>)
+```
+
+##### Arguments
+
+- `<display>`: External address to `Display *`.
+- `<window>`: Integer window ID.
+- `<name>`: Name of the property
+
 ### Cursor, Font & Color
 
 #### `x-create-font-cursor`
