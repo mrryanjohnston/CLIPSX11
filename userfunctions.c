@@ -1200,6 +1200,123 @@ void XStoreNameFunction(
 	XStoreName(display, window, name);
 }
 
+const char *RevertToToStr(int revert_to)
+{
+	switch(revert_to)
+	{
+		case RevertToParent:
+			return "RevertToParent";
+		case RevertToPointerRoot:
+			return "RevertToPointerRoot";
+		case RevertToNone:
+			return "RevertToNone";
+		default:
+			return "Unknown";
+	}
+}
+
+void XGetInputFocusFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window focus;
+	int revert_to, status;
+	MultifieldBuilder *mb;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = theArg.externalAddressValue->contents;
+
+	status = XGetInputFocus(display, &focus, &revert_to);
+	if (status == 0)  /* According to Xlib, non-zero is success */
+	{
+		WriteString(theEnv, STDERR, "XGetInputFocus failed: could not retrieve focus information.\n");
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	mb = CreateMultifieldBuilder(theEnv, 0);
+	MBAppendInteger(mb, focus);
+	MBAppendSymbol(mb, RevertToToStr(revert_to));
+	returnValue->multifieldValue = MBCreate(mb);
+	MBDispose(mb);
+}
+
+void XWarpPointerFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window src_w, dest_w;
+	int src_x, src_y;
+	unsigned int src_width, src_height;
+	int dest_x, dest_y;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	src_w = (Window) theArg.integerValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	dest_w = (Window) theArg.integerValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	src_x = theArg.integerValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	src_y = theArg.integerValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	src_width = theArg.integerValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	src_height = theArg.integerValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	dest_x = theArg.integerValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	dest_y = theArg.integerValue->contents;
+
+	XWarpPointer(display, src_w, dest_w, src_x, src_y, src_width, src_height, dest_x, dest_y);
+}
+
+void XQueryPointerFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window root, child;
+	int root_x, root_y, win_x, win_y;
+	unsigned int mask;
+	UDFValue theArg;
+	MultifieldBuilder *mb;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = theArg.externalAddressValue->contents;
+
+	root = DefaultRootWindow(display);
+
+	if (!XQueryPointer(display, root, &root, &child, &root_x, &root_y, &win_x, &win_y, &mask))
+	{
+		WriteString(theEnv, STDERR, "x-query-pointer failed\n");
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	mb = CreateMultifieldBuilder(theEnv, 2);
+	MBAppendInteger(mb, root_x);
+	MBAppendInteger(mb, root_y);
+	returnValue->multifieldValue = MBCreate(mb);
+	MBDispose(mb);
+}
+
 void BlackPixelFunction(
 		Environment *theEnv,
 		UDFContext *context,
@@ -4445,6 +4562,9 @@ void UserFunctions(
 	  AddUDF(env,"x-get-geometry","m",2,2,";e;l",XGetGeometryFunction,"XGetGeometryFunction",NULL);
 	  AddUDF(env,"x-fetch-name","s",2,2,";e;l",XFetchNameFunction,"XFetchNameFunction",NULL);
 	  AddUDF(env,"x-store-name","v",3,3,";e;l;sy",XStoreNameFunction,"XStoreNameFunction",NULL);
+	  AddUDF(env,"x-get-input-focus","bm",1,1,";e",XGetInputFocusFunction,"XGetInputFocusFunction",NULL);
+	  AddUDF(env,"x-warp-pointer","v",9,9,";e;l;l;l;l;l;l;l;l",XWarpPointerFunction,"XWarpPointerFunction",NULL);
+	  AddUDF(env,"x-query-pointer","bm",1,1,";e",XQueryPointerFunction,"XQueryPointerFunction",NULL);
 
 	  AddUDF(env,"black-pixel","l",2,2,";e;l",BlackPixelFunction,"BlackPixelFunction",NULL);
 	  AddUDF(env,"white-pixel","l",2,2,";e;l",WhitePixelFunction,"WhitePixelFunction",NULL);

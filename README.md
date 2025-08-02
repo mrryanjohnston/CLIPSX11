@@ -459,6 +459,27 @@ A multifield of symbols: each is the string name of a property currently set on 
 
 ### Cursor, Font & Color
 
+#### `x-query-pointer`
+
+```clips
+(x-query-pointer <display>) → MULTIFIELD
+```
+
+#### Description
+
+Returns the x, y coordinates of the cursor.
+
+#### Arguments
+
+- `<display>`: External address to `Display *`.
+
+#### Returns
+
+A MULTIFIELD with two values `x` and `y` which are the coordinates of the cursor
+
+---
+
+
 #### `x-create-font-cursor`
 
 ```clips
@@ -564,6 +585,45 @@ Creates a cursor from the X11 font cursor set.
 Associates a cursor with a window.
 
 ---
+
+#### `x-get-input-focus`
+
+##### Description
+
+Retrieves the current input focus window and the revert-to setting for the specified display.
+
+##### Arguments
+
+- `<display>`: External address to an X11 `Display` (as returned by `x-open-display`).
+
+##### Returns
+
+A multifield containing two elements:
+1. The focus window (integer).
+2. The revert-to policy as a symbol. Possible values:
+   - `RevertToParent`
+   - `RevertToPointerRoot`
+   - `RevertToNone`
+
+---
+
+#### `x-warp-pointer`
+
+```clips
+(x-warp-pointer <display> <src-window> <dest-window> <src-x> <src-y> <src-width> <src-height> <dest-x> <dest-y>) => <lexeme or integer>
+```
+
+##### Description
+
+Moves the pointer (mouse cursor) to a specified location, either relative to a source window or directly into a destination window. NOTE: Does not necessarily move the visual cursor icon on the screen; check the coordinates with `x-query-pointer` after `x-warp-pointer`.
+
+##### Arguments
+
+- <display>: External address to the X11 Display.
+- <src-window>: Source window (integer). The pointer is warped relative to this window’s coordinate system. Use 0 if not constraining to a source region.
+- <dest-window>: Destination window (integer) where the pointer will be moved. Use 0 to indicate the root or global coordinate space depending on your semantics.
+- <src-x> / <src-y> / <src-width> / <src-height>: Defines a source rectangle within src-window. If the current pointer position is outside this rectangle, the warp does not occur. To ignore the source restriction, supply zeros appropriately (as per X11 API).
+- <dest-x> / <dest-y>: Coordinates within dest-window to which the pointer will be moved.
 
 #### `black-pixel`
 #### `white-pixel`
