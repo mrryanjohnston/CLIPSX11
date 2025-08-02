@@ -1113,6 +1113,42 @@ void XGetPropertyFunction(
 	WriteString(theEnv,STDERR,", but it was an unknown format: empty\n");
 }
 
+void XGetGeometryFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	unsigned long window, root;
+	int x, y;
+	unsigned int width, height, border_width, depth;
+	MultifieldBuilder *mb;
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	window = theArg.integerValue->contents;
+
+	if (XGetGeometry(display, window, &root, &x, &y, &width, &height, &border_width, &depth) == 0) {
+		WriteString(theEnv, STDERR, "x-get-geometry failed for window ");
+		WriteInteger(theEnv, STDERR, window);
+		WriteString(theEnv, STDERR, "\n");
+		return;
+	}
+	mb = CreateMultifieldBuilder(theEnv, 7);
+	MBAppendInteger(mb, root);
+	MBAppendInteger(mb, x);
+	MBAppendInteger(mb, y);
+	MBAppendInteger(mb, width);
+	MBAppendInteger(mb, height);
+	MBAppendInteger(mb, border_width);
+	MBAppendInteger(mb, depth);
+	returnValue->multifieldValue = MBCreate(mb);
+	MBDispose(mb);
+}
+
 void BlackPixelFunction(
 		Environment *theEnv,
 		UDFContext *context,
@@ -4355,6 +4391,7 @@ void UserFunctions(
 	  AddUDF(env,"set-window-gravity","v",3,3,";e;l;y",SetWindowGravityFunction,"SetWindowGravityFunction",NULL);
 	  AddUDF(env,"x-list-properties","m",2,2,";e;l",XListPropertiesFunction,"XListPropertiesFunction",NULL);
 	  AddUDF(env,"x-get-property","ms",3,3,";e;l;sy",XGetPropertyFunction,"XGetPropertyFunction",NULL);
+	  AddUDF(env,"x-get-geometry","m",2,2,";e;l",XGetGeometryFunction,"XGetGeometryFunction",NULL);
 
 	  AddUDF(env,"black-pixel","l",2,2,";e;l",BlackPixelFunction,"BlackPixelFunction",NULL);
 	  AddUDF(env,"white-pixel","l",2,2,";e;l",WhitePixelFunction,"WhitePixelFunction",NULL);

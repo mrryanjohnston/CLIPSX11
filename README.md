@@ -402,6 +402,28 @@ A multifield of symbols: each is the string name of a property currently set on 
 - INTEGER of the value
 - MULTIFIELD containing STRINGs or INTEGERs
 
+#### `x-get-geometry`
+
+```
+(x-get-geometry <display> <window>)
+```
+
+##### Arguments
+
+- `<display>`: External address to `Display *`.
+- `<window>`: Integer window ID.
+
+##### Returns
+
+- A multifield with the following ordered values:
+    1. `root` Window ID of the window passed
+    2. `x` position of the Window ID relative to `root`'s origin
+    3. `y` position of the Window ID relative to `root`'s origin
+    4. `width` of the Window ID
+    5. `height` of the Window ID
+    6. `border_width` of the Window ID in pixels
+    7. `depth` of the drawable (bits per pixels of the object)
+
 ### Cursor, Font & Color
 
 #### `x-create-font-cursor`
