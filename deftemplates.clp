@@ -75,8 +75,6 @@
 			SelectionRequest
 			UnmapNotify
 			VisibilityNotify))
-	(slot x-any-event
-		(type FACT-ADDRESS))
 	(slot typed-event
 		(type FACT-ADDRESS)))
 
@@ -93,43 +91,23 @@
 	(slot window
 		(type INTEGER)))
 
-(deftemplate x-button-event
-	(slot c-pointer
-		(type EXTERNAL-ADDRESS))
-	(slot root
-		(type INTEGER))
-	(slot subwindow
-		(type INTEGER))
-	(slot time
-		(type INTEGER))
-	(slot x
-		(type INTEGER))
-	(slot y
-		(type INTEGER))
-	(slot x-root
-		(type INTEGER))
-	(slot y-root
-		(type INTEGER))
-	(multislot state
-		(type SYMBOL)
-		(allowed-values
-			ShiftMask
-			LockMask
-			ControlMask
-			Mod1Mask
-			Mod2Mask
-			Mod3Mask
-			Mod4Mask
-			Mod5Mask))
-	(slot button
-		(type INTEGER))
-	(slot same-screen
-		(type SYMBOL)
-		(allowed-values TRUE FALSE)))
-
 (deftemplate x-key-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			KeyPress
+			KeyRelease))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot window
+		(type INTEGER))
 	(slot root
 		(type INTEGER))
 	(slot subwindow
@@ -169,9 +147,70 @@
 	(slot chars-matched
 		(type INTEGER)))
 
+(deftemplate x-button-event
+	(slot c-pointer
+		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			ButtonPress
+			ButtonRelease))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot window
+		(type INTEGER))
+	(slot root
+		(type INTEGER))
+	(slot subwindow
+		(type INTEGER))
+	(slot time
+		(type INTEGER))
+	(slot x
+		(type INTEGER))
+	(slot y
+		(type INTEGER))
+	(slot x-root
+		(type INTEGER))
+	(slot y-root
+		(type INTEGER))
+	(multislot state
+		(type SYMBOL)
+		(allowed-values
+			ShiftMask
+			LockMask
+			ControlMask
+			Mod1Mask
+			Mod2Mask
+			Mod3Mask
+			Mod4Mask
+			Mod5Mask))
+	(slot button
+		(type INTEGER))
+	(slot same-screen
+		(type SYMBOL)
+		(allowed-values TRUE FALSE)))
+
 (deftemplate x-motion-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			MotionNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot window
+		(type INTEGER))
 	(slot root
 		(type INTEGER))
 	(slot subwindow
@@ -204,6 +243,20 @@
 (deftemplate x-crossing-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			EnterNotify
+			LeaveNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot window
+		(type INTEGER))
 	(slot root
 		(type INTEGER))
 	(slot subwindow
@@ -258,6 +311,20 @@
 (deftemplate x-focus-change-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			FocusIn
+			FocusOut))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot window
+		(type INTEGER))
 	(slot mode
 		(type SYMBOL)
 		(allowed-values
@@ -276,9 +343,43 @@
 			NotifyPointerRoot
 			NotifyDetailNone)))
 
+(deftemplate x-keymap-event
+	(slot c-pointer
+		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			Keymap))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot window
+		(type INTEGER))
+	(multislot key-down
+		(type SYMBOL))
+	(multislot key-vector
+		(type SYMBOL)))
+
 (deftemplate x-expose-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			Expose))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot window
+		(type INTEGER))
 	(slot x
 		(type INTEGER))
 	(slot y
@@ -292,6 +393,17 @@
 
 (deftemplate x-graphics-expose-event
 	(slot c-pointer
+		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			Graphics))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
 		(type EXTERNAL-ADDRESS))
 	(slot drawable
 		(type INTEGER))
@@ -313,6 +425,17 @@
 (deftemplate x-no-expose-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			NoExpose))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
 	(slot drawable
 		(type INTEGER))
 	(slot major-code
@@ -323,6 +446,19 @@
 (deftemplate x-visibility-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			VisibilityNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot window
+		(type INTEGER))
 	(slot state
 		(type SYMBOL)
 		(allowed-values
@@ -333,7 +469,20 @@
 (deftemplate x-create-window-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			CreateNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
 	(slot parent
+		(type INTEGER))
+	(slot window
 		(type INTEGER))
 	(slot x
 		(type INTEGER))
@@ -352,13 +501,39 @@
 (deftemplate x-destroy-window-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			DestroyNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
 	(slot event
+		(type INTEGER))
+	(slot window
 		(type INTEGER)))
 
 (deftemplate x-unmap-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			UnmapNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
 	(slot event
+		(type INTEGER))
+	(slot window
 		(type INTEGER))
 	(slot from-configure
 		(type SYMBOL)
@@ -367,7 +542,20 @@
 (deftemplate x-map-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			MapNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
 	(slot event
+		(type INTEGER))
+	(slot window
 		(type INTEGER))
 	(slot override-redirect
 		(type SYMBOL)
@@ -376,13 +564,35 @@
 (deftemplate x-map-request-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
-	(slot window
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			MapRequest))
+	(slot serial
 		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
 	(slot parent
+		(type INTEGER))
+	(slot window
 		(type INTEGER)))
 
 (deftemplate x-reparent-event
 	(slot c-pointer
+		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			ReparentNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
 		(type EXTERNAL-ADDRESS))
 	(slot event
 		(type INTEGER))
@@ -399,9 +609,20 @@
 (deftemplate x-configure-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			ConfigureNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
 	(slot event
 		(type INTEGER))
-	(slot parent
+	(slot window
 		(type INTEGER))
 	(slot x
 		(type INTEGER))
@@ -415,26 +636,19 @@
 		(type SYMBOL)
 		(allowed-values TRUE FALSE)))
 
-(deftemplate x-gravity-event
-	(slot c-pointer
-		(type EXTERNAL-ADDRESS))
-	(slot event
-		(type INTEGER))
-	(slot x
-		(type INTEGER))
-	(slot y
-		(type INTEGER)))
-
-(deftemplate x-resize-request-event
-	(slot c-pointer
-		(type EXTERNAL-ADDRESS))
-	(slot width
-		(type INTEGER))
-	(slot height
-		(type INTEGER)))
-
 (deftemplate x-configure-request-event
 	(slot c-pointer
+		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			ConfigureRequest))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
 		(type EXTERNAL-ADDRESS))
 	(slot parent
 		(type INTEGER))
@@ -466,10 +680,67 @@
 			CWSibling
 			CWStackMode)))
 
+(deftemplate x-gravity-event
+	(slot c-pointer
+		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			GravityNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot event
+		(type INTEGER))
+	(slot window
+		(type INTEGER))
+	(slot x
+		(type INTEGER))
+	(slot y
+		(type INTEGER)))
+
+(deftemplate x-resize-request-event
+	(slot c-pointer
+		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			ResizeRequest))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot window
+		(type INTEGER))
+	(slot width
+		(type INTEGER))
+	(slot height
+		(type INTEGER)))
+
 (deftemplate x-circulate-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			CirculateNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
 	(slot event
+		(type INTEGER))
+	(slot window
 		(type INTEGER))
 	(slot place
 		(type SYMBOL)
@@ -480,7 +751,20 @@
 (deftemplate x-circulate-request-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			CirculateRequest))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
 	(slot parent
+		(type INTEGER))
+	(slot window
 		(type INTEGER))
 	(slot place
 		(type SYMBOL)
@@ -491,6 +775,19 @@
 (deftemplate x-property-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			PropertyNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot window
+		(type INTEGER))
 	(slot atom
 		(type INTEGER))
 	(slot time
@@ -504,6 +801,19 @@
 (deftemplate x-selection-clear-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			SelectionClear))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot window
+		(type INTEGER))
 	(slot selection
 		(type INTEGER))
 	(slot time
@@ -511,6 +821,17 @@
 
 (deftemplate x-selection-request-event
 	(slot c-pointer
+		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			SelectionRequest))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
 		(type EXTERNAL-ADDRESS))
 	(slot owner
 		(type INTEGER))
@@ -528,6 +849,17 @@
 (deftemplate x-selection-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			SelectionNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
 	(slot requestor
 		(type INTEGER))
 	(slot selection
@@ -542,6 +874,19 @@
 (deftemplate x-colormap-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			ColormapNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot window
+		(type INTEGER))
 	(slot colormap
 		(type INTEGER SYMBOL))
 	(slot new
@@ -556,6 +901,19 @@
 (deftemplate x-client-message-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			ClientMessage))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot window
+		(type INTEGER))
 	(slot message-type
 		(type INTEGER))
 	(slot format
@@ -565,6 +923,19 @@
 (deftemplate x-mapping-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			MappingNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot window
+		(type INTEGER))
 	(slot request
 		(type SYMBOL)
 		(allowed-values
@@ -576,11 +947,24 @@
 	(slot count
 		(type INTEGER)))
 
-(deftemplate x-keymap-event
+(deftemplate x-generic-event
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
-	(multislot key-vector
-		(type SYMBOL)))
+	(slot type
+		(type SYMBOL)
+		(allowed-values
+			GenericNotify))
+	(slot serial
+		(type INTEGER))
+	(slot send-event
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot display
+		(type EXTERNAL-ADDRESS))
+	(slot extension
+		(type INTEGER))
+	(slot evtype
+		(type INTEGER)))
 
 (deftemplate x-error-event
 	(slot c-pointer

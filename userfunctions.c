@@ -1660,21 +1660,105 @@ void XPendingFunction(
 	returnValue->integerValue = CreateInteger(theEnv, XPending(display));
 }
 
+const char *XEventTypeToStr(int type)
+{
+	switch (type)
+	{
+		case KeyPress:
+			return "KeyPress";
+		case KeyRelease:
+			return "KeyRelease";
+		case ButtonPress:
+			return "ButtonPress";
+		case ButtonRelease:
+			return "ButtonRelease";
+		case MotionNotify:
+			return "MotionNotify";
+		case EnterNotify:
+			return "EnterNotify";
+		case LeaveNotify:
+			return "LeaveNotify";
+		case FocusIn:
+			return "FocusIn";
+		case FocusOut:
+			return "FocusOut";
+		case KeymapNotify:
+			return "KeymapNotify";
+		case Expose:
+			return "Expose";
+		case GraphicsExpose:
+			return "GraphicsExpose";
+		case NoExpose:
+			return "NoExpose";
+		case VisibilityNotify:
+			return "VisibilityNotify";
+		case CreateNotify:
+			return "CreateNotify";
+		case DestroyNotify:
+			return "DestroyNotify";
+		case UnmapNotify:
+			return "UnmapNotify";
+		case MapNotify:
+			return "MapNotify";
+		case MapRequest:
+			return "MapRequest";
+		case ReparentNotify:
+			return "ReparentNotify";
+		case ConfigureNotify:
+			return "ConfigureNotify";
+		case ConfigureRequest:
+			return "ConfigureRequest";
+		case GravityNotify:
+			return "GravityNotify";
+		case ResizeRequest:
+			return "ResizeRequest";
+		case CirculateNotify:
+			return "CirculateNotify";
+		case CirculateRequest:
+			return "CirculateRequest";
+		case PropertyNotify:
+			return "PropertyNotify";
+		case SelectionClear:
+			return "SelectionClear";
+		case SelectionRequest:
+			return "SelectionRequest";
+		case SelectionNotify:
+			return "SelectionNotify";
+		case ColormapNotify:
+			return "ColormapNotify";
+		case ClientMessage:
+			return "ClientMessage";
+		case MappingNotify:
+			return "MappingNotify";
+		case GenericEvent:
+			return "GenericEvent";
+		default:
+			return NULL;
+	}
+}
+
+const char* BoolToStr(bool b)
+{
+	if (b)
+	{
+		return "TRUE";
+	}
+	else
+	{
+		return "FALSE";
+	}
+}
+
 Multifield *XAnyEventToMultifield(
 		Environment *theEnv,
 		UDFContext *context,
 		XAnyEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
 	MBAppendInteger(mb, e->serial);
-	if (e->send_event)
-	{
-		MBAppendSymbol(mb, "TRUE");
-	}
-	else
-	{
-		MBAppendSymbol(mb, "FALSE");
-	}
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
 	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->window);
 	return MBCreate(mb);
@@ -1738,6 +1822,12 @@ Multifield *XKeyEventToMultifield(
 	char buffer[32];
 	KeySym keysym;
 
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
+	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->root);
 	MBAppendInteger(mb, e->subwindow);
 	MBAppendInteger(mb, e->time);
@@ -1755,14 +1845,7 @@ Multifield *XKeyEventToMultifield(
 	}
 	MBAppendMultifield(mb, statemf);
 	MBAppendInteger(mb, e->keycode);
-	if (e->same_screen)
-	{
-		MBAppendSymbol(mb, "TRUE");
-	}
-	else
-	{
-		MBAppendSymbol(mb, "FALSE");
-	}
+	MBAppendSymbol(mb, BoolToStr(e->same_screen));
 	XLookupString(e, buffer, sizeof(buffer), &keysym, &compose);
 	MBAppendSymbol(mb, buffer);
 	MBAppendInteger(mb, keysym);
@@ -1780,6 +1863,12 @@ Multifield *XButtonEventToMultifield(
 	MultifieldBuilder *statemb;
 	Multifield *statemf;
 
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
+	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->root);
 	MBAppendInteger(mb, e->subwindow);
 	MBAppendInteger(mb, e->time);
@@ -1797,14 +1886,7 @@ Multifield *XButtonEventToMultifield(
 	}
 	MBAppendMultifield(mb, statemf);
 	MBAppendInteger(mb, e->button);
-	if (e->same_screen)
-	{
-		MBAppendSymbol(mb, "TRUE");
-	}
-	else
-	{
-		MBAppendSymbol(mb, "FALSE");
-	}
+	MBAppendSymbol(mb, BoolToStr(e->same_screen));
 	return MBCreate(mb);
 }
 
@@ -1817,6 +1899,12 @@ Multifield *XMotionEventToMultifield(
 	MultifieldBuilder *statemb;
 	Multifield *statemf;
 
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
+	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->root);
 	MBAppendInteger(mb, e->subwindow);
 	MBAppendInteger(mb, e->time);
@@ -1847,14 +1935,7 @@ Multifield *XMotionEventToMultifield(
 			WriteString(theEnv,STDERR," not supported.\n");
 			return NULL;
 	}
-	if (e->same_screen)
-	{
-		MBAppendSymbol(mb, "TRUE");
-	}
-	else
-	{
-		MBAppendSymbol(mb, "FALSE");
-	}
+	MBAppendSymbol(mb, BoolToStr(e->same_screen));
 	return MBCreate(mb);
 }
 
@@ -1908,6 +1989,12 @@ Multifield *XCrossingEventToMultifield(
 	MultifieldBuilder *statemb;
 	Multifield *statemf;
 
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
+	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->root);
 	MBAppendInteger(mb, e->subwindow);
 	MBAppendInteger(mb, e->time);
@@ -1917,22 +2004,8 @@ Multifield *XCrossingEventToMultifield(
 	MBAppendInteger(mb, e->y_root);
 	MBAppendSymbol(mb, EventModeToStr(e->mode));
 	MBAppendSymbol(mb, EventDetailToStr(e->detail));
-	if (e->same_screen)
-	{
-		MBAppendSymbol(mb, "TRUE");
-	}
-	else
-	{
-		MBAppendSymbol(mb, "FALSE");
-	}
-	if (e->focus)
-	{
-		MBAppendSymbol(mb, "TRUE");
-	}
-	else
-	{
-		MBAppendSymbol(mb, "FALSE");
-	}
+	MBAppendSymbol(mb, BoolToStr(e->same_screen));
+	MBAppendSymbol(mb, BoolToStr(e->focus));
 	statemb = CreateMultifieldBuilder(theEnv, 0);
 	statemf = StateToMultifield(e->state, statemb);
 	MBDispose(statemb);
@@ -1952,6 +2025,12 @@ Multifield *XFocusChangeEventToMultifield(
 		XFocusChangeEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
+	MBAppendInteger(mb, e->window);
 	MBAppendSymbol(mb, EventModeToStr(e->mode));
 	MBAppendSymbol(mb, EventDetailToStr(e->detail));
 
@@ -1968,6 +2047,12 @@ Multifield *XKeymapEventToMultifield(
 	int min_keycode, max_keycode;
 	MultifieldBuilder *keyvectormb, *keydownmb;
 
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
+	MBAppendInteger(mb, e->window);
 
 	XDisplayKeycodes(display, &min_keycode, &max_keycode);
 
@@ -1999,6 +2084,12 @@ Multifield *XExposeEventToMultifield(
 		XExposeEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
+	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->x);
 	MBAppendInteger(mb, e->y);
 	MBAppendInteger(mb, e->width);
@@ -2013,6 +2104,11 @@ Multifield *XGraphicsExposeEventToMultifield(
 		XGraphicsExposeEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->drawable);
 	MBAppendInteger(mb, e->x);
 	MBAppendInteger(mb, e->y);
@@ -2030,6 +2126,11 @@ Multifield *XNoExposeEventToMultifield(
 		XNoExposeEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->drawable);
 	MBAppendInteger(mb, e->major_code);
 	MBAppendInteger(mb, e->minor_code);
@@ -2057,6 +2158,12 @@ Multifield *XVisibilityEventToMultifield(
 		XVisibilityEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
+	MBAppendInteger(mb, e->window);
 	MBAppendSymbol(mb, VisibilityStateToStr(e->state));
 
 	return MBCreate(mb);
@@ -2068,6 +2175,11 @@ Multifield *XCreateWindowEventToMultifield(
 		XCreateWindowEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->parent);
 	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->x);
@@ -2075,14 +2187,7 @@ Multifield *XCreateWindowEventToMultifield(
 	MBAppendInteger(mb, e->width);
 	MBAppendInteger(mb, e->height);
 	MBAppendInteger(mb, e->border_width);
-	if (e->override_redirect)
-	{
-		MBAppendSymbol(mb, "TRUE");
-	}
-	else
-	{
-		MBAppendSymbol(mb, "FALSE");
-	}
+	MBAppendSymbol(mb, BoolToStr(e->override_redirect));
 
 	return MBCreate(mb);
 }
@@ -2093,8 +2198,13 @@ Multifield *XDestroyWindowEventToMultifield(
 		XDestroyWindowEvent *e,
 		MultifieldBuilder *mb)
 {
-
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->event);
+	MBAppendInteger(mb, e->window);
 	return MBCreate(mb);
 }
 
@@ -2105,15 +2215,14 @@ Multifield *XUnmapEventToMultifield(
 		MultifieldBuilder *mb)
 {
 
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->event);
-	if (e->from_configure)
-	{
-		MBAppendSymbol(mb, "TRUE");
-	}
-	else
-	{
-		MBAppendSymbol(mb, "FALSE");
-	}
+	MBAppendInteger(mb, e->window);
+	MBAppendSymbol(mb, BoolToStr(e->from_configure));
 	return MBCreate(mb);
 }
 
@@ -2123,15 +2232,14 @@ Multifield *XMapEventToMultifield(
 		XMapEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->event);
-	if (e->override_redirect)
-	{
-		MBAppendSymbol(mb, "TRUE");
-	}
-	else
-	{
-		MBAppendSymbol(mb, "FALSE");
-	}
+	MBAppendInteger(mb, e->window);
+	MBAppendSymbol(mb, BoolToStr(e->override_redirect));
 	return MBCreate(mb);
 }
 
@@ -2141,6 +2249,11 @@ Multifield *XMapRequestEventToMultifield(
 		XMapRequestEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->parent);
 	MBAppendInteger(mb, e->window);
 	return MBCreate(mb);
@@ -2152,18 +2265,17 @@ Multifield *XReparentEventToMultifield(
 		XReparentEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->event);
+	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->parent);
 	MBAppendInteger(mb, e->x);
 	MBAppendInteger(mb, e->y);
-	if (e->override_redirect)
-	{
-		MBAppendSymbol(mb, "TRUE");
-	}
-	else
-	{
-		MBAppendSymbol(mb, "FALSE");
-	}
+	MBAppendSymbol(mb, BoolToStr(e->override_redirect));
 	return MBCreate(mb);
 }
 
@@ -2173,21 +2285,20 @@ Multifield *XConfigureEventToMultifield(
 		XConfigureEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->event);
+	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->x);
 	MBAppendInteger(mb, e->y);
 	MBAppendInteger(mb, e->width);
 	MBAppendInteger(mb, e->height);
 	MBAppendInteger(mb, e->border_width);
 	MBAppendInteger(mb, e->above);
-	if (e->override_redirect)
-	{
-		MBAppendSymbol(mb, "TRUE");
-	}
-	else
-	{
-		MBAppendSymbol(mb, "FALSE");
-	}
+	MBAppendSymbol(mb, BoolToStr(e->override_redirect));
 	return MBCreate(mb);
 }
 
@@ -2216,6 +2327,11 @@ Multifield *XConfigureRequestEventToMultifield(
 		XConfigureRequestEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->parent);
 	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->x);
@@ -2235,7 +2351,13 @@ Multifield *XGravityEventToMultifield(
 		XGravityEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->event);
+	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->x);
 	MBAppendInteger(mb, e->y);
 	return MBCreate(mb);
@@ -2247,6 +2369,12 @@ Multifield *XResizeRequestEventToMultifield(
 		XResizeRequestEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
+	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->width);
 	MBAppendInteger(mb, e->height);
 	return MBCreate(mb);
@@ -2271,7 +2399,13 @@ Multifield *XCirculateEventToMultifield(
 		XCirculateEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->event);
+	MBAppendInteger(mb, e->window);
 	MBAppendSymbol(mb, CirculateEventPlaceToStr(e->place));
 	return MBCreate(mb);
 }
@@ -2282,7 +2416,13 @@ Multifield *XCirculateRequestEventToMultifield(
 		XCirculateRequestEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->parent);
+	MBAppendInteger(mb, e->window);
 	MBAppendSymbol(mb, CirculateEventPlaceToStr(e->place));
 	return MBCreate(mb);
 }
@@ -2306,6 +2446,12 @@ Multifield *XPropertyEventToMultifield(
 		XPropertyEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
+	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->atom);
 	MBAppendInteger(mb, e->time);
 	MBAppendSymbol(mb, PropertyEventStateToStr(e->state));
@@ -2318,6 +2464,12 @@ Multifield *XSelectionClearEventToMultifield(
 		XSelectionClearEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
+	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->selection);
 	MBAppendInteger(mb, e->time);
 	return MBCreate(mb);
@@ -2329,6 +2481,11 @@ Multifield *XSelectionRequestEventToMultifield(
 		XSelectionRequestEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->owner);
 	MBAppendInteger(mb, e->requestor);
 	MBAppendInteger(mb, e->selection);
@@ -2344,6 +2501,11 @@ Multifield *XSelectionEventToMultifield(
 		XSelectionEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->requestor);
 	MBAppendInteger(mb, e->selection);
 	MBAppendInteger(mb, e->target);
@@ -2371,6 +2533,12 @@ Multifield *XColormapEventToMultifield(
 		XColormapEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
+	MBAppendInteger(mb, e->window);
 	if (e->colormap == None)
 	{
 		MBAppendSymbol(mb, "None");
@@ -2379,14 +2547,7 @@ Multifield *XColormapEventToMultifield(
 	{
 		MBAppendInteger(mb, e->colormap);
 	}
-	if (e->new)
-	{
-		MBAppendSymbol(mb, "TRUE");
-	}
-	else
-	{
-		MBAppendSymbol(mb, "FALSE");
-	}
+	MBAppendSymbol(mb, BoolToStr(e->new));
 	MBAppendSymbol(mb, ColormapEventStateToStr(e->state));
 	return MBCreate(mb);
 }
@@ -2399,6 +2560,12 @@ Multifield *XClientMessageEventToMultifield(
 {
 	MultifieldBuilder *innermb;
 
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
+	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->message_type);
 	MBAppendInteger(mb, e->format);
 	innermb = CreateMultifieldBuilder(theEnv, 0);
@@ -2434,6 +2601,12 @@ Multifield *XMappingEventToMultifield(
 		XMappingEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
+	MBAppendInteger(mb, e->window);
 	MBAppendInteger(mb, e->request);
 	MBAppendInteger(mb, e->first_keycode);
 	MBAppendInteger(mb, e->count);
@@ -2446,6 +2619,11 @@ Multifield *XGenericEventToMultifield(
 		XGenericEvent *e,
 		MultifieldBuilder *mb)
 {
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
+	MBAppendSymbol(mb, XEventTypeToStr(e->type));
+	MBAppendInteger(mb, e->serial);
+	MBAppendSymbol(mb, BoolToStr(e->send_event));
+	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e->display));
 	MBAppendInteger(mb, e->extension);
 	MBAppendInteger(mb, e->evtype);
 	return MBCreate(mb);
@@ -2458,434 +2636,129 @@ Multifield *XEventToMultifield(
 		MultifieldBuilder *mb)
 {
 
-	Multifield *typedevent;
-	MultifieldBuilder *typedeventmb;
-
-	typedeventmb = CreateMultifieldBuilder(theEnv, 0);
-	typedevent = XAnyEventToMultifield(theEnv, context, &(e->xany), typedeventmb);
-	MBDispose(typedeventmb);
-	if (typedevent == NULL)
-	{
-		WriteString(theEnv,STDERR,"Could not create multifield for x-any-event");
-		return NULL;
-	}
-	MBAppendMultifield(mb, typedevent);
+	Multifield *typedevent = NULL;
+	MultifieldBuilder *typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 
 	switch (e->type)
 	{
 		case KeyPress:
-			MBAppendSymbol(mb, "KeyPress");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XKeyEventToMultifield(theEnv, context, &(e->xkey), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-key-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case KeyRelease:
-			MBAppendSymbol(mb, "KeyRelease");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XKeyEventToMultifield(theEnv, context, &(e->xkey), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-key-event");
-				return NULL;
-			}
 			MBAppendMultifield(mb, typedevent);
 			break;
 		case ButtonPress:
-			MBAppendSymbol(mb, "ButtonPress");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XButtonEventToMultifield(theEnv, context, &(e->xbutton), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-button-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case ButtonRelease:
-			MBAppendSymbol(mb, "ButtonRelease");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XButtonEventToMultifield(theEnv, context, &(e->xbutton), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-button-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case MotionNotify:
-			MBAppendSymbol(mb, "MotionNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XMotionEventToMultifield(theEnv, context, &(e->xmotion), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-motion-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case EnterNotify:
-			MBAppendSymbol(mb, "EnterNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XCrossingEventToMultifield(theEnv, context, &(e->xcrossing), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-crossing-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case LeaveNotify:
-			MBAppendSymbol(mb, "LeaveNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XCrossingEventToMultifield(theEnv, context, &(e->xcrossing), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-crossing-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case FocusIn:
-			MBAppendSymbol(mb, "FocusIn");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XFocusChangeEventToMultifield(theEnv, context, &(e->xfocus), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-focus-in-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case FocusOut:
-			MBAppendSymbol(mb, "FocusOut");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XFocusChangeEventToMultifield(theEnv, context, &(e->xfocus), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-focus-in-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case KeymapNotify:
-			MBAppendSymbol(mb, "KeymapNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XKeymapEventToMultifield(theEnv, context, e->xany.display, &e->xkeymap, typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-keymap-notify-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case Expose:
-			MBAppendSymbol(mb, "Expose");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XExposeEventToMultifield(theEnv, context, &(e->xexpose), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-expose-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case GraphicsExpose:
-			MBAppendSymbol(mb, "GraphicsExpose");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XGraphicsExposeEventToMultifield(theEnv, context, &(e->xgraphicsexpose), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-graphics-expose-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case NoExpose:
-			MBAppendSymbol(mb, "NoExpose");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XNoExposeEventToMultifield(theEnv, context, &(e->xnoexpose), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-no-expose-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case VisibilityNotify:
-			MBAppendSymbol(mb, "VisibilityNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XVisibilityEventToMultifield(theEnv, context, &(e->xvisibility), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-visibility-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case CreateNotify:
-			MBAppendSymbol(mb, "CreateNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XCreateWindowEventToMultifield(theEnv, context, &(e->xcreatewindow), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create multifield for x-create-window-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case DestroyNotify:
-			MBAppendSymbol(mb, "DestroyNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XDestroyWindowEventToMultifield(theEnv, context, &(e->xdestroywindow), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-destroy-window-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case UnmapNotify:
-			MBAppendSymbol(mb, "UnmapNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XUnmapEventToMultifield(theEnv, context, &(e->xunmap), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-unmap-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case MapNotify:
-			MBAppendSymbol(mb, "MapNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XMapEventToMultifield(theEnv, context, &(e->xmap), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-map-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case MapRequest:
-			MBAppendSymbol(mb, "MapRequest");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XMapRequestEventToMultifield(theEnv, context, &(e->xmaprequest), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-map-request-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case ReparentNotify:
-			MBAppendSymbol(mb, "ReparentNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XReparentEventToMultifield(theEnv, context, &(e->xreparent), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-reparent-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case ConfigureNotify:
-			MBAppendSymbol(mb, "ConfigureNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XConfigureEventToMultifield(theEnv, context, &(e->xconfigure), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-configure-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case ConfigureRequest:
-			MBAppendSymbol(mb, "ConfigureRequest");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XConfigureRequestEventToMultifield(theEnv, context, &(e->xconfigurerequest), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-configure-request-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case GravityNotify:
-			MBAppendSymbol(mb, "GravityNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XGravityEventToMultifield(theEnv, context, &(e->xgravity), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-gravity-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case ResizeRequest:
-			MBAppendSymbol(mb, "ResizeRequest");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XResizeRequestEventToMultifield(theEnv, context, &(e->xresizerequest), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-resize-request-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case CirculateNotify:
-			MBAppendSymbol(mb, "CirculateNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XCirculateEventToMultifield(theEnv, context, &(e->xcirculate), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-circulate-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case CirculateRequest:
-			MBAppendSymbol(mb, "CirculateRequest");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XCirculateRequestEventToMultifield(theEnv, context, &(e->xcirculaterequest), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-circulate-request-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case PropertyNotify:
-			MBAppendSymbol(mb, "PropertyNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XPropertyEventToMultifield(theEnv, context, &(e->xproperty), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-property-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case SelectionClear:
-			MBAppendSymbol(mb, "SelectionClear");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XSelectionClearEventToMultifield(theEnv, context, &(e->xselectionclear), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-selection-clear-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case SelectionRequest:
-			MBAppendSymbol(mb, "SelectionRequest");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XSelectionRequestEventToMultifield(theEnv, context, &(e->xselectionrequest), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-selection-request-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case SelectionNotify:
-			MBAppendSymbol(mb, "SelectionNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XSelectionEventToMultifield(theEnv, context, &(e->xselection), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-selection-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case ColormapNotify:
-			MBAppendSymbol(mb, "ColormapNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XColormapEventToMultifield(theEnv, context, &(e->xcolormap), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-colormap-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case ClientMessage:
-			MBAppendSymbol(mb, "ClientMessage");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XClientMessageEventToMultifield(theEnv, context, &(e->xclient), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-client-message-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case MappingNotify:
-			MBAppendSymbol(mb, "MappingNotify");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XMappingEventToMultifield(theEnv, context, &(e->xmapping), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not destroy multifield for x-mapping-event");
-				return NULL;
-			}
-			MBAppendMultifield(mb, typedevent);
 			break;
 		case GenericEvent:
-			MBAppendSymbol(mb, "GenericEvent");
-			typedeventmb = CreateMultifieldBuilder(theEnv, 0);
 			typedevent = XGenericEventToMultifield(theEnv, context, &(e->xgeneric), typedeventmb);
-			MBDispose(typedeventmb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not create x-generic-event multifield");
-				return NULL;
-			}
 			break;
 		default:
 			WriteString(theEnv,STDERR,"Event Type ");
 			WriteInteger(theEnv,STDERR,e->type);
 			WriteString(theEnv,STDERR," not supported.\n");
-			return NULL;
+			break;
 	}
+	MBDispose(typedeventmb);
+	if (typedevent == NULL)
+	{
+		WriteString(theEnv,STDERR,"Could not create multifield for XEvent ");
+		WriteString(theEnv,STDERR,XEventTypeToStr(e->type));
+		WriteString(theEnv,STDERR,"\n");
+		return NULL;
+	}
+	MBAppendMultifield(mb, typedevent);
 	return MBCreate(mb);
 }
 
@@ -2922,7 +2795,13 @@ Fact *XKeyEventToFact(
 	char buffer[32];
 	KeySym keysym;
 
+	FBSetDeftemplate(fb, "x-key-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotInteger(fb, "root", e->root);
 	FBPutSlotInteger(fb, "subwindow", e->subwindow);
 	FBPutSlotInteger(fb, "time", e->time);
@@ -2940,14 +2819,7 @@ Fact *XKeyEventToFact(
 	}
 	FBPutSlotMultifield(fb, "state", mf);
 	FBPutSlotInteger(fb, "keycode", e->keycode);
-	if (e->same_screen)
-	{
-		FBPutSlotSymbol(fb, "same-screen", "TRUE");
-	}
-	else
-	{
-		FBPutSlotSymbol(fb, "same-screen", "FALSE");
-	}
+	FBPutSlotSymbol(fb, "same-screen", BoolToStr(e->same_screen));
 	XLookupString(e, buffer, sizeof(buffer), &keysym, &compose);
 	FBPutSlotString(fb, "buffer", buffer);
 	FBPutSlotInteger(fb, "keysym", keysym);
@@ -2966,7 +2838,13 @@ Fact *XButtonEventToFact(
 	MultifieldBuilder *mb;
 	Multifield *mf;
 
+	FBSetDeftemplate(fb, "x-button-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotInteger(fb, "root", e->root);
 	FBPutSlotInteger(fb, "subwindow", e->subwindow);
 	FBPutSlotInteger(fb, "time", e->time);
@@ -2984,14 +2862,7 @@ Fact *XButtonEventToFact(
 	}
 	FBPutSlotMultifield(fb, "state", mf);
 	FBPutSlotInteger(fb, "button", e->button);
-	if (e->same_screen)
-	{
-		FBPutSlotSymbol(fb, "same-screen", "TRUE");
-	}
-	else
-	{
-		FBPutSlotSymbol(fb, "same-screen", "FALSE");
-	}
+	FBPutSlotSymbol(fb, "same-screen", BoolToStr(e->same_screen));
 
 	return FBAssert(fb);
 }
@@ -3005,7 +2876,13 @@ Fact *XMotionEventToFact(
 	MultifieldBuilder *mb;
 	Multifield *mf;
 
+	FBSetDeftemplate(fb, "x-motion-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotInteger(fb, "root", e->root);
 	FBPutSlotInteger(fb, "subwindow", e->subwindow);
 	FBPutSlotInteger(fb, "time", e->time);
@@ -3036,14 +2913,7 @@ Fact *XMotionEventToFact(
 			WriteString(theEnv,STDERR," not supported.\n");
 			return NULL;
 	}
-	if (e->same_screen)
-	{
-		FBPutSlotSymbol(fb, "same-screen", "TRUE");
-	}
-	else
-	{
-		FBPutSlotSymbol(fb, "same-screen", "FALSE");
-	}
+	FBPutSlotSymbol(fb, "same-screen", BoolToStr(e->same_screen));
 
 	return FBAssert(fb);
 }
@@ -3056,7 +2926,13 @@ Fact *XCrossingEventToFact(
 	MultifieldBuilder *mb;
 	Multifield *mf;
 
+	FBSetDeftemplate(fb, "x-crossing-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotInteger(fb, "root", e->root);
 	FBPutSlotInteger(fb, "subwindow", e->subwindow);
 	FBPutSlotInteger(fb, "time", e->time);
@@ -3066,22 +2942,8 @@ Fact *XCrossingEventToFact(
 	FBPutSlotInteger(fb, "y-root", e->y_root);
 	FBPutSlotSymbol(fb, "mode", EventModeToStr(e->mode));
 	FBPutSlotSymbol(fb, "detail", EventDetailToStr(e->detail));
-	if (e->same_screen)
-	{
-		FBPutSlotSymbol(fb, "same-screen", "TRUE");
-	}
-	else
-	{
-		FBPutSlotSymbol(fb, "same-screen", "FALSE");
-	}
-	if (e->focus)
-	{
-		FBPutSlotSymbol(fb, "focus", "TRUE");
-	}
-	else
-	{
-		FBPutSlotSymbol(fb, "focus", "FALSE");
-	}
+	FBPutSlotSymbol(fb, "same-screen", BoolToStr(e->same_screen));
+	FBPutSlotSymbol(fb, "focus", BoolToStr(e->focus));
 	mb = CreateMultifieldBuilder(theEnv, 0);
 	mf = StateToMultifield(e->state, mb);
 	MBDispose(mb);
@@ -3101,7 +2963,13 @@ Fact *XFocusChangeEventToFact(
 		XFocusChangeEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-focus-change-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotSymbol(fb, "mode", EventModeToStr(e->mode));
 	FBPutSlotSymbol(fb, "detail", EventDetailToStr(e->detail));
 
@@ -3118,7 +2986,13 @@ Fact *XKeymapEventToFact(
 	int min_keycode, max_keycode;
 	MultifieldBuilder *keyvectormb, *keydownmb;
 
+	FBSetDeftemplate(fb, "x-keymap-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
+	FBPutSlotInteger(fb, "window", e->window);
 
 	XDisplayKeycodes(display, &min_keycode, &max_keycode);
 
@@ -3150,7 +3024,13 @@ Fact *XExposeEventToFact(
 		XExposeEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-expose-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotInteger(fb, "x", e->x);
 	FBPutSlotInteger(fb, "y", e->y);
 	FBPutSlotInteger(fb, "width", e->width);
@@ -3166,7 +3046,12 @@ Fact *XGraphicsExposeEventToFact(
 		XGraphicsExposeEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-graphics-expose-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "drawable", e->drawable);
 	FBPutSlotInteger(fb, "x", e->x);
 	FBPutSlotInteger(fb, "y", e->y);
@@ -3185,7 +3070,12 @@ Fact *XNoExposeEventToFact(
 		XNoExposeEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-no-expose-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "drawable", e->drawable);
 	FBPutSlotInteger(fb, "major-code", e->major_code);
 	FBPutSlotInteger(fb, "minor-code", e->minor_code);
@@ -3199,7 +3089,13 @@ Fact *XVisibilityEventToFact(
 		XVisibilityEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-visibility-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotSymbol(fb, "state", VisibilityStateToStr(e->state));
 
 	return FBAssert(fb);
@@ -3211,7 +3107,12 @@ Fact *XCreateWindowEventToFact(
 		XCreateWindowEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-create-window-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "parent", e->parent);
 	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotInteger(fb, "x", e->x);
@@ -3219,14 +3120,7 @@ Fact *XCreateWindowEventToFact(
 	FBPutSlotInteger(fb, "width", e->width);
 	FBPutSlotInteger(fb, "height", e->height);
 	FBPutSlotInteger(fb, "border-width", e->border_width);
-	if (e->override_redirect)
-	{
-		FBPutSlotSymbol(fb, "override-redirect", "TRUE");
-	}
-	else
-	{
-		FBPutSlotSymbol(fb, "override-redirect", "FALSE");
-	}
+	FBPutSlotSymbol(fb, "override-redirect", BoolToStr(e->override_redirect));
 
 	return FBAssert(fb);
 }
@@ -3237,9 +3131,14 @@ Fact *XDestroyWindowEventToFact(
 		XDestroyWindowEvent *e,
 		FactBuilder *fb)
 {
-
+	FBSetDeftemplate(fb, "x-destroy-window-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "event", e->event);
+	FBPutSlotInteger(fb, "window", e->window);
 	return FBAssert(fb);
 }
 
@@ -3250,16 +3149,15 @@ Fact *XUnmapEventToFact(
 		FactBuilder *fb)
 {
 
+	FBSetDeftemplate(fb, "x-unmap-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "event", e->event);
-	if (e->from_configure)
-	{
-		FBPutSlotSymbol(fb, "from-configure", "TRUE");
-	}
-	else
-	{
-		FBPutSlotSymbol(fb, "from-configure", "FALSE");
-	}
+	FBPutSlotInteger(fb, "window", e->window);
+	FBPutSlotSymbol(fb, "from-configure", BoolToStr(e->from_configure));
 	return FBAssert(fb);
 }
 
@@ -3269,16 +3167,15 @@ Fact *XMapEventToFact(
 		XMapEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-map-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "event", e->event);
-	if (e->override_redirect)
-	{
-		FBPutSlotSymbol(fb, "override-redirect", "TRUE");
-	}
-	else
-	{
-		FBPutSlotSymbol(fb, "override-redirect", "FALSE");
-	}
+	FBPutSlotInteger(fb, "window", e->window);
+	FBPutSlotSymbol(fb, "override-redirect", BoolToStr(e->override_redirect));
 	return FBAssert(fb);
 }
 
@@ -3288,7 +3185,12 @@ Fact *XMapRequestEventToFact(
 		XMapRequestEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-map-request-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "parent", e->parent);
 	FBPutSlotInteger(fb, "window", e->window);
 	return FBAssert(fb);
@@ -3300,19 +3202,17 @@ Fact *XReparentEventToFact(
 		XReparentEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-reparent-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "event", e->event);
 	FBPutSlotInteger(fb, "parent", e->parent);
 	FBPutSlotInteger(fb, "x", e->x);
 	FBPutSlotInteger(fb, "y", e->y);
-	if (e->override_redirect)
-	{
-		FBPutSlotSymbol(fb, "override-redirect", "TRUE");
-	}
-	else
-	{
-		FBPutSlotSymbol(fb, "override-redirect", "FALSE");
-	}
+	FBPutSlotSymbol(fb, "override-redirect", BoolToStr(e->override_redirect));
 	return FBAssert(fb);
 }
 
@@ -3322,22 +3222,21 @@ Fact *XConfigureEventToFact(
 		XConfigureEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-configure-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "event", e->event);
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotInteger(fb, "x", e->x);
 	FBPutSlotInteger(fb, "y", e->y);
 	FBPutSlotInteger(fb, "width", e->width);
 	FBPutSlotInteger(fb, "height", e->height);
 	FBPutSlotInteger(fb, "border-width", e->border_width);
 	FBPutSlotInteger(fb, "above", e->above);
-	if (e->override_redirect)
-	{
-		FBPutSlotSymbol(fb, "override-redirect", "TRUE");
-	}
-	else
-	{
-		FBPutSlotSymbol(fb, "override-redirect", "FALSE");
-	}
+	FBPutSlotSymbol(fb, "override-redirect", BoolToStr(e->override_redirect));
 	return FBAssert(fb);
 }
 
@@ -3347,7 +3246,12 @@ Fact *XConfigureRequestEventToFact(
 		XConfigureRequestEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-configure-request-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "parent", e->parent);
 	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotInteger(fb, "x", e->x);
@@ -3367,8 +3271,14 @@ Fact *XGravityEventToFact(
 		XGravityEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-gravity-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "event", e->event);
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotInteger(fb, "x", e->x);
 	FBPutSlotInteger(fb, "y", e->y);
 	return FBAssert(fb);
@@ -3380,7 +3290,13 @@ Fact *XResizeRequestEventToFact(
 		XResizeRequestEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-resize-request-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotInteger(fb, "width", e->width);
 	FBPutSlotInteger(fb, "height", e->height);
 	return FBAssert(fb);
@@ -3392,8 +3308,14 @@ Fact *XCirculateEventToFact(
 		XCirculateEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-circulate-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "event", e->event);
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotSymbol(fb, "place", CirculateEventPlaceToStr(e->place));
 	return FBAssert(fb);
 }
@@ -3404,8 +3326,14 @@ Fact *XCirculateRequestEventToFact(
 		XCirculateRequestEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-circulate-request-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "parent", e->parent);
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotSymbol(fb, "place", CirculateEventPlaceToStr(e->place));
 	return FBAssert(fb);
 }
@@ -3416,7 +3344,13 @@ Fact *XPropertyEventToFact(
 		XPropertyEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-property-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotInteger(fb, "atom", e->atom);
 	FBPutSlotInteger(fb, "time", e->time);
 	FBPutSlotSymbol(fb, "state", PropertyEventStateToStr(e->state));
@@ -3429,7 +3363,13 @@ Fact *XSelectionClearEventToFact(
 		XSelectionClearEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-selection-clear-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotInteger(fb, "selection", e->selection);
 	FBPutSlotInteger(fb, "time", e->time);
 	return FBAssert(fb);
@@ -3441,7 +3381,12 @@ Fact *XSelectionRequestEventToFact(
 		XSelectionRequestEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-selection-request-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "owner", e->owner);
 	FBPutSlotInteger(fb, "requestor", e->requestor);
 	FBPutSlotInteger(fb, "selection", e->selection);
@@ -3457,7 +3402,12 @@ Fact *XSelectionEventToFact(
 		XSelectionEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-selection-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "requestor", e->requestor);
 	FBPutSlotInteger(fb, "selection", e->selection);
 	FBPutSlotInteger(fb, "target", e->target);
@@ -3472,23 +3422,15 @@ Fact *XColormapEventToFact(
 		XColormapEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-colormap-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
-	if (e->colormap == None)
-	{
-		FBPutSlotSymbol(fb, "colormap", "None");
-	}
-	else
-	{
-		FBPutSlotInteger(fb, "colormap", e->colormap);
-	}
-	if (e->new)
-	{
-		FBPutSlotSymbol(fb, "new", "TRUE");
-	}
-	else
-	{
-		FBPutSlotSymbol(fb, "new", "FALSE");
-	}
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
+	FBPutSlotInteger(fb, "window", e->window);
+	FBPutSlotSymbol(fb, "colormap", BoolToStr(e->colormap));
+	FBPutSlotSymbol(fb, "new", ColormapEventStateToStr(e->new));
 	FBPutSlotSymbol(fb, "state", ColormapEventStateToStr(e->state));
 	return FBAssert(fb);
 }
@@ -3501,7 +3443,13 @@ Fact *XClientMessageEventToFact(
 {
 	MultifieldBuilder *mb;
 
+	FBSetDeftemplate(fb, "x-client-message-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotInteger(fb, "message-type", e->message_type);
 	FBPutSlotInteger(fb, "format", e->format);
 	mb = CreateMultifieldBuilder(theEnv, 0);
@@ -3537,7 +3485,13 @@ Fact *XMappingEventToFact(
 		XMappingEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-mapping-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
+	FBPutSlotInteger(fb, "window", e->window);
 	FBPutSlotInteger(fb, "request", e->request);
 	FBPutSlotInteger(fb, "first-keycode", e->first_keycode);
 	FBPutSlotInteger(fb, "count", e->count);
@@ -3550,7 +3504,12 @@ Fact *XGenericEventToFact(
 		XGenericEvent *e,
 		FactBuilder *fb)
 {
+	FBSetDeftemplate(fb, "x-generic-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotInteger(fb, "serial", e->serial);
+	FBPutSlotSymbol(fb, "send-event", BoolToStr(e->send_event));
+	FBPutSlotCLIPSExternalAddress(fb, "display", CreateCExternalAddress(theEnv, e->display));
 	FBPutSlotInteger(fb, "extension", e->extension);
 	FBPutSlotInteger(fb, "evtype", e->evtype);
 	return FBAssert(fb);
@@ -3561,465 +3520,104 @@ Fact *XEventToFact(
 		UDFContext *context,
 		XEvent *e,
 		FactBuilder *fb)
+		
 {
-	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
-	Fact *typedevent;
-	FactBuilder *typedeventfb;
-
-	typedeventfb = CreateFactBuilder(theEnv, "x-any-event");
-	typedevent = XAnyEventToFact(theEnv, context, &(e->xany), typedeventfb);
-	FBDispose(typedeventfb);
-	if (typedevent == NULL)
-	{
-		WriteString(theEnv,STDERR,"Could not assert x-any-event fact\n");
-		ReportFBAssertError(theEnv);
-		return NULL;
-	}
-	FBPutSlotFact(fb, "x-any-event", typedevent);
-
+	Fact *f;
 	switch (e->type)
 	{
 		case KeyPress:
-			FBPutSlotSymbol(fb, "type", "KeyPress");
-			typedeventfb = CreateFactBuilder(theEnv, "x-key-event");
-			typedevent = XKeyEventToFact(theEnv, context, &(e->xkey), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-key-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
-			break;
 		case KeyRelease:
-			FBPutSlotSymbol(fb, "type", "KeyRelease");
-			typedeventfb = CreateFactBuilder(theEnv, "x-key-event");
-			typedevent = XKeyEventToFact(theEnv, context, &(e->xkey), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-key-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XKeyEventToFact(theEnv, context, &(e->xkey), fb);
 			break;
 		case ButtonPress:
-			FBPutSlotSymbol(fb, "type", "ButtonPress");
-			typedeventfb = CreateFactBuilder(theEnv, "x-button-event");
-			typedevent = XButtonEventToFact(theEnv, context, &(e->xbutton), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-button-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
-			break;
 		case ButtonRelease:
-			FBPutSlotSymbol(fb, "type", "ButtonRelease");
-			typedeventfb = CreateFactBuilder(theEnv, "x-button-event");
-			typedevent = XButtonEventToFact(theEnv, context, &(e->xbutton), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-button-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XButtonEventToFact(theEnv, context, &(e->xbutton), fb);
 			break;
 		case MotionNotify:
-			FBPutSlotSymbol(fb, "type", "MotionNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-motion-event");
-			typedevent = XMotionEventToFact(theEnv, context, &(e->xmotion), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-motion-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XMotionEventToFact(theEnv, context, &(e->xmotion), fb);
 			break;
 		case EnterNotify:
-			FBPutSlotSymbol(fb, "type", "EnterNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-crossing-event");
-			typedevent = XCrossingEventToFact(theEnv, context, &(e->xcrossing), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-crossing-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
-			break;
 		case LeaveNotify:
-			FBPutSlotSymbol(fb, "type", "LeaveNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-crossing-event");
-			typedevent = XCrossingEventToFact(theEnv, context, &(e->xcrossing), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-crossing-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XCrossingEventToFact(theEnv, context, &(e->xcrossing), fb);
 			break;
 		case FocusIn:
-			FBPutSlotSymbol(fb, "type", "FocusIn");
-			typedeventfb = CreateFactBuilder(theEnv, "x-focus-change-event");
-			typedevent = XFocusChangeEventToFact(theEnv, context, &(e->xfocus), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-focus-change-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
-			break;
 		case FocusOut:
-			FBPutSlotSymbol(fb, "type", "FocusOut");
-			typedeventfb = CreateFactBuilder(theEnv, "x-focus-change-event");
-			typedevent = XFocusChangeEventToFact(theEnv, context, &(e->xfocus), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-focus-change-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XFocusChangeEventToFact(theEnv, context, &(e->xfocus), fb);
 			break;
 		case KeymapNotify:
-			FBPutSlotSymbol(fb, "type", "KeymapNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-keymap-event");
-			typedevent = XKeymapEventToFact(theEnv, context, e->xany.display, &e->xkeymap, typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-keymap-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XKeymapEventToFact(theEnv, context, e->xany.display, &(e->xkeymap), fb);
 			break;
 		case Expose:
-			FBPutSlotSymbol(fb, "type", "Expose");
-			typedeventfb = CreateFactBuilder(theEnv, "x-expose-event");
-			typedevent = XExposeEventToFact(theEnv, context, &(e->xexpose), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-expose-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XExposeEventToFact(theEnv, context, &(e->xexpose), fb);
 			break;
 		case GraphicsExpose:
-			FBPutSlotSymbol(fb, "type", "GraphicsExpose");
-			typedeventfb = CreateFactBuilder(theEnv, "x-graphics-expose-event");
-			typedevent = XGraphicsExposeEventToFact(theEnv, context, &(e->xgraphicsexpose), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-graphics-expose-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XGraphicsExposeEventToFact(theEnv, context, &(e->xgraphicsexpose), fb);
 			break;
 		case NoExpose:
-			FBPutSlotSymbol(fb, "type", "NoExpose");
-			typedeventfb = CreateFactBuilder(theEnv, "x-no-expose-event");
-			typedevent = XNoExposeEventToFact(theEnv, context, &(e->xnoexpose), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-no-expose-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XNoExposeEventToFact(theEnv, context, &(e->xnoexpose), fb);
 			break;
 		case VisibilityNotify:
-			FBPutSlotSymbol(fb, "type", "VisibilityNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-visibility-event");
-			typedevent = XVisibilityEventToFact(theEnv, context, &(e->xvisibility), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-visibility-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XVisibilityEventToFact(theEnv, context, &(e->xvisibility), fb);
 			break;
 		case CreateNotify:
-			FBPutSlotSymbol(fb, "type", "CreateNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-create-window-event");
-			typedevent = XCreateWindowEventToFact(theEnv, context, &(e->xcreatewindow), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-create-window-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XCreateWindowEventToFact(theEnv, context, &(e->xcreatewindow), fb);
 			break;
 		case DestroyNotify:
-			FBPutSlotSymbol(fb, "type", "DestroyNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-destroy-window-event");
-			typedevent = XDestroyWindowEventToFact(theEnv, context, &(e->xdestroywindow), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-destroy-window-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XDestroyWindowEventToFact(theEnv, context, &(e->xdestroywindow), fb);
 			break;
 		case UnmapNotify:
-			FBPutSlotSymbol(fb, "type", "UnmapNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-unmap-event");
-			typedevent = XUnmapEventToFact(theEnv, context, &(e->xunmap), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-unmap-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XUnmapEventToFact(theEnv, context, &(e->xunmap), fb);
 			break;
 		case MapNotify:
-			FBPutSlotSymbol(fb, "type", "MapNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-map-event");
-			typedevent = XMapEventToFact(theEnv, context, &(e->xmap), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-map-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XMapEventToFact(theEnv, context, &(e->xmap), fb);
 			break;
 		case MapRequest:
-			FBPutSlotSymbol(fb, "type", "MapRequest");
-			typedeventfb = CreateFactBuilder(theEnv, "x-map-request-event");
-			typedevent = XMapRequestEventToFact(theEnv, context, &(e->xmaprequest), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-map-request-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XMapRequestEventToFact(theEnv, context, &(e->xmaprequest), fb);
 			break;
 		case ReparentNotify:
-			FBPutSlotSymbol(fb, "type", "ReparentNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-reparent-event");
-			typedevent = XReparentEventToFact(theEnv, context, &(e->xreparent), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-reparent-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XReparentEventToFact(theEnv, context, &(e->xreparent), fb);
 			break;
 		case ConfigureNotify:
-			FBPutSlotSymbol(fb, "type", "ConfigureNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-configure-event");
-			typedevent = XConfigureEventToFact(theEnv, context, &(e->xconfigure), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-configure-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XConfigureEventToFact(theEnv, context, &(e->xconfigure), fb);
 			break;
 		case ConfigureRequest:
-			FBPutSlotSymbol(fb, "type", "ConfigureRequest");
-			typedeventfb = CreateFactBuilder(theEnv, "x-configure-request-event");
-			typedevent = XConfigureRequestEventToFact(theEnv, context, &(e->xconfigurerequest), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-configure-request-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XConfigureRequestEventToFact(theEnv, context, &(e->xconfigurerequest), fb);
 			break;
 		case GravityNotify:
-			FBPutSlotSymbol(fb, "type", "GravityNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-gravity-event");
-			typedevent = XGravityEventToFact(theEnv, context, &(e->xgravity), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-gravity-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XGravityEventToFact(theEnv, context, &(e->xgravity), fb);
 			break;
 		case ResizeRequest:
-			FBPutSlotSymbol(fb, "type", "ResizeRequest");
-			typedeventfb = CreateFactBuilder(theEnv, "x-resize-request-event");
-			typedevent = XResizeRequestEventToFact(theEnv, context, &(e->xresizerequest), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-gravity-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XResizeRequestEventToFact(theEnv, context, &(e->xresizerequest), fb);
 			break;
 		case CirculateNotify:
-			FBPutSlotSymbol(fb, "type", "CirculateNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-circulate-event");
-			typedevent = XCirculateEventToFact(theEnv, context, &(e->xcirculate), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-circulate-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XCirculateEventToFact(theEnv, context, &(e->xcirculate), fb);
 			break;
 		case CirculateRequest:
-			FBPutSlotSymbol(fb, "type", "CirculateRequest");
-			typedeventfb = CreateFactBuilder(theEnv, "x-circulate-request-event");
-			typedevent = XCirculateRequestEventToFact(theEnv, context, &(e->xcirculaterequest), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-circulate-request-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XCirculateRequestEventToFact(theEnv, context, &(e->xcirculaterequest), fb);
 			break;
 		case PropertyNotify:
-			FBPutSlotSymbol(fb, "type", "PropertyNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-property-event");
-			typedevent = XPropertyEventToFact(theEnv, context, &(e->xproperty), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-property-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XPropertyEventToFact(theEnv, context, &(e->xproperty), fb);
 			break;
 		case SelectionClear:
-			FBPutSlotSymbol(fb, "type", "SelectionClear");
-			typedeventfb = CreateFactBuilder(theEnv, "x-selection-clear-event");
-			typedevent = XSelectionClearEventToFact(theEnv, context, &(e->xselectionclear), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-selection-clear-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XSelectionClearEventToFact(theEnv, context, &(e->xselectionclear), fb);
 			break;
 		case SelectionRequest:
-			FBPutSlotSymbol(fb, "type", "SelectionRequest");
-			typedeventfb = CreateFactBuilder(theEnv, "x-selection-request-event");
-			typedevent = XSelectionRequestEventToFact(theEnv, context, &(e->xselectionrequest), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-selection-request-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XSelectionRequestEventToFact(theEnv, context, &(e->xselectionrequest), fb);
 			break;
 		case SelectionNotify:
-			FBPutSlotSymbol(fb, "type", "SelectionNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-selection-event");
-			typedevent = XSelectionEventToFact(theEnv, context, &(e->xselection), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-selection-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XSelectionEventToFact(theEnv, context, &(e->xselection), fb);
 			break;
 		case ColormapNotify:
-			FBPutSlotSymbol(fb, "type", "ColormapNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-colormap-event");
-			typedevent = XColormapEventToFact(theEnv, context, &(e->xcolormap), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-colormap-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XColormapEventToFact(theEnv, context, &(e->xcolormap), fb);
 			break;
 		case ClientMessage:
-			FBPutSlotSymbol(fb, "type", "ClientMessage");
-			typedeventfb = CreateFactBuilder(theEnv, "x-client-message-event");
-			typedevent = XClientMessageEventToFact(theEnv, context, &(e->xclient), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-client-message-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XClientMessageEventToFact(theEnv, context, &(e->xclient), fb);
 			break;
 		case MappingNotify:
-			FBPutSlotSymbol(fb, "type", "MappingNotify");
-			typedeventfb = CreateFactBuilder(theEnv, "x-mapping-event");
-			typedevent = XMappingEventToFact(theEnv, context, &(e->xmapping), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-mapping-event fact");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XMappingEventToFact(theEnv, context, &(e->xmapping), fb);
 			break;
 		case GenericEvent:
-			FBPutSlotSymbol(fb, "type", "GenericEvent");
-			typedeventfb = CreateFactBuilder(theEnv, "x-generic-event");
-			typedevent = XGenericEventToFact(theEnv, context, &(e->xgeneric), typedeventfb);
-			FBDispose(typedeventfb);
-			if (typedevent == NULL)
-			{
-				WriteString(theEnv,STDERR,"Could not assert x-generic-event fact\n");
-				ReportFBAssertError(theEnv);
-				return NULL;
-			}
-			FBPutSlotFact(fb, "typed-event", typedevent);
+			f = XGenericEventToFact(theEnv, context, &(e->xgeneric), fb);
 			break;
 		default:
 			WriteString(theEnv,STDERR,"Event Type ");
@@ -4027,6 +3625,18 @@ Fact *XEventToFact(
 			WriteString(theEnv,STDERR," not supported.\n");
 			return NULL;
 	}
+	FBDispose(fb);
+	if (f == NULL)
+	{
+		WriteString(theEnv,STDERR,"Could not assert fact for XEvent ");
+		WriteString(theEnv,STDERR,XEventTypeToStr(e->type));
+		ReportFBAssertError(theEnv);
+		return NULL;
+	}
+	fb = CreateFactBuilder(theEnv, "x-event");
+	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
+	FBPutSlotSymbol(fb, "type", XEventTypeToStr(e->type));
+	FBPutSlotFact(fb, "typed-event", f);
 	return FBAssert(fb);
 }
 
@@ -4117,10 +3727,14 @@ void XPeekEventToFactFunction(
 
 	XNextEvent(display, &event);
 
-	fb = CreateFactBuilder(theEnv, "x-event");
+	fb = CreateFactBuilder(theEnv, NULL);
 
 	returnValue->factValue = XEventToFact(theEnv, context, &event, fb);
-
+	if (returnValue->factValue == NULL)
+	{
+		WriteString(theEnv,STDERR,"Could not assert XEvent fact\n");
+		ReportFBAssertError(theEnv);
+	}
 	FBDispose(fb);
 }
 
@@ -4139,17 +3753,103 @@ void XNextEventToFactFunction(
 
 	XNextEvent(display, &event);
 
-	fb = CreateFactBuilder(theEnv, "x-event");
+	fb = CreateFactBuilder(theEnv, NULL);
 
 	returnValue->factValue = XEventToFact(theEnv, context, &event, fb);
 	if (returnValue->factValue == NULL)
 	{
-		WriteString(theEnv,STDERR,"Could not assert x-event fact\n");
+		WriteString(theEnv,STDERR,"Could not assert XEvent fact\n");
 		ReportFBAssertError(theEnv);
 	}
-
 	FBDispose(fb);
 }
+
+/*
+static int SymbolToEventMask(const char *name)
+{
+	if (0 == strcmp(name, "NoEventMask")) return NoEventMask;
+	if (0 == strcmp(name, "KeyPressMask")) return KeyPressMask;
+	if (0 == strcmp(name, "KeyReleaseMask")) return KeyReleaseMask;
+	if (0 == strcmp(name, "ButtonPressMask")) return ButtonPressMask;
+	if (0 == strcmp(name, "ButtonReleaseMask")) return ButtonReleaseMask;
+	if (0 == strcmp(name, "EnterWindowMask")) return EnterWindowMask;
+	if (0 == strcmp(name, "LeaveWindowMask")) return LeaveWindowMask;
+	if (0 == strcmp(name, "PointerMotionMask")) return PointerMotionMask;
+	if (0 == strcmp(name, "PointerMotionHintMask")) return PointerMotionHintMask;
+	if (0 == strcmp(name, "Button1MotionMask")) return Button1MotionMask;
+	if (0 == strcmp(name, "Button2MotionMask")) return Button2MotionMask;
+	if (0 == strcmp(name, "Button3MotionMask")) return Button3MotionMask;
+	if (0 == strcmp(name, "Button4MotionMask")) return Button4MotionMask;
+	if (0 == strcmp(name, "Button5MotionMask")) return Button5MotionMask;
+	if (0 == strcmp(name, "ButtonMotionMask")) return ButtonMotionMask;
+	if (0 == strcmp(name, "KeymapStateMask")) return KeymapStateMask;
+	if (0 == strcmp(name, "ExposureMask")) return ExposureMask;
+	if (0 == strcmp(name, "VisibilityChangeMask")) return VisibilityChangeMask;
+	if (0 == strcmp(name, "StructureNotifyMask")) return StructureNotifyMask;
+	if (0 == strcmp(name, "ResizeRedirectMask")) return ResizeRedirectMask;
+	if (0 == strcmp(name, "SubstructureNotifyMask")) return SubstructureNotifyMask;
+	if (0 == strcmp(name, "SubstructureRedirectMask")) return SubstructureRedirectMask;
+	if (0 == strcmp(name, "FocusChangeMask")) return FocusChangeMask;
+	if (0 == strcmp(name, "PropertyChangeMask")) return PropertyChangeMask;
+	if (0 == strcmp(name, "ColormapChangeMask")) return ColormapChangeMask;
+	if (0 == strcmp(name, "OwnerGrabButtonMask")) return OwnerGrabButtonMask;
+	return -1;
+}
+
+void XSendEventFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window window;
+	bool propagate;
+	long event_mask = 0;
+	XEvent *event = NULL;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	propagate = theArg.lexemeValue == theEnv->TrueSymbol;
+
+	while (UDFHasNextArgument(context))
+	{
+		UDFNextArgument(context, EXTERNAL_ADDRESS_BIT | SYMBOL_BIT, &theArg);
+
+		if (theArg.header->type == EXTERNAL_ADDRESS_TYPE)
+		{
+			event = (XEvent *) theArg.externalAddressValue->contents;
+			break;
+		}
+
+		UDFNextArgument(context, SYMBOL_BIT, &theArg);
+		int m = SymbolToEventMask(theArg.lexemeValue->contents);
+		if (m < 0)
+		{
+			WriteString(theEnv, STDERR, "Event mask '");
+			WriteString(theEnv, STDERR, theArg.lexemeValue->contents);
+			WriteString(theEnv, STDERR, "' not supported.\n");
+			returnValue->integerValue->contents = 0;
+			return;
+		}
+		event_mask |= m;
+	}
+
+	if (event != NULL)
+	{
+		WriteString(theEnv, STDERR, "Missing XEvent argument to x-send-event.\n");
+		returnValue->integerValue->contents = 0;
+		return;
+	}
+
+	returnValue->integerValue = CreateInteger(theEnv, XSendEvent(display, window, propagate, event_mask, event));
+}
+*/
 
 void XDrawArcFunction(
 		Environment *theEnv,

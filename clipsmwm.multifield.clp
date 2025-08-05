@@ -14,11 +14,11 @@
 (defrule on-map-request
 	(screen ? ? ? ? ?width ?height $?)
 	?event <- (next-event
+		?
+		MapRequest
 		?serial
 		?send_event
 		?display
-		?parent
-		MapRequest
 		?parent
 		?window)
 	=>
@@ -30,11 +30,12 @@
 
 (defrule on-key-press-n
 	?event <- (next-event
+		?
+		KeyPress
 		?serial
 		?send_event
 		?display
 		?window
-		KeyPress
 		?root
 		?subwindow
 		?time
@@ -42,9 +43,13 @@
 		?y
 		?x_root
 		?y_root
-		?
+		$?
 		=(x-keysym-to-keycode ?display (x-string-to-keysym "n"))
-		$?)
+		?same-screen
+		?buffer
+		?keysym
+		?compose-ptr
+		?chars-matched)
 	=>
 	(x-circulate-subwindows-up ?display ?root)
 	(x-set-input-focus ?display ?window RevertToParent 0)
@@ -53,11 +58,12 @@
 
 (defrule on-key-press-q
 	?event <- (next-event
+		?
+		KeyPress
 		?serial
 		?send_event
 		?display
 		?window
-		KeyPress
 		?root
 		?subwindow
 		?time
@@ -65,9 +71,13 @@
 		?y
 		?x_root
 		?y_root
-		?
+		$?
 		=(x-keysym-to-keycode ?display (x-string-to-keysym "q"))
-		$?)
+		?same-screen
+		?buffer
+		?keysym
+		?compose-ptr
+		?chars-matched)
 	=>
 	(x-kill-client ?display ?subwindow)
 	(retract ?event)
@@ -75,11 +85,12 @@
 
 (defrule on-key-press-e
 	?event <- (next-event
+		?
+		KeyPress
 		?serial
 		?send_event
 		?display
 		?window
-		KeyPress
 		?root
 		?subwindow
 		?time
@@ -87,9 +98,13 @@
 		?y
 		?x_root
 		?y_root
-		?
+		$?
 		=(x-keysym-to-keycode ?display (x-string-to-keysym "e"))
-		$?)
+		?same-screen
+		?buffer
+		?keysym
+		?compose-ptr
+		?chars-matched)
 	=>
 	(system "dmenu_run &")
 	(retract ?event)
