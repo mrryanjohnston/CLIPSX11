@@ -680,6 +680,32 @@ const char *ScreenBackingStoreToStr(int backing_store)
 	}
 }
 
+void ReportIBMakeError(
+		Environment *theEnv)
+{
+	switch(IBError(theEnv))
+	{
+		case IBE_NO_ERROR:
+			WriteString(theEnv,STDERR,"No error occurred\n");
+			break;
+		case IBE_NULL_POINTER_ERROR:
+			WriteString(theEnv,STDERR,"The InstanceBuilder does not have an associated defclass\n");
+			break;
+		case IBE_DEFCLASS_NOT_FOUND_ERROR:
+			WriteString(theEnv,STDERR,"IBE_DEFCLASS_NOT_FOUND_ERROR: This error should not happen as a result of an IBMake...\n");
+			break;
+		case IBE_COULD_NOT_CREATE_ERROR:
+			WriteString(theEnv,STDERR,"The Instance could not be created (such as when pattern matching of a fact or instance is already occurring)\n");
+			break;
+		case IBE_RULE_NETWORK_ERROR:
+			WriteString(theEnv,STDERR,"An error occurred while the instance was being processed in the rule network\n");
+			break;
+		default:
+			WriteString(theEnv,STDERR,"The result of IBError was something unexpected...\n");
+			break;
+	}
+}
+
 void ReportFBAssertError(
 		Environment *theEnv)
 {
@@ -754,6 +780,61 @@ void ScreenToFactFunction(
 	}
 
 	FBDispose(fb);
+}
+
+void ScreenToInstanceFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Screen *screen;
+	InstanceBuilder *ib;
+	UDFValue theArg;
+	const char *name;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	screen = theArg.externalAddressValue->contents;
+
+	name = NULL;
+	if (UDFHasNextArgument(context))
+	{
+		UDFNextArgument(context,LEXEME_BITS,&theArg);
+		name = theArg.lexemeValue->contents;
+	}
+
+	ib = CreateInstanceBuilder(theEnv, "SCREEN");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, screen));
+	IBPutSlotExternalAddress(ib, "ext-data", CreateCExternalAddress(theEnv, screen->ext_data));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, screen->display));
+	IBPutSlotInteger(ib, "root", screen->root);
+	IBPutSlotInteger(ib, "width", screen->width);
+	IBPutSlotInteger(ib, "height", screen->height);
+	IBPutSlotInteger(ib, "mwidth", screen->mwidth);
+	IBPutSlotInteger(ib, "mheight", screen->mheight);
+	IBPutSlotInteger(ib, "ndepths", screen->ndepths);
+	IBPutSlotInteger(ib, "root-depth", screen->root_depth);
+	IBPutSlotInteger(ib, "white-pixel", screen->white_pixel);
+	IBPutSlotInteger(ib, "black-pixel", screen->black_pixel);
+	IBPutSlotInteger(ib, "max-maps", screen->max_maps);
+	IBPutSlotInteger(ib, "min-maps", screen->min_maps);
+	IBPutSlotSymbol(ib, "backing-store", ScreenBackingStoreToStr(screen->backing_store));
+	if (screen->save_unders)
+	{
+		IBPutSlotSymbol(ib, "save-unders", "TRUE");
+	}
+	else
+	{
+		IBPutSlotSymbol(ib, "save-unders", "FALSE");
+	}
+	IBPutSlotInteger(ib, "root-input-mask", screen->root_input_mask);
+	returnValue->instanceValue = IBMake(ib, name);
+	if (returnValue->instanceValue == NULL)
+	{
+		WriteString(theEnv,STDERR,"Could not make screen instance\n");
+		ReportIBMakeError(theEnv);
+	}
+
+	IBDispose(ib);
 }
 
 void ScreenToMultifieldFunction(
@@ -3640,18 +3721,956 @@ Fact *XEventToFact(
 	return FBAssert(fb);
 }
 
-/*
+Instance *XKeyEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XKeyEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	XComposeStatus compose = { 0 };
+	MultifieldBuilder *mb;
+	Multifield *mf;
+	char buffer[32];
+	KeySym keysym;
+
+	IBSetDefclass(ib, "X-KEY-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotInteger(ib, "root", e->root);
+	IBPutSlotInteger(ib, "subwindow", e->subwindow);
+	IBPutSlotInteger(ib, "time", e->time);
+	IBPutSlotInteger(ib, "x", e->x);
+	IBPutSlotInteger(ib, "y", e->y);
+	IBPutSlotInteger(ib, "x-root", e->x_root);
+	IBPutSlotInteger(ib, "y-root", e->y_root);
+	mb = CreateMultifieldBuilder(theEnv, 0);
+	mf = StateToMultifield(e->state, mb);
+	MBDispose(mb);
+	if (mf == NULL)
+	{
+		WriteString(theEnv,STDERR,"Could not create multifield for x-key-event's state");
+		return NULL;
+	}
+	IBPutSlotMultifield(ib, "state", mf);
+	IBPutSlotInteger(ib, "keycode", e->keycode);
+	IBPutSlotSymbol(ib, "same-screen", BoolToStr(e->same_screen));
+	XLookupString(e, buffer, sizeof(buffer), &keysym, &compose);
+	IBPutSlotString(ib, "buffer", buffer);
+	IBPutSlotInteger(ib, "keysym", keysym);
+	IBPutSlotExternalAddress(ib, "compose-ptr", CreateCExternalAddress(theEnv, compose.compose_ptr));
+	IBPutSlotInteger(ib, "chars-matched", compose.chars_matched);
+
+	return IBMake(ib, name);
+}
+
+Instance *XButtonEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XButtonEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	MultifieldBuilder *mb;
+	Multifield *mf;
+
+	IBSetDefclass(ib, "X-BUTTON-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotInteger(ib, "root", e->root);
+	IBPutSlotInteger(ib, "subwindow", e->subwindow);
+	IBPutSlotInteger(ib, "time", e->time);
+	IBPutSlotInteger(ib, "x", e->x);
+	IBPutSlotInteger(ib, "y", e->y);
+	IBPutSlotInteger(ib, "x-root", e->x_root);
+	IBPutSlotInteger(ib, "y-root", e->y_root);
+	mb = CreateMultifieldBuilder(theEnv, 0);
+	mf = StateToMultifield(e->state, mb);
+	MBDispose(mb);
+	if (mf == NULL)
+	{
+		WriteString(theEnv,STDERR,"Could not create multifield for x-button-event's state");
+		return NULL;
+	}
+	IBPutSlotMultifield(ib, "state", mf);
+	IBPutSlotInteger(ib, "button", e->button);
+	IBPutSlotSymbol(ib, "same-screen", BoolToStr(e->same_screen));
+
+	return IBMake(ib, name);
+}
+
+Instance *XMotionEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XMotionEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	MultifieldBuilder *mb;
+	Multifield *mf;
+
+	IBSetDefclass(ib, "X-MOTION-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotInteger(ib, "root", e->root);
+	IBPutSlotInteger(ib, "subwindow", e->subwindow);
+	IBPutSlotInteger(ib, "time", e->time);
+	IBPutSlotInteger(ib, "x", e->x);
+	IBPutSlotInteger(ib, "y", e->y);
+	IBPutSlotInteger(ib, "x-root", e->x_root);
+	IBPutSlotInteger(ib, "y-root", e->y_root);
+	mb = CreateMultifieldBuilder(theEnv, 0);
+	mf = StateToMultifield(e->state, mb);
+	MBDispose(mb);
+	if (mf == NULL)
+	{
+		WriteString(theEnv,STDERR,"Could not create multifield for x-motion-event's state");
+		return NULL;
+	}
+	IBPutSlotMultifield(ib, "state", mf);
+	switch(e->is_hint)
+	{
+		case NotifyNormal:
+			IBPutSlotSymbol(ib, "is-hint", "NotifyNormal");
+			break;
+		case NotifyHint:
+			IBPutSlotSymbol(ib, "is-hint", "NotifyHint");
+			break;
+		default:
+			WriteString(theEnv,STDERR,"Notify hint type ");
+			WriteInteger(theEnv,STDERR,e->is_hint);
+			WriteString(theEnv,STDERR," not supported.\n");
+			return NULL;
+	}
+	IBPutSlotSymbol(ib, "same-screen", BoolToStr(e->same_screen));
+
+	return IBMake(ib, name);
+}
+Instance *XCrossingEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XCrossingEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	MultifieldBuilder *mb;
+	Multifield *mf;
+
+	IBSetDefclass(ib, "X-CROSSING-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotInteger(ib, "root", e->root);
+	IBPutSlotInteger(ib, "subwindow", e->subwindow);
+	IBPutSlotInteger(ib, "time", e->time);
+	IBPutSlotInteger(ib, "x", e->x);
+	IBPutSlotInteger(ib, "y", e->y);
+	IBPutSlotInteger(ib, "x-root", e->x_root);
+	IBPutSlotInteger(ib, "y-root", e->y_root);
+	IBPutSlotSymbol(ib, "mode", EventModeToStr(e->mode));
+	IBPutSlotSymbol(ib, "detail", EventDetailToStr(e->detail));
+	IBPutSlotSymbol(ib, "same-screen", BoolToStr(e->same_screen));
+	IBPutSlotSymbol(ib, "focus", BoolToStr(e->focus));
+	mb = CreateMultifieldBuilder(theEnv, 0);
+	mf = StateToMultifield(e->state, mb);
+	MBDispose(mb);
+	if (mf == NULL)
+	{
+		WriteString(theEnv,STDERR,"Could not create multifield for x-crossing-event's state");
+		return NULL;
+	}
+	IBPutSlotMultifield(ib, "state", mf);
+
+	return IBMake(ib, name);
+}
+
+Instance *XFocusChangeEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XFocusChangeEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-FOCUS-CHANGE-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotSymbol(ib, "mode", EventModeToStr(e->mode));
+	IBPutSlotSymbol(ib, "detail", EventDetailToStr(e->detail));
+
+	return IBMake(ib, name);
+}
+
+Instance *XKeymapEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		Display *display,
+		XKeymapEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	int min_keycode, max_keycode;
+	MultifieldBuilder *keyvectormb, *keydownmb;
+
+	IBSetDefclass(ib, "X-KEYMAP-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "window", e->window);
+
+	XDisplayKeycodes(display, &min_keycode, &max_keycode);
+
+	keyvectormb = CreateMultifieldBuilder(theEnv, 0);
+	keydownmb = CreateMultifieldBuilder(theEnv, 0);
+	for (int kc = min_keycode; kc <= max_keycode; kc++)
+	{
+		if (e->key_vector[kc >> 3] & (1 << (kc & 7)))
+		{
+			MBAppendSymbol(keyvectormb, "TRUE");
+			MBAppendInteger(keydownmb, kc);
+		}
+		else
+		{
+			MBAppendSymbol(keyvectormb, "FALSE");
+		}
+	}
+	IBPutSlotMultifield(ib, "keyvector", MBCreate(keyvectormb));
+	MBDispose(keyvectormb);
+	IBPutSlotMultifield(ib, "keydown", MBCreate(keydownmb));
+	MBDispose(keydownmb);
+
+	return IBMake(ib, name);
+}
+
+Instance *XExposeEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XExposeEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-EXPOSE-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotInteger(ib, "x", e->x);
+	IBPutSlotInteger(ib, "y", e->y);
+	IBPutSlotInteger(ib, "width", e->width);
+	IBPutSlotInteger(ib, "height", e->height);
+	IBPutSlotInteger(ib, "count", e->count);
+
+	return IBMake(ib, name);
+}
+
+Instance *XGraphicsExposeEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XGraphicsExposeEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-GRAPHICS-EXPOSE-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "drawable", e->drawable);
+	IBPutSlotInteger(ib, "x", e->x);
+	IBPutSlotInteger(ib, "y", e->y);
+	IBPutSlotInteger(ib, "width", e->width);
+	IBPutSlotInteger(ib, "height", e->height);
+	IBPutSlotInteger(ib, "count", e->count);
+	IBPutSlotInteger(ib, "major-code", e->major_code);
+	IBPutSlotInteger(ib, "minor-code", e->minor_code);
+
+	return IBMake(ib, name);
+}
+
+Instance *XNoExposeEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XNoExposeEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-NO-EXPOSE-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "drawable", e->drawable);
+	IBPutSlotInteger(ib, "major-code", e->major_code);
+	IBPutSlotInteger(ib, "minor-code", e->minor_code);
+
+	return IBMake(ib, name);
+}
+
+Instance *XVisibilityEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XVisibilityEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-VISIBILITY-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotSymbol(ib, "state", VisibilityStateToStr(e->state));
+
+	return IBMake(ib, name);
+}
+
+Instance *XCreateWindowEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XCreateWindowEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-CREATE-WINDOW-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "parent", e->parent);
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotInteger(ib, "x", e->x);
+	IBPutSlotInteger(ib, "y", e->y);
+	IBPutSlotInteger(ib, "width", e->width);
+	IBPutSlotInteger(ib, "height", e->height);
+	IBPutSlotInteger(ib, "border-width", e->border_width);
+	IBPutSlotSymbol(ib, "override-redirect", BoolToStr(e->override_redirect));
+
+	return IBMake(ib, name);
+}
+
+Instance *XDestroyWindowEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XDestroyWindowEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-DESTROY-WINDOW-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "event", e->event);
+	IBPutSlotInteger(ib, "window", e->window);
+	return IBMake(ib, name);
+}
+
+Instance *XUnmapEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XUnmapEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+
+	IBSetDefclass(ib, "X-UNMAP-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "event", e->event);
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotSymbol(ib, "from-configure", BoolToStr(e->from_configure));
+	return IBMake(ib, name);
+}
+
+Instance *XMapEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XMapEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-MAP-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "event", e->event);
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotSymbol(ib, "override-redirect", BoolToStr(e->override_redirect));
+	return IBMake(ib, name);
+}
+
+Instance *XMapRequestEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XMapRequestEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-MAP-REQUEST-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "parent", e->parent);
+	IBPutSlotInteger(ib, "window", e->window);
+	return IBMake(ib, name);
+}
+
+Instance *XReparentEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XReparentEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-REPARENT-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "event", e->event);
+	IBPutSlotInteger(ib, "parent", e->parent);
+	IBPutSlotInteger(ib, "x", e->x);
+	IBPutSlotInteger(ib, "y", e->y);
+	IBPutSlotSymbol(ib, "override-redirect", BoolToStr(e->override_redirect));
+	return IBMake(ib, name);
+}
+
+Instance *XConfigureEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XConfigureEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-CONFIGURE-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "event", e->event);
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotInteger(ib, "x", e->x);
+	IBPutSlotInteger(ib, "y", e->y);
+	IBPutSlotInteger(ib, "width", e->width);
+	IBPutSlotInteger(ib, "height", e->height);
+	IBPutSlotInteger(ib, "border-width", e->border_width);
+	IBPutSlotInteger(ib, "above", e->above);
+	IBPutSlotSymbol(ib, "override-redirect", BoolToStr(e->override_redirect));
+	return IBMake(ib, name);
+}
+
+Instance *XConfigureRequestEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XConfigureRequestEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-CONFIGURE-REQUEST-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "parent", e->parent);
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotInteger(ib, "x", e->x);
+	IBPutSlotInteger(ib, "y", e->y);
+	IBPutSlotInteger(ib, "width", e->width);
+	IBPutSlotInteger(ib, "height", e->height);
+	IBPutSlotInteger(ib, "border-width", e->border_width);
+	IBPutSlotInteger(ib, "above", e->above);
+	IBPutSlotSymbol(ib, "detail", ConfigureRequestEventDetailToStr(e->above));
+	IBPutSlotInteger(ib, "value-mask", e->value_mask);
+	return IBMake(ib, name);
+}
+
+Instance *XGravityEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XGravityEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-GRAVITY-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "event", e->event);
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotInteger(ib, "x", e->x);
+	IBPutSlotInteger(ib, "y", e->y);
+	return IBMake(ib, name);
+}
+
+Instance *XResizeRequestEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XResizeRequestEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-RESIZE-REQUEST-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotInteger(ib, "width", e->width);
+	IBPutSlotInteger(ib, "height", e->height);
+	return IBMake(ib, name);
+}
+
+Instance *XCirculateEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XCirculateEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-CIRCULATE-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "event", e->event);
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotSymbol(ib, "place", CirculateEventPlaceToStr(e->place));
+	return IBMake(ib, name);
+}
+
+Instance *XCirculateRequestEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XCirculateRequestEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-CIRCULATE-REQUEST-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "parent", e->parent);
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotSymbol(ib, "place", CirculateEventPlaceToStr(e->place));
+	return IBMake(ib, name);
+}
+
+Instance *XPropertyEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XPropertyEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-PROPERTY-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotInteger(ib, "atom", e->atom);
+	IBPutSlotInteger(ib, "time", e->time);
+	IBPutSlotSymbol(ib, "state", PropertyEventStateToStr(e->state));
+	return IBMake(ib, name);
+}
+
+Instance *XSelectionClearEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XSelectionClearEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-SELECTION-CLEAR-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotInteger(ib, "selection", e->selection);
+	IBPutSlotInteger(ib, "time", e->time);
+	return IBMake(ib, name);
+}
+
+Instance *XSelectionRequestEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XSelectionRequestEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-SELECTION-REQUEST-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "owner", e->owner);
+	IBPutSlotInteger(ib, "requestor", e->requestor);
+	IBPutSlotInteger(ib, "selection", e->selection);
+	IBPutSlotInteger(ib, "target", e->target);
+	IBPutSlotInteger(ib, "property", e->property);
+	IBPutSlotInteger(ib, "time", e->time);
+	return IBMake(ib, name);
+}
+
+Instance *XSelectionEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XSelectionEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-SELECTION-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "requestor", e->requestor);
+	IBPutSlotInteger(ib, "selection", e->selection);
+	IBPutSlotInteger(ib, "target", e->target);
+	IBPutSlotInteger(ib, "property", e->property);
+	IBPutSlotInteger(ib, "time", e->time);
+	return IBMake(ib, name);
+}
+
+Instance *XColormapEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XColormapEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-COLORMAP-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotSymbol(ib, "colormap", BoolToStr(e->colormap));
+	IBPutSlotSymbol(ib, "new", ColormapEventStateToStr(e->new));
+	IBPutSlotSymbol(ib, "state", ColormapEventStateToStr(e->state));
+	return IBMake(ib, name);
+}
+
+Instance *XClientMessageEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XClientMessageEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	MultifieldBuilder *mb;
+
+	IBSetDefclass(ib, "X-CLIENT-MESSAGE-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotInteger(ib, "message-type", e->message_type);
+	IBPutSlotInteger(ib, "format", e->format);
+	mb = CreateMultifieldBuilder(theEnv, 0);
+	if (e->format == 8)
+	{
+		for (int x = 0; x < 20; x++)
+		{
+			MBAppendInteger(mb, e->data.b[x]);
+		}
+	}
+	else if (e->format == 16)
+	{
+		for (int x = 0; x < 10; x++)
+		{
+			MBAppendInteger(mb, e->data.s[x]);
+		}
+	}
+	else if (e->format == 32)
+	{
+		for (int x = 0; x < 5; x++)
+		{
+			MBAppendInteger(mb, e->data.l[x]);
+		}
+	}
+	IBPutSlotMultifield(ib, "data", MBCreate(mb));
+	MBDispose(mb);
+	return IBMake(ib, name);
+}
+
+Instance *XMappingEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XMappingEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-MAPPING-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "window", e->window);
+	IBPutSlotInteger(ib, "request", e->request);
+	IBPutSlotInteger(ib, "first-keycode", e->first_keycode);
+	IBPutSlotInteger(ib, "count", e->count);
+	return IBMake(ib, name);
+}
+
+Instance *XGenericEventToInstance(
+		Environment *theEnv,
+		UDFContext *context,
+		XGenericEvent *e,
+		InstanceBuilder *ib,
+		const char *name)
+{
+	IBSetDefclass(ib, "X-GENERIC-EVENT");
+	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
+	IBPutSlotSymbol(ib, "type", XEventTypeToStr(e->type));
+	IBPutSlotInteger(ib, "serial", e->serial);
+	IBPutSlotSymbol(ib, "send-event", BoolToStr(e->send_event));
+	IBPutSlotExternalAddress(ib, "display", CreateCExternalAddress(theEnv, e->display));
+	IBPutSlotInteger(ib, "extension", e->extension);
+	IBPutSlotInteger(ib, "evtype", e->evtype);
+	return IBMake(ib, name);
+}
+
+
 Instance *XEventToInstance(
 		Environment *theEnv,
 		UDFContext *context,
 		XEvent *e,
 		InstanceBuilder *ib,
-		const char *name,
-		const char *typeName)
+		const char *name)
 {
-	return IBMake(ib);
+	Instance *i;
+	switch (e->type)
+	{
+		case KeyPress:
+		case KeyRelease:
+			i = XKeyEventToInstance(theEnv, context, &(e->xkey), ib, name);
+			break;
+		case ButtonPress:
+		case ButtonRelease:
+			i = XButtonEventToInstance(theEnv, context, &(e->xbutton), ib, name);
+			break;
+		case MotionNotify:
+			i = XMotionEventToInstance(theEnv, context, &(e->xmotion), ib, name);
+			break;
+		case EnterNotify:
+		case LeaveNotify:
+			i = XCrossingEventToInstance(theEnv, context, &(e->xcrossing), ib, name);
+			break;
+		case FocusIn:
+		case FocusOut:
+			i = XFocusChangeEventToInstance(theEnv, context, &(e->xfocus), ib, name);
+			break;
+		case KeymapNotify:
+			i = XKeymapEventToInstance(theEnv, context, e->xany.display, &(e->xkeymap), ib, name);
+			break;
+		case Expose:
+			i = XExposeEventToInstance(theEnv, context, &(e->xexpose), ib, name);
+			break;
+		case GraphicsExpose:
+			i = XGraphicsExposeEventToInstance(theEnv, context, &(e->xgraphicsexpose), ib, name);
+			break;
+		case NoExpose:
+			i = XNoExposeEventToInstance(theEnv, context, &(e->xnoexpose), ib, name);
+			break;
+		case VisibilityNotify:
+			i = XVisibilityEventToInstance(theEnv, context, &(e->xvisibility), ib, name);
+			break;
+		case CreateNotify:
+			i = XCreateWindowEventToInstance(theEnv, context, &(e->xcreatewindow), ib, name);
+			break;
+		case DestroyNotify:
+			i = XDestroyWindowEventToInstance(theEnv, context, &(e->xdestroywindow), ib, name);
+			break;
+		case UnmapNotify:
+			i = XUnmapEventToInstance(theEnv, context, &(e->xunmap), ib, name);
+			break;
+		case MapNotify:
+			i = XMapEventToInstance(theEnv, context, &(e->xmap), ib, name);
+			break;
+		case MapRequest:
+			i = XMapRequestEventToInstance(theEnv, context, &(e->xmaprequest), ib, name);
+			break;
+		case ReparentNotify:
+			i = XReparentEventToInstance(theEnv, context, &(e->xreparent), ib, name);
+			break;
+		case ConfigureNotify:
+			i = XConfigureEventToInstance(theEnv, context, &(e->xconfigure), ib, name);
+			break;
+		case ConfigureRequest:
+			i = XConfigureRequestEventToInstance(theEnv, context, &(e->xconfigurerequest), ib, name);
+			break;
+		case GravityNotify:
+			i = XGravityEventToInstance(theEnv, context, &(e->xgravity), ib, name);
+			break;
+		case ResizeRequest:
+			i = XResizeRequestEventToInstance(theEnv, context, &(e->xresizerequest), ib, name);
+			break;
+		case CirculateNotify:
+			i = XCirculateEventToInstance(theEnv, context, &(e->xcirculate), ib, name);
+			break;
+		case CirculateRequest:
+			i = XCirculateRequestEventToInstance(theEnv, context, &(e->xcirculaterequest), ib, name);
+			break;
+		case PropertyNotify:
+			i = XPropertyEventToInstance(theEnv, context, &(e->xproperty), ib, name);
+			break;
+		case SelectionClear:
+			i = XSelectionClearEventToInstance(theEnv, context, &(e->xselectionclear), ib, name);
+			break;
+		case SelectionRequest:
+			i = XSelectionRequestEventToInstance(theEnv, context, &(e->xselectionrequest), ib, name);
+			break;
+		case SelectionNotify:
+			i = XSelectionEventToInstance(theEnv, context, &(e->xselection), ib, name);
+			break;
+		case ColormapNotify:
+			i = XColormapEventToInstance(theEnv, context, &(e->xcolormap), ib, name);
+			break;
+		case ClientMessage:
+			i = XClientMessageEventToInstance(theEnv, context, &(e->xclient), ib, name);
+			break;
+		case MappingNotify:
+			i = XMappingEventToInstance(theEnv, context, &(e->xmapping), ib, name);
+			break;
+		case GenericEvent:
+			i = XGenericEventToInstance(theEnv, context, &(e->xgeneric), ib, name);
+			break;
+		default:
+			WriteString(theEnv,STDERR,"Event Type ");
+			WriteInteger(theEnv,STDERR,e->type);
+			WriteString(theEnv,STDERR," not supported.\n");
+			return NULL;
+	}
+	if (i == NULL)
+	{
+		WriteString(theEnv,STDERR,"Could not make instance for XEvent ");
+		WriteString(theEnv,STDERR,XEventTypeToStr(e->type));
+		ReportIBMakeError(theEnv);
+		return NULL;
+	}
+	return i;
 }
-*/
+
+void XNextEventToInstanceFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	XEvent event;
+	InstanceBuilder *ib;
+	UDFValue theArg;
+	const char *name;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	name = NULL;
+	if (UDFHasNextArgument(context))
+	{
+		UDFNextArgument(context,LEXEME_BITS,&theArg);
+		name = theArg.lexemeValue->contents;
+	}
+
+	XNextEvent(display, &event);
+
+	ib = CreateInstanceBuilder(theEnv, NULL);
+
+	returnValue->instanceValue = XEventToInstance(theEnv, context, &event, ib, name);
+	if (returnValue->instanceValue == NULL)
+	{
+		WriteString(theEnv,STDERR,"Could not assert XEvent instance\n");
+		ReportIBMakeError(theEnv);
+	}
+	IBDispose(ib);
+}
+
+void XPeekEventToInstanceFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	XEvent event;
+	InstanceBuilder *ib;
+	UDFValue theArg;
+	const char *name;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	name = NULL;
+	if (UDFHasNextArgument(context))
+	{
+		UDFNextArgument(context,LEXEME_BITS,&theArg);
+		name = theArg.lexemeValue->contents;
+	}
+
+	XPeekEvent(display, &event);
+
+	ib = CreateInstanceBuilder(theEnv, NULL);
+
+	returnValue->instanceValue = XEventToInstance(theEnv, context, &event, ib, name);
+	if (returnValue->instanceValue == NULL)
+	{
+		WriteString(theEnv,STDERR,"Could not assert XEvent instance\n");
+		ReportIBMakeError(theEnv);
+	}
+	IBDispose(ib);
+}
 
 void XPopEventFunction(
 		Environment *theEnv,
@@ -4232,7 +5251,6 @@ void XLookupStringFunction(
 	len = XLookupString(&key_event, buffer, sizeof(buffer)-1, &keysym, NULL);
 	if (len > 0) {
 		buffer[len] = '\0';
-		printf("Key pressed: %s\n", buffer);
 	}
 	mb = CreateMultifieldBuilder(theEnv, 2);
 	MBAppendString(mb, buffer);
@@ -4439,6 +5457,7 @@ void UserFunctions(
 	  AddUDF(env,"x-circulate-subwindows-up","l",2,2,";e;l",XCirculateSubwindowsUpFunction,"XCirculateSubwindowsUpFunction",NULL);
 	  AddUDF(env,"x-kill-client","l",2,2,";e;l",XKillClientFunction,"XKillClientFunction",NULL);
 	  AddUDF(env,"screen-to-fact","f",1,1,";e",ScreenToFactFunction,"ScreenToFactFunction",NULL);
+	  AddUDF(env,"screen-to-instance","i",1,2,";e;sy",ScreenToInstanceFunction,"ScreenToInstanceFunction",NULL);
 	  AddUDF(env,"screen-to-multifield","m",1,1,";e",ScreenToMultifieldFunction,"ScreenToMultifieldFunction",NULL);
 	  AddUDF(env,"remove-hints-flags-from-window","v",3,12,";e;l;y;y;y;y;y;y;y;y;y;y",RemoveHintsFlagsFromWindowFunction,"RemoveHintsFlagsFromWindowFunction",NULL);
 	  AddUDF(env,"set-window-gravity","v",3,3,";e;l;y",SetWindowGravityFunction,"SetWindowGravityFunction",NULL);
@@ -4466,8 +5485,10 @@ void UserFunctions(
 	  AddUDF(env,"x-pop-event","v",1,1,";e",XPopEventFunction,"XPopEventFunction",NULL);
 	  AddUDF(env,"x-peek-event","bm",1,1,";e",XPeekEventFunction,"XPeekEventFunction",NULL);
 	  AddUDF(env,"x-peek-event-to-fact","bf",1,1,";e",XPeekEventToFactFunction,"XPeekEventToFactFunction",NULL);
+	  AddUDF(env,"x-peek-event-to-instance","bi",1,2,";e;sy",XPeekEventToInstanceFunction,"XPeekEventToInstanceFunction",NULL);
 	  AddUDF(env,"x-next-event","bm",1,1,";e",XNextEventFunction,"XNextEventFunction",NULL);
 	  AddUDF(env,"x-next-event-to-fact","bf",1,1,";e",XNextEventToFactFunction,"XNextEventToFactFunction",NULL);
+	  AddUDF(env,"x-next-event-to-instance","bi",1,2,";e;sy",XNextEventToInstanceFunction,"XNextEventToInstanceFunction",NULL);
 
 	  AddUDF(env,"x-draw-arc","v",9,9,";e;l;e;l;l;l;l;l;l",XDrawArcFunction,"XDrawArcFunction",NULL);
 	  AddUDF(env,"x-draw-line","v",7,7,";e;l;e;l;l;l;l",XDrawLineFunction,"XDrawLineFunction",NULL);

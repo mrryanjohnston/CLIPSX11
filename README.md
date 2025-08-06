@@ -777,6 +777,21 @@ Check `deftemplates.clp` to see the structure of these deftemplates.
 
 ---
 
+#### `x-peek-event-to-instance`
+#### `x-next-event-to-instance`
+
+```clips
+(x-peek-event-to-instance <display>) → <instance>
+(x-next-event-to-instance <display>) → <instance>
+```
+
+##### Description
+
+As above, but asserts an `X-EVENT-*` typed COOL instance.
+Check `defclasses.clp` to see the structure of these defclasses.
+
+---
+
 #### `x-pop-event`
 
 ```clips
@@ -893,7 +908,19 @@ Builds and asserts a `screen` fact with slots:
 - `min-maps`
 - `backing-store`
 - `save-unders`
-- `root-input-mask`.
+- `root-input-mask`
+
+---
+
+#### `screen-to-instance`
+
+```clips
+(screen-to-instance <screen-address>) → <instance>
+```
+
+##### Description
+
+Builds and asserts a `SCREEN` instance with the same slots listed above.
 
 ---
 
