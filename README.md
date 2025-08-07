@@ -56,6 +56,7 @@ showcasing some of the other functions provided by this library.
 5. [Event Handling](#event-handling)
 6. [Keyboard Utilities](#keyboard-utilities)
 7. [Screen Conversion](#screen-conversion)
+8. [Utility](#utility)
 
 ### Display Management
 
@@ -272,6 +273,45 @@ Moves and resizes a window in one call.
 
 Raises all child windows of `window`.
 
+##### Arguments
+
+1. `<display>` – External address to an X11 `Display` object.  
+2. `<window>` – Integer representing the X11 `Window` to bring to the top.
+
+---
+
+#### `x-raise-window`
+
+```clips
+(x-raise-window <display> <window>) → <void>
+```
+
+##### Description
+
+Raises `window` to the top of its siblings.
+
+##### Arguments
+
+1. `<display>` – External address to an X11 `Display` object.  
+2. `<window>` – Integer representing the X11 `Window` to bring to the top.
+
+---
+
+#### `x-lower-window`
+
+```clips
+(x-lower-window <display> <window>) → <void>
+```
+
+##### Description
+
+Lowers `window` to the bottom of its siblings.
+
+##### Arguments
+
+1. `<display>` – External address to an X11 `Display` object.  
+2. `<window>` – Integer representing the X11 `Window` to lower to the bottom.
+
 ---
 
 ##### `x-kill-client`
@@ -473,6 +513,60 @@ If `?data` is omitted, the property is updated with zero elements (effectively c
     6. `border_width` of the Window ID in pixels
     7. `depth` of the drawable (bits per pixels of the object)
 
+#### `x-get-window-attributes`
+#### `x-get-window-attributes-to-fact`
+#### `x-get-window-attributes-to-instance`
+
+
+##### Description
+
+Returns attributes about the window as either a multifield, a fact, or an instance.
+For a multifield, use `x-get-window-attributes`. The attributes will be returned
+in this order:
+
+- x, y - location of window
+- width, height - width and height of window
+- border_width - border width of window
+- depth - depth of window
+- visual - the associated visual structure
+- root - root of screen containing window
+- class - InputOutput, InputOnly
+- bit_gravity - one of the bit gravity values
+- win_gravity - one of the window gravity values
+- backing_store - NotUseful, WhenMapped, Always
+- backing_planes - planes to be preserved if possible
+- backing_pixel - value to be used when restoring planes
+- save_under - boolean, should bits under be saved?
+- colormap - color map to be associated with window
+- map_installed - boolean, is color map currently installed
+- map_state - IsUnmapped, IsUnviewable, IsViewable
+- all_event_masks - set of events all people have interest in
+- your_event_mask - my event mask
+- do_not_propagate_mask - set of events that should not propagate
+- override_redirect - boolean value for override-redirect
+- screen - back pointer to correct screen
+
+For `x-get-window-attributes-to-fact`, a fact will be asserted with the above slots.
+For `x-get-window-attributes-to-instance`, an instance will be made with the above slots.
+
+---
+
+#### `x-query-tree`
+
+```clips
+(x-query-tree <display> <window>)
+```
+
+##### Description
+
+Returns multifield whose members are:
+
+- root - the root window
+- parent - the parent window
+- children - a list of windows that are children of the `<window> argument listed in stacking order (bottom-most first)
+
+---
+
 #### `x-fetch-name`
 
 ```
@@ -668,11 +762,11 @@ Moves the pointer (mouse cursor) to a specified location, either relative to a s
 
 ##### Arguments
 
-- <display>: External address to the X11 Display.
-- <src-window>: Source window (integer). The pointer is warped relative to this window’s coordinate system. Use 0 if not constraining to a source region.
-- <dest-window>: Destination window (integer) where the pointer will be moved. Use 0 to indicate the root or global coordinate space depending on your semantics.
-- <src-x> / <src-y> / <src-width> / <src-height>: Defines a source rectangle within src-window. If the current pointer position is outside this rectangle, the warp does not occur. To ignore the source restriction, supply zeros appropriately (as per X11 API).
-- <dest-x> / <dest-y>: Coordinates within dest-window to which the pointer will be moved.
+- `display`: External address to the X11 Display.
+- `src-window`: Source window (integer). The pointer is warped relative to this window’s coordinate system. Use 0 if not constraining to a source region.
+- `dest-window`: Destination window (integer) where the pointer will be moved. Use 0 to indicate the root or global coordinate space depending on your semantics.
+- `src-x` / `src-y` / `src-width` / `src-height`: Defines a source rectangle within src-window. If the current pointer position is outside this rectangle, the warp does not occur. To ignore the source restriction, supply zeros appropriately (as per X11 API).
+- `dest-x` / `dest-y`: Coordinates within dest-window to which the pointer will be moved.
 
 #### `black-pixel`
 #### `white-pixel`
@@ -933,3 +1027,44 @@ Builds and asserts a `SCREEN` instance with the same slots listed above.
 ##### Description
 
 Returns the same information as a multifield vector.
+
+---
+
+### Utility
+
+#### `x-event-mask-to-multifield`
+
+```clips
+(x-event-mask-to-multifield <mask integer>) → <multifield>
+```
+
+#### Description
+
+Converts an integer event mask to a multifield of symbols
+representing the event mask names. Possible event masks that will return:
+
+- `KeyPressMask`
+- `KeyReleaseMask`
+- `ButtonPressMask`
+- `ButtonReleaseMask`
+- `EnterWindowMask`
+- `LeaveWindowMask`
+- `PointerMotionMask`
+- `PointerMotionHintMask`
+- `Button1MotionMask`
+- `Button2MotionMask`
+- `Button3MotionMask`
+- `Button4MotionMask`
+- `Button5MotionMask`
+- `ButtonMotionMask`
+- `KeymapStateMask`
+- `ExposureMask`
+- `VisibilityChangeMask`
+- `StructureNotifyMask`
+- `ResizeRedirectMask`
+- `SubstructureNotifyMask`
+- `SubstructureRedirectMask`
+- `FocusChangeMask`
+- `PropertyChangeMask`
+- `ColormapChangeMask`
+- `OwnerGrabButtonMask`

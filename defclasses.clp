@@ -1,3 +1,52 @@
+(defclass X-WINDOW-ATTRIBUTES
+	(is-a USER)
+	(slot x
+		(type INTEGER))
+	(slot y
+		(type INTEGER))
+	(slot width
+		(type INTEGER))
+	(slot height
+		(type INTEGER))
+	(slot border-width
+		(type INTEGER))
+	(slot depth
+		(type INTEGER))
+	(slot visual
+		(type EXTERNAL-ADDRESS))
+	(slot root
+		(type INTEGER))
+	(slot class
+		(type INTEGER))
+	(slot bit-gravity
+		(type INTEGER))
+	(slot win-gravity
+		(type INTEGER))
+	(slot backing-store
+		(type INTEGER))
+	(slot backing-planes
+		(type INTEGER))
+	(slot backing-pixel
+		(type INTEGER))
+	(slot save-under
+		(type SYMBOL))
+	(slot colormap
+		(type INTEGER))
+	(slot map-installed
+		(type SYMBOL))
+	(slot map-state
+		(type SYMBOL))
+	(multislot all-event-masks
+		(type SYMBOL))
+	(multislot your-event-mask
+		(type SYMBOL))
+	(multislot do-not-propagate-mask
+		(type SYMBOL))
+	(slot override-redirect
+		(type SYMBOL)
+		(allowed-values TRUE FALSE))
+	(slot screen
+		(type EXTERNAL-ADDRESS)))
 (defclass SCREEN
 	(is-a USER)
 	(slot c-pointer

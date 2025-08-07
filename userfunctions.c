@@ -647,6 +647,388 @@ void XCirculateSubwindowsUpFunction(
 	returnValue->integerValue = CreateInteger(theEnv, XCirculateSubwindowsUp(display, window));
 }
 
+void XRaiseWindowFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window window;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	XRaiseWindow(display, window);
+}
+
+void XLowerWindowFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window   window;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	XLowerWindow(display, window);
+}
+
+const char* BoolToStr(bool b)
+{
+	if (b)
+	{
+		return "TRUE";
+	}
+	else
+	{
+		return "FALSE";
+	}
+}
+
+const char *WindowPropertyMapStateToStr(int map_state)
+{
+	switch(map_state)
+	{
+		case IsUnmapped:
+			return "IsUnmapped";
+		case IsUnviewable:
+			return "IsUnviewable";
+		case IsViewable:
+			return "IsViewable";
+		default:
+			return "";
+	}
+}
+
+Multifield *XEventMaskToMultifield(long mask, MultifieldBuilder *mb)
+{
+	if (mask & KeyPressMask)           MBAppendSymbol(mb, "KeyPressMask");
+	if (mask & KeyReleaseMask)         MBAppendSymbol(mb, "KeyReleaseMask");
+	if (mask & ButtonPressMask)        MBAppendSymbol(mb, "ButtonPressMask");
+	if (mask & ButtonReleaseMask)      MBAppendSymbol(mb, "ButtonReleaseMask");
+	if (mask & EnterWindowMask)        MBAppendSymbol(mb, "EnterWindowMask");
+	if (mask & LeaveWindowMask)        MBAppendSymbol(mb, "LeaveWindowMask");
+	if (mask & PointerMotionMask)      MBAppendSymbol(mb, "PointerMotionMask");
+	if (mask & PointerMotionHintMask)  MBAppendSymbol(mb, "PointerMotionHintMask");
+	if (mask & Button1MotionMask)      MBAppendSymbol(mb, "Button1MotionMask");
+	if (mask & Button2MotionMask)      MBAppendSymbol(mb, "Button2MotionMask");
+	if (mask & Button3MotionMask)      MBAppendSymbol(mb, "Button3MotionMask");
+	if (mask & Button4MotionMask)      MBAppendSymbol(mb, "Button4MotionMask");
+	if (mask & Button5MotionMask)      MBAppendSymbol(mb, "Button5MotionMask");
+	if (mask & ButtonMotionMask)       MBAppendSymbol(mb, "ButtonMotionMask");
+	if (mask & KeymapStateMask)        MBAppendSymbol(mb, "KeymapStateMask");
+	if (mask & ExposureMask)           MBAppendSymbol(mb, "ExposureMask");
+	if (mask & VisibilityChangeMask)   MBAppendSymbol(mb, "VisibilityChangeMask");
+	if (mask & StructureNotifyMask)    MBAppendSymbol(mb, "StructureNotifyMask");
+	if (mask & ResizeRedirectMask)     MBAppendSymbol(mb, "ResizeRedirectMask");
+	if (mask & SubstructureNotifyMask) MBAppendSymbol(mb, "SubstructureNotifyMask");
+	if (mask & SubstructureRedirectMask) MBAppendSymbol(mb, "SubstructureRedirectMask");
+	if (mask & FocusChangeMask)        MBAppendSymbol(mb, "FocusChangeMask");
+	if (mask & PropertyChangeMask)     MBAppendSymbol(mb, "PropertyChangeMask");
+	if (mask & ColormapChangeMask)     MBAppendSymbol(mb, "ColormapChangeMask");
+	if (mask & OwnerGrabButtonMask)    MBAppendSymbol(mb, "OwnerGrabButtonMask");
+
+	return MBCreate(mb);
+}
+
+void ReportIBMakeError(
+		Environment *theEnv)
+{
+	switch(IBError(theEnv))
+	{
+		case IBE_NO_ERROR:
+			WriteString(theEnv,STDERR,"No error occurred\n");
+			break;
+		case IBE_NULL_POINTER_ERROR:
+			WriteString(theEnv,STDERR,"The InstanceBuilder does not have an associated defclass\n");
+			break;
+		case IBE_DEFCLASS_NOT_FOUND_ERROR:
+			WriteString(theEnv,STDERR,"IBE_DEFCLASS_NOT_FOUND_ERROR: This error should not happen as a result of an IBMake...\n");
+			break;
+		case IBE_COULD_NOT_CREATE_ERROR:
+			WriteString(theEnv,STDERR,"The Instance could not be created (such as when pattern matching of a fact or instance is already occurring)\n");
+			break;
+		case IBE_RULE_NETWORK_ERROR:
+			WriteString(theEnv,STDERR,"An error occurred while the instance was being processed in the rule network\n");
+			break;
+		default:
+			WriteString(theEnv,STDERR,"The result of IBError was something unexpected...\n");
+			break;
+	}
+}
+
+void XGetWindowAttributesToInstanceFunction(
+		Environment *theEnv,
+		UDFContext   *context,
+		UDFValue     *returnValue)
+{
+	Display *display;
+	Window   window;
+	XWindowAttributes wa;
+	UDFValue theArg;
+	InstanceBuilder *ib;
+	MultifieldBuilder *mb;
+	const char *name;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	name = NULL;
+	if (UDFHasNextArgument(context))
+	{
+		UDFNextArgument(context,LEXEME_BITS,&theArg);
+		name = theArg.lexemeValue->contents;
+	}
+
+
+	if (XGetWindowAttributes(display, window, &wa) != 0)
+	{
+		ib = CreateInstanceBuilder(theEnv, "X-WINDOW-ATTRIBUTES");
+		IBPutSlotInteger(ib, "x", wa.x);
+		IBPutSlotInteger(ib, "y", wa.y);
+		IBPutSlotInteger(ib, "width", wa.width);
+		IBPutSlotInteger(ib, "height", wa.height);
+		IBPutSlotInteger(ib, "border-width", wa.border_width);
+		IBPutSlotInteger(ib, "depth", wa.depth);
+		IBPutSlotExternalAddress(ib, "visual", CreateCExternalAddress(theEnv, wa.visual));
+		IBPutSlotInteger(ib, "root", wa.root);
+		IBPutSlotInteger(ib, "class", wa.class);
+		IBPutSlotInteger(ib, "bit-gravity", wa.bit_gravity);
+		IBPutSlotInteger(ib, "win-gravity", wa.win_gravity);
+		IBPutSlotInteger(ib, "backing-store", wa.backing_store);
+		IBPutSlotInteger(ib, "backing-planes", wa.backing_planes);
+		IBPutSlotInteger(ib, "backing-pixel", wa.backing_pixel);
+		IBPutSlotSymbol(ib, "save-under", BoolToStr(wa.save_under));
+		IBPutSlotInteger(ib, "colormap", wa.colormap);
+		IBPutSlotSymbol(ib, "map-installed", BoolToStr(wa.map_installed));
+		IBPutSlotSymbol(ib, "map-state", WindowPropertyMapStateToStr(wa.map_state));
+		mb = CreateMultifieldBuilder(theEnv, 0);
+		IBPutSlotMultifield(ib, "all-event-masks", XEventMaskToMultifield(wa.all_event_masks, mb));
+		MBDispose(mb);
+		mb = CreateMultifieldBuilder(theEnv, 0);
+		IBPutSlotMultifield(ib, "your-event-mask", XEventMaskToMultifield(wa.your_event_mask, mb));
+		MBDispose(mb);
+		mb = CreateMultifieldBuilder(theEnv, 0);
+		IBPutSlotMultifield(ib, "do-not-propagate-mask", XEventMaskToMultifield(wa.do_not_propagate_mask, mb));
+		MBDispose(mb);
+		IBPutSlotSymbol(ib, "override-redirect", BoolToStr(wa.override_redirect));
+		IBPutSlotExternalAddress(ib, "screen", CreateCExternalAddress(theEnv, wa.screen));
+		returnValue->instanceValue = IBMake(ib, name);
+		IBDispose(ib);
+		if (returnValue->instanceValue == NULL)
+		{
+			WriteString(theEnv,STDERR,"Could not make X-WINDOW-ATTRIBUTES instance\n");
+			ReportIBMakeError(theEnv);
+		}
+	}
+}
+
+void ReportFBAssertError(
+		Environment *theEnv)
+{
+	switch(FBError(theEnv))
+	{
+		case FBE_NO_ERROR:
+			WriteString(theEnv,STDERR,"No error occurred\n");
+			break;
+		case FBE_NULL_POINTER_ERROR:
+			WriteString(theEnv,STDERR,"The FactBuilder does not have an associated deftemplate\n");
+			break;
+		case FBE_DEFTEMPLATE_NOT_FOUND_ERROR:
+			WriteString(theEnv,STDERR,"FBE_DEFTEMPLATE_NOT_FOUND_ERROR: This error should not happen as a result of an FBAssert...\n");
+			break;
+		case FBE_IMPLIED_DEFTEMPLATE_ERROR:
+			WriteString(theEnv,STDERR,"FBE_IMPLIED_DEFTEMPLATE_ERROR: This error should not happen as a result of an FBAssert...\n");
+			break;
+		case FBE_COULD_NOT_ASSERT_ERROR:
+			WriteString(theEnv,STDERR,"The Fact could not be asserted (such as when pattern matching of a fact or instance is already occurring)\n");
+			break;
+		case FBE_RULE_NETWORK_ERROR:
+			WriteString(theEnv,STDERR,"An error occurred while the assertion was being processed in the rule network\n");
+			break;
+		default:
+			WriteString(theEnv,STDERR,"The result of FBError was something unexpected...\n");
+			break;
+	}
+}
+
+void XGetWindowAttributesToFactFunction(
+		Environment *theEnv,
+		UDFContext   *context,
+		UDFValue     *returnValue)
+{
+	Display *display;
+	Window   window;
+	XWindowAttributes wa;
+	UDFValue theArg;
+	FactBuilder *fb;
+	MultifieldBuilder *mb;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	if (XGetWindowAttributes(display, window, &wa) != 0)
+	{
+		fb = CreateFactBuilder(theEnv, "x-window-attributes");
+		FBPutSlotInteger(fb, "x", wa.x);
+		FBPutSlotInteger(fb, "y", wa.y);
+		FBPutSlotInteger(fb, "width", wa.width);
+		FBPutSlotInteger(fb, "height", wa.height);
+		FBPutSlotInteger(fb, "border-width", wa.border_width);
+		FBPutSlotInteger(fb, "depth", wa.depth);
+		FBPutSlotCLIPSExternalAddress(fb, "visual", CreateCExternalAddress(theEnv, wa.visual));
+		FBPutSlotInteger(fb, "root", wa.root);
+		FBPutSlotInteger(fb, "class", wa.class);
+		FBPutSlotInteger(fb, "bit-gravity", wa.bit_gravity);
+		FBPutSlotInteger(fb, "win-gravity", wa.win_gravity);
+		FBPutSlotInteger(fb, "backing-store", wa.backing_store);
+		FBPutSlotInteger(fb, "backing-planes", wa.backing_planes);
+		FBPutSlotInteger(fb, "backing-pixel", wa.backing_pixel);
+		FBPutSlotSymbol(fb, "save-under", BoolToStr(wa.save_under));
+		FBPutSlotInteger(fb, "colormap", wa.colormap);
+		FBPutSlotSymbol(fb, "map-installed", BoolToStr(wa.map_installed));
+		FBPutSlotSymbol(fb, "map-state", WindowPropertyMapStateToStr(wa.map_state));
+		mb = CreateMultifieldBuilder(theEnv, 0);
+		FBPutSlotMultifield(fb, "all-event-masks", XEventMaskToMultifield(wa.all_event_masks, mb));
+		MBDispose(mb);
+		mb = CreateMultifieldBuilder(theEnv, 0);
+		FBPutSlotMultifield(fb, "your-event-mask", XEventMaskToMultifield(wa.your_event_mask, mb));
+		MBDispose(mb);
+		mb = CreateMultifieldBuilder(theEnv, 0);
+		FBPutSlotMultifield(fb, "do-not-propagate-mask", XEventMaskToMultifield(wa.do_not_propagate_mask, mb));
+		MBDispose(mb);
+		FBPutSlotSymbol(fb, "override-redirect", BoolToStr(wa.override_redirect));
+		FBPutSlotCLIPSExternalAddress(fb, "screen", CreateCExternalAddress(theEnv, wa.screen));
+		returnValue->factValue = FBAssert(fb);
+		FBDispose(fb);
+		if (returnValue->factValue == NULL)
+		{
+			WriteString(theEnv,STDERR,"Could not assert x-window-attributes fact\n");
+			ReportFBAssertError(theEnv);
+		}
+	}
+}
+
+void XGetWindowAttributesFunction(
+		Environment *theEnv,
+		UDFContext   *context,
+		UDFValue     *returnValue)
+{
+	Display *display;
+	Window   window;
+	XWindowAttributes wa;
+	UDFValue theArg;
+	MultifieldBuilder *mb;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	if (XGetWindowAttributes(display, window, &wa) != 0)
+	{
+		mb = CreateMultifieldBuilder(theEnv, 23);
+		MBAppendInteger(mb, wa.x);
+		MBAppendInteger(mb, wa.y);
+		MBAppendInteger(mb, wa.width);
+		MBAppendInteger(mb, wa.height);
+		MBAppendInteger(mb, wa.border_width);
+		MBAppendInteger(mb, wa.depth);
+		MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, wa.visual));
+		MBAppendInteger(mb, wa.root);
+		MBAppendInteger(mb, wa.class);
+		MBAppendInteger(mb, wa.bit_gravity);
+		MBAppendInteger(mb, wa.win_gravity);
+		MBAppendInteger(mb, wa.backing_store);
+		MBAppendInteger(mb, wa.backing_planes);
+		MBAppendInteger(mb, wa.backing_pixel);
+		MBAppendSymbol(mb, BoolToStr(wa.save_under));
+		MBAppendInteger(mb, wa.colormap);
+		MBAppendSymbol(mb, BoolToStr(wa.map_installed));
+		MBAppendSymbol(mb, WindowPropertyMapStateToStr(wa.map_state));
+		MBAppendInteger(mb, wa.all_event_masks);
+		MBAppendInteger(mb, wa.your_event_mask);
+		MBAppendInteger(mb, wa.do_not_propagate_mask);
+		MBAppendSymbol(mb, BoolToStr(wa.override_redirect));
+		MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, wa.screen));
+		returnValue->multifieldValue = MBCreate(mb);
+		MBDispose(mb);
+	}
+}
+
+void XEventMaskToMultifieldFunction(
+		Environment *theEnv,
+		UDFContext   *context,
+		UDFValue     *returnValue)
+{
+	long mask;
+	MultifieldBuilder *mb;
+	UDFValue theArg;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	mask = theArg.integerValue->contents;
+
+	mb = CreateMultifieldBuilder(theEnv, 0);
+
+	returnValue->multifieldValue = XEventMaskToMultifield(mask, mb);
+	MBDispose(mb);
+}
+
+void XQueryTreeFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window window;
+	Window root_ret, parent_ret;
+	Window *children;
+	unsigned int nchildren;
+	MultifieldBuilder *mb;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window)theArg.integerValue->contents;
+
+	if (XQueryTree(display, window, &root_ret, &parent_ret, &children, &nchildren) == 0)
+	{
+		WriteString(theEnv,STDERR,"x-query-tree failed\n");
+		return;
+	}
+
+	mb = CreateMultifieldBuilder(theEnv, nchildren+2);
+	MBAppendInteger(mb, (long long)root_ret);
+	MBAppendInteger(mb, (long long)parent_ret);
+	for (unsigned int i = 0; i < nchildren; i++)
+	{
+		MBAppendInteger(mb, (long long)children[i]);
+	}
+	returnValue->multifieldValue = MBCreate(mb);
+	MBDispose(mb);
+
+	XFree(children);
+}
+
 void XKillClientFunction(
 		Environment *theEnv,
 		UDFContext *context,
@@ -677,61 +1059,6 @@ const char *ScreenBackingStoreToStr(int backing_store)
 			return "Always";
 		default:
 			return "";
-	}
-}
-
-void ReportIBMakeError(
-		Environment *theEnv)
-{
-	switch(IBError(theEnv))
-	{
-		case IBE_NO_ERROR:
-			WriteString(theEnv,STDERR,"No error occurred\n");
-			break;
-		case IBE_NULL_POINTER_ERROR:
-			WriteString(theEnv,STDERR,"The InstanceBuilder does not have an associated defclass\n");
-			break;
-		case IBE_DEFCLASS_NOT_FOUND_ERROR:
-			WriteString(theEnv,STDERR,"IBE_DEFCLASS_NOT_FOUND_ERROR: This error should not happen as a result of an IBMake...\n");
-			break;
-		case IBE_COULD_NOT_CREATE_ERROR:
-			WriteString(theEnv,STDERR,"The Instance could not be created (such as when pattern matching of a fact or instance is already occurring)\n");
-			break;
-		case IBE_RULE_NETWORK_ERROR:
-			WriteString(theEnv,STDERR,"An error occurred while the instance was being processed in the rule network\n");
-			break;
-		default:
-			WriteString(theEnv,STDERR,"The result of IBError was something unexpected...\n");
-			break;
-	}
-}
-
-void ReportFBAssertError(
-		Environment *theEnv)
-{
-	switch(FBError(theEnv))
-	{
-		case FBE_NO_ERROR:
-			WriteString(theEnv,STDERR,"No error occurred\n");
-			break;
-		case FBE_NULL_POINTER_ERROR:
-			WriteString(theEnv,STDERR,"The FactBuilder does not have an associated deftemplate\n");
-			break;
-		case FBE_DEFTEMPLATE_NOT_FOUND_ERROR:
-			WriteString(theEnv,STDERR,"FBE_DEFTEMPLATE_NOT_FOUND_ERROR: This error should not happen as a result of an FBAssert...\n");
-			break;
-		case FBE_IMPLIED_DEFTEMPLATE_ERROR:
-			WriteString(theEnv,STDERR,"FBE_IMPLIED_DEFTEMPLATE_ERROR: This error should not happen as a result of an FBAssert...\n");
-			break;
-		case FBE_COULD_NOT_ASSERT_ERROR:
-			WriteString(theEnv,STDERR,"The Fact could not be asserted (such as when pattern matching of a fact or instance is already occurring)\n");
-			break;
-		case FBE_RULE_NETWORK_ERROR:
-			WriteString(theEnv,STDERR,"An error occurred while the assertion was being processed in the rule network\n");
-			break;
-		default:
-			WriteString(theEnv,STDERR,"The result of FBError was something unexpected...\n");
-			break;
 	}
 }
 
@@ -1815,18 +2142,6 @@ const char *XEventTypeToStr(int type)
 			return "GenericEvent";
 		default:
 			return NULL;
-	}
-}
-
-const char* BoolToStr(bool b)
-{
-	if (b)
-	{
-		return "TRUE";
-	}
-	else
-	{
-		return "FALSE";
 	}
 }
 
@@ -5455,6 +5770,13 @@ void UserFunctions(
 	  AddUDF(env,"x-map-window","v",2,2,";e;l",XMapWindowFunction,"XMapWindowFunction",NULL);
 	  AddUDF(env,"x-move-resize-window","l",6,6,";e;l;l;l;l;l",XMoveResizeWindowFunction,"XMoveResizeWindowFunction",NULL);
 	  AddUDF(env,"x-circulate-subwindows-up","l",2,2,";e;l",XCirculateSubwindowsUpFunction,"XCirculateSubwindowsUpFunction",NULL);
+	  AddUDF(env,"x-raise-window","l",2,2,";e;l",XRaiseWindowFunction,"XRaiseWindowFunction",NULL);
+	  AddUDF(env,"x-lower-window","l",2,2,";e;l",XLowerWindowFunction,"XLowerWindowFunction",NULL);
+	  AddUDF(env,"x-get-window-attributes","mv",2,2,";e;l",XGetWindowAttributesFunction,"XGetWindowAttributesFunction",NULL);
+	  AddUDF(env,"x-get-window-attributes-to-fact","mv",2,2,";e;l",XGetWindowAttributesToFactFunction,"XGetWindowAttributesToFactFunction",NULL);
+	  AddUDF(env,"x-get-window-attributes-to-instance","mv",2,3,";e;l;sy",XGetWindowAttributesToInstanceFunction,"XGetWindowAttributesToInstanceFunction",NULL);
+	  AddUDF(env,"x-event-mask-to-multifield","m",1,1,";l",XEventMaskToMultifieldFunction,"XEventMaskToMultifieldFunction",NULL);
+	  AddUDF(env,"x-query-tree","mv",2,2,";e;l",XQueryTreeFunction,"XQueryTreeFunction",NULL);
 	  AddUDF(env,"x-kill-client","l",2,2,";e;l",XKillClientFunction,"XKillClientFunction",NULL);
 	  AddUDF(env,"screen-to-fact","f",1,1,";e",ScreenToFactFunction,"ScreenToFactFunction",NULL);
 	  AddUDF(env,"screen-to-instance","i",1,2,";e;sy",ScreenToInstanceFunction,"ScreenToInstanceFunction",NULL);
