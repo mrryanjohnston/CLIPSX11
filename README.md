@@ -750,6 +750,24 @@ A multifield containing two elements:
 
 ---
 
+#### `x-select-input`
+
+```clips
+(x-select-input <display> <window> <mask1> <mask2> ... <maskn>)
+```
+
+##### Description
+
+Requests the X Server to report events associated with the supplied event masks.
+
+##### Example
+
+```
+(x-select-input ?display ?window SubstructureRedirectMask)
+```
+
+---
+
 #### `x-warp-pointer`
 
 ```clips
