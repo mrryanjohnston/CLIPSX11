@@ -346,6 +346,23 @@ Raises all child windows of `window`.
 
 ---
 
+#### `x-circulate-subwindows-down`
+
+```clips
+(x-circulate-subwindows-down <display> <window>) → <status>
+```
+
+##### Description
+
+Lowers all child windows of `window`.
+
+##### Arguments
+
+1. `<display>` – External address to an X11 `Display` object.  
+2. `<window>` – Integer representing the X11 `Window` to bring to the bottom.
+
+---
+
 #### `x-raise-window`
 
 ```clips
@@ -614,6 +631,37 @@ in this order:
 
 For `x-get-window-attributes-to-fact`, a fact will be asserted with the above slots.
 For `x-get-window-attributes-to-instance`, an instance will be made with the above slots.
+
+---
+
+#### `x-configure-window`
+
+```clips
+(x-configure-window <display> <window> <value-mask>
+                    <x> <y> <width> <height> <border-width> <sibling> <stack-mode>)
+  → <status>
+```
+
+##### Description
+
+Wrapper for XConfigureWindow. Applies geometry/stacking changes to a window.
+
+##### Arguments
+
+- `<display>` — EXTERNAL-ADDRESS (Xlib `Display*`).
+- `<window>` — INTEGER (Xlib Window id).
+- `<value-mask>` — which fields to apply. Accepts:
+    - INTEGER bitmask, or
+    - single SYMBOL/STRING, or
+    - MULTIFIELD of SYMBOL/STRING/INTEGER items (all OR’ed together).
+    Supported tokens: `CWX`, `CWY`, `CWWidth`, `CWHeight`, `CWBorderWidth`, `CWSibling`, `CWStackMode`.
+- `<x>` — INTEGER
+- `<y>` — INTEGER
+- `<width>` — INTEGER
+- `<height>` — INTEGER
+- `<border-width>` — INTEGER
+- `<sibling>` — INTEGER (Xlib Window id; only used if CWSibling is set)
+- `<stack-mode>` — INTEGER or SYMBOL one of: Above, Below, TopIf, BottomIf, Opposite
 
 ---
 
@@ -1213,6 +1261,30 @@ Maps a key name (e.g. `"Return"`) to its keysym.
 
 ---
 
+#### `x-grab-server`
+
+```clips
+(x-grab-server <display>) → VOID
+```
+
+##### Description
+
+Disables processing of requests and close downs on all other connections than the one this request arrived on
+
+---
+
+#### `x-ungrab-server`
+
+```clips
+(x-ungrab-server <display>) → VOID
+```
+
+##### Description
+
+Restarts processing of requests and close downs on other connections.
+
+---
+
 #### `x-grab-button`
 
 ```clips
@@ -1568,3 +1640,62 @@ Converts a multifield containing symbols of masks
 to the integer mask containing all masks specified.
 See `mask-to-symbol` for a list of possible symbols
 that may be passed in the multifield.
+
+---
+
+#### `x-translate-coordinates`
+
+```clips
+(x-translate-coordinates <display> <src_window> <dest_window> <src_x> <src_y>) → <multifield> or FALSE
+```
+
+##### Description
+
+Translate a coordinate in one window to the coordinate space of another window.
+
+##### Returns
+
+Takes the `src_x` and `src_y` coordinates relative to the `src_window`'s origin
+and returns these coordinates as the first 2 values in a multifield
+relative to the destination window's origin.
+If the coordinates are contained in a mapped child of `dest_window`,
+that child is returned as the last value in the returned multifield.
+
+---
+
+#### `x-allow-events`
+
+```clips
+(x-allow-events <display> <event_mode> [<time>])
+```
+
+##### Description
+
+Releases some queued events if the client has caused a device to freeze.
+It has no effect if the specified time is earlier than the last-grab time
+of the most recent active grab for the client or if the specified time
+is later than the current X server time
+
+##### Arguments
+
+- `display` - Specifies the connection to the X server.
+- `event_mode` - Specifies the event mode. You can pass an integer or one of the symbols `AsyncPointer`, `SyncPointer`, `AsyncKeyboard`, `SyncKeyboard`, `ReplayPointer`, `ReplayKeyboard`, `AsyncBoth`, or `SyncBoth`.
+- `time` - Optional. Specifies the time. Omitting this specifies `CurrentTime` (`0`).
+
+---
+
+#### `x-restack-windows`
+
+```clips
+(x-allow-events <display> <windows> [<nwindows>])
+```
+
+##### Description
+
+Restacks the windows in the order specified, from top to bottom.
+
+##### Arguments
+
+- `display` - Specifies the connection to the X server.
+- `windows` - Specifies a multifield containing the window `INTEGER`s to be restacked.
+- `nwindows` - Optional. Specifies the number of windows to be restacked. Will use the length of `windows` multifield if omitted.
