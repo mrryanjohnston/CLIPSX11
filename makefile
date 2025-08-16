@@ -14,11 +14,17 @@ DATAFILES := $(wildcard *.clp *.bat)
 BAT_TEMPLATE := clipsmwm.bat.in
 BAT_OUT := clipsmwm.bat
 
-all:
-	[ -e clips_core_source_642.tar.gz ] || wget https://sourceforge.net/projects/clipsrules/files/CLIPS/6.4.2/clips_core_source_642.tar.gz
-	[ -d "clips" ] || { mkdir clips && tar --strip-components=2 -xvf clips_core_source_642.tar.gz -C clips; }
+all: clips
 	cp userfunctions.c clips
 	$(MAKE) -C clips LDLIBS="-lm -lX11"
+
+clips:
+	[ -e clips_core_source_642.tar.gz ] || wget https://sourceforge.net/projects/clipsrules/files/CLIPS/6.4.2/clips_core_source_642.tar.gz
+	[ -d "clips" ] || { mkdir clips && tar --strip-components=2 -xvf clips_core_source_642.tar.gz -C clips; }
+
+debug: clips
+	cp userfunctions.c clips
+	$(MAKE) debug -C clips LDLIBS="-lm -lX11"
 
 install: install-bin install-desktop install-data
 

@@ -84,6 +84,20 @@ void XOpenDisplayFunction(
 	returnValue->externalAddressValue = CreateCExternalAddress(theEnv, (void*)display);
 }
 
+void XCloseDisplayFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	XCloseDisplay(display);
+}
+
 void DefaultScreenFunction(
 		Environment *theEnv,
 		UDFContext *context,
@@ -243,6 +257,24 @@ void XCreateWindowFunction(
 	attributes = theArg.externalAddressValue->contents;
 
 	returnValue->integerValue = CreateInteger(theEnv, (int)XCreateWindow(display, parent, x, y, width, height, border_width, depth, class, visual, valuemask, attributes));
+}
+
+void XDestroyWindowFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	int window;
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	window = theArg.integerValue->contents;
+
+	XDestroyWindow(display, window);
 }
 
 void XCreateFontCursorFunction(
@@ -597,6 +629,52 @@ void XMapWindowFunction(
 	XMapWindow(display, window);
 }
 
+void XUnmapWindowFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window window;
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	window = theArg.integerValue->contents;
+
+	XUnmapWindow(display, window);
+}
+
+void XReparentWindowFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window window, parent;
+	int x, y;
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	window = theArg.integerValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	parent = theArg.integerValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	x = theArg.integerValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	y = theArg.integerValue->contents;
+
+	XReparentWindow(display, window, parent, x, y);
+}
+
 void XMoveResizeWindowFunction(
 		Environment *theEnv,
 		UDFContext *context,
@@ -710,7 +788,89 @@ const char *WindowPropertyMapStateToStr(int map_state)
 	}
 }
 
-Multifield *XEventMaskToMultifield(long mask, MultifieldBuilder *mb)
+const char *EventMaskToString(long mask)
+{
+	switch (mask)
+	{
+		case KeyPressMask:
+			return "KeyPressMask";
+		case KeyReleaseMask:
+			return "KeyReleaseMask";
+		case ButtonPressMask:
+			return "ButtonPressMask";
+		case ButtonReleaseMask:
+			return "ButtonReleaseMask";
+		case EnterWindowMask:
+			return "EnterWindowMask";
+		case LeaveWindowMask:
+			return "LeaveWindowMask";
+		case PointerMotionMask:
+			return "PointerMotionMask";
+		case PointerMotionHintMask:
+			return "PointerMotionHintMask";
+		case Button1MotionMask:
+			return "Button1MotionMask";
+		case Button2MotionMask:
+			return "Button2MotionMask";
+		case Button3MotionMask:
+			return "Button3MotionMask";
+		case Button4MotionMask:
+			return "Button4MotionMask";
+		case Button5MotionMask:
+			return "Button5MotionMask";
+		case ButtonMotionMask:
+			return "ButtonMotionMask";
+		case KeymapStateMask:
+			return "KeymapStateMask";
+		case ExposureMask:
+			return "ExposureMask";
+		case VisibilityChangeMask:
+			return "VisibilityChangeMask";
+		case StructureNotifyMask:
+			return "StructureNotifyMask";
+		case ResizeRedirectMask:
+			return "ResizeRedirectMask";
+		case SubstructureNotifyMask:
+			return "SubstructureNotifyMask";
+		case SubstructureRedirectMask:
+			return "SubstructureRedirectMask";
+		case FocusChangeMask:
+			return "FocusChangeMask";
+		case PropertyChangeMask:
+			return "PropertyChangeMask";
+		case ColormapChangeMask:
+			return "ColormapChangeMask";
+		case OwnerGrabButtonMask:
+			return "OwnerGrabButtonMask";
+		default:
+			return NULL;
+	}
+}
+
+void EventMaskToSymbolFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	const char *sym;
+	UDFValue theArg;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+
+	sym = EventMaskToString(theArg.integerValue->contents);
+	if (sym != NULL)
+	{
+		returnValue->lexemeValue = CreateSymbol(theEnv, sym);
+	}
+	else
+	{
+		WriteInteger(theEnv,STDERR,theArg.integerValue->contents);
+		WriteString(theEnv,STDERR," is not a valid event mask\n");
+		returnValue->voidValue = VoidConstant(theEnv);
+	}
+}
+
+Multifield *EventMaskToMultifield(long mask, MultifieldBuilder *mb)
 {
 	if (mask & KeyPressMask)           MBAppendSymbol(mb, "KeyPressMask");
 	if (mask & KeyReleaseMask)         MBAppendSymbol(mb, "KeyReleaseMask");
@@ -816,13 +976,13 @@ void XGetWindowAttributesToInstanceFunction(
 		IBPutSlotSymbol(ib, "map-installed", BoolToStr(wa.map_installed));
 		IBPutSlotSymbol(ib, "map-state", WindowPropertyMapStateToStr(wa.map_state));
 		mb = CreateMultifieldBuilder(theEnv, 0);
-		IBPutSlotMultifield(ib, "all-event-masks", XEventMaskToMultifield(wa.all_event_masks, mb));
+		IBPutSlotMultifield(ib, "all-event-masks", EventMaskToMultifield(wa.all_event_masks, mb));
 		MBDispose(mb);
 		mb = CreateMultifieldBuilder(theEnv, 0);
-		IBPutSlotMultifield(ib, "your-event-mask", XEventMaskToMultifield(wa.your_event_mask, mb));
+		IBPutSlotMultifield(ib, "your-event-mask", EventMaskToMultifield(wa.your_event_mask, mb));
 		MBDispose(mb);
 		mb = CreateMultifieldBuilder(theEnv, 0);
-		IBPutSlotMultifield(ib, "do-not-propagate-mask", XEventMaskToMultifield(wa.do_not_propagate_mask, mb));
+		IBPutSlotMultifield(ib, "do-not-propagate-mask", EventMaskToMultifield(wa.do_not_propagate_mask, mb));
 		MBDispose(mb);
 		IBPutSlotSymbol(ib, "override-redirect", BoolToStr(wa.override_redirect));
 		IBPutSlotExternalAddress(ib, "screen", CreateCExternalAddress(theEnv, wa.screen));
@@ -905,13 +1065,13 @@ void XGetWindowAttributesToFactFunction(
 		FBPutSlotSymbol(fb, "map-installed", BoolToStr(wa.map_installed));
 		FBPutSlotSymbol(fb, "map-state", WindowPropertyMapStateToStr(wa.map_state));
 		mb = CreateMultifieldBuilder(theEnv, 0);
-		FBPutSlotMultifield(fb, "all-event-masks", XEventMaskToMultifield(wa.all_event_masks, mb));
+		FBPutSlotMultifield(fb, "all-event-masks", EventMaskToMultifield(wa.all_event_masks, mb));
 		MBDispose(mb);
 		mb = CreateMultifieldBuilder(theEnv, 0);
-		FBPutSlotMultifield(fb, "your-event-mask", XEventMaskToMultifield(wa.your_event_mask, mb));
+		FBPutSlotMultifield(fb, "your-event-mask", EventMaskToMultifield(wa.your_event_mask, mb));
 		MBDispose(mb);
 		mb = CreateMultifieldBuilder(theEnv, 0);
-		FBPutSlotMultifield(fb, "do-not-propagate-mask", XEventMaskToMultifield(wa.do_not_propagate_mask, mb));
+		FBPutSlotMultifield(fb, "do-not-propagate-mask", EventMaskToMultifield(wa.do_not_propagate_mask, mb));
 		MBDispose(mb);
 		FBPutSlotSymbol(fb, "override-redirect", BoolToStr(wa.override_redirect));
 		FBPutSlotCLIPSExternalAddress(fb, "screen", CreateCExternalAddress(theEnv, wa.screen));
@@ -973,7 +1133,7 @@ void XGetWindowAttributesFunction(
 	}
 }
 
-void XEventMaskToMultifieldFunction(
+void EventMaskToMultifieldFunction(
 		Environment *theEnv,
 		UDFContext   *context,
 		UDFValue     *returnValue)
@@ -987,7 +1147,7 @@ void XEventMaskToMultifieldFunction(
 
 	mb = CreateMultifieldBuilder(theEnv, 0);
 
-	returnValue->multifieldValue = XEventMaskToMultifield(mask, mb);
+	returnValue->multifieldValue = EventMaskToMultifield(mask, mb);
 	MBDispose(mb);
 }
 
@@ -2160,50 +2320,395 @@ Multifield *XAnyEventToMultifield(
 	return MBCreate(mb);
 }
 
-Multifield *StateToMultifield(
-		unsigned int state,
+int StringToEventMask(
+		const char *str)
+{
+	if (0 == strcmp(str, "KeyPressMask"))
+	{
+		return KeyPressMask;
+	}
+	else if (0 == strcmp(str, "KeyReleaseMask"))
+	{
+		return KeyReleaseMask;
+	}
+	else if (0 == strcmp(str, "ButtonPressMask"))
+	{
+		return ButtonPressMask;
+	}
+	else if (0 == strcmp(str, "ButtonReleaseMask"))
+	{
+		return ButtonReleaseMask;
+	}
+	else if (0 == strcmp(str, "EnterWindowMask"))
+	{
+		return EnterWindowMask;
+	}
+	else if (0 == strcmp(str, "LeaveWindowMask"))
+	{
+		return LeaveWindowMask;
+	}
+	else if (0 == strcmp(str, "PointerMotionMask"))
+	{
+		return PointerMotionMask;
+	}
+	else if (0 == strcmp(str, "PointerMotionHintMask"))
+	{
+		return PointerMotionHintMask;
+	}
+	else if (0 == strcmp(str, "Button1MotionMask"))
+	{
+		return Button1MotionMask;
+	}
+	else if (0 == strcmp(str, "Button2MotionMask"))
+	{
+		return Button2MotionMask;
+	}
+	else if (0 == strcmp(str, "Button3MotionMask"))
+	{
+		return Button3MotionMask;
+	}
+	else if (0 == strcmp(str, "Button4MotionMask"))
+	{
+		return Button4MotionMask;
+	}
+	else if (0 == strcmp(str, "Button5MotionMask"))
+	{
+		return Button5MotionMask;
+	}
+	else if (0 == strcmp(str, "ButtonMotionMask"))
+	{
+		return ButtonMotionMask;
+	}
+	else if (0 == strcmp(str, "KeymapStateMask"))
+	{
+		return KeymapStateMask;
+	}
+	else if (0 == strcmp(str, "ExposureMask"))
+	{
+		return ExposureMask;
+	}
+	else if (0 == strcmp(str, "VisibilityChangeMask"))
+	{
+		return VisibilityChangeMask;
+	}
+	else if (0 == strcmp(str, "StructureNotifyMask"))
+	{
+		return StructureNotifyMask;
+	}
+	else if (0 == strcmp(str, "ResizeRedirectMask"))
+	{
+		return ResizeRedirectMask;
+	}
+	else if (0 == strcmp(str, "SubstructureNotifyMask"))
+	{
+		return SubstructureNotifyMask;
+	}
+	else if (0 == strcmp(str, "SubstructureRedirectMask"))
+	{
+		return SubstructureRedirectMask;
+	}
+	else if (0 == strcmp(str, "FocusChangeMask"))
+	{
+		return FocusChangeMask;
+	}
+	else if (0 == strcmp(str, "PropertyChangeMask"))
+	{
+		return PropertyChangeMask;
+	}
+	else if (0 == strcmp(str, "ColormapChangeMask"))
+	{
+		return ColormapChangeMask;
+	}
+	else if (0 == strcmp(str, "OwnerGrabButtonMask"))
+	{
+		return OwnerGrabButtonMask;
+	}
+	else if (0 == strcmp(str, "NoEventMask"))
+	{
+		return NoEventMask;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+void LexemeToEventMaskFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	UDFValue theArg;
+
+	UDFNextArgument(context,LEXEME_BITS,&theArg);
+	
+	returnValue->integerValue = CreateInteger(theEnv, StringToEventMask(theArg.lexemeValue->contents));
+}
+
+int MultifieldToEventMask(
+		Multifield *mf)
+{
+	int event_mask = 0;
+	int to_add;
+	for (int x = 0; x < mf->length; x++)
+	{
+		to_add = StringToEventMask(mf->contents[x].lexemeValue->contents);
+		if (to_add != -1)
+		{
+			event_mask |= to_add;
+		}
+	}
+	return event_mask;
+}
+
+void MultifieldToEventMaskFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	UDFValue theArg;
+
+	UDFNextArgument(context,MULTIFIELD_BIT,&theArg);
+	
+	returnValue->integerValue = CreateInteger(theEnv, MultifieldToEventMask(theArg.multifieldValue));
+}
+
+int StringToMask(
+		const char *str)
+{
+	if (0 == strcmp(str, "ShiftMask"))
+	{
+		return ShiftMask;
+	}
+	else
+	if (0 == strcmp(str, "LockMask"))
+	{
+		return LockMask;
+	}
+	else
+	if (0 == strcmp(str, "ControlMask"))
+	{
+		return ControlMask;
+	}
+	else
+	if (0 == strcmp(str, "Mod1Mask"))
+	{
+		return Mod1Mask;
+	}
+	else
+	if (0 == strcmp(str, "Mod2Mask"))
+	{
+		return Mod2Mask;
+	}
+	else
+	if (0 == strcmp(str, "Mod3Mask"))
+	{
+		return Mod3Mask;
+	}
+	else
+	if (0 == strcmp(str, "Mod4Mask"))
+	{
+		return Mod4Mask;
+	}
+	else
+	if (0 == strcmp(str, "Mod5Mask"))
+	{
+		return Mod5Mask;
+	}
+	else
+	if (0 == strcmp(str, "Button1Mask"))
+	{
+		return Button1Mask;
+	}
+	else
+	if (0 == strcmp(str, "Button2Mask"))
+	{
+		return Button2Mask;
+	}
+	else
+	if (0 == strcmp(str, "Button3Mask"))
+	{
+		return Button3Mask;
+	}
+	else
+	if (0 == strcmp(str, "Button4Mask"))
+	{
+		return Button4Mask;
+	}
+	else
+	if (0 == strcmp(str, "Button5Mask"))
+	{
+		return Button5Mask;
+	}
+	else
+	if (0 == strcmp(str, "AnyModifier"))
+	{
+		return AnyModifier;
+	}
+	else
+	{
+		return -1;
+	}
+}
+
+void LexemeToMaskFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	UDFValue theArg;
+
+	UDFNextArgument(context,LEXEME_BITS,&theArg);
+	
+	returnValue->integerValue = CreateInteger(theEnv, StringToMask(theArg.lexemeValue->contents));
+}
+
+int MultifieldToMask(
+		Multifield *mf)
+{
+	int event_mask = 0;
+	int to_add;
+	for (int x = 0; x < mf->length; x++)
+	{
+		to_add = StringToMask(mf->contents[x].lexemeValue->contents);
+		if (to_add != -1)
+		{
+			event_mask |= to_add;
+		}
+	}
+	return event_mask;
+}
+
+void MultifieldToMaskFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	UDFValue theArg;
+
+	UDFNextArgument(context,MULTIFIELD_BIT,&theArg);
+	
+	returnValue->integerValue = CreateInteger(theEnv, MultifieldToMask(theArg.multifieldValue));
+}
+
+const char *MaskToString(
+		unsigned int mask)
+{
+	switch (mask)
+	{
+		case Button1Mask:
+			return "Button1Mask";
+		case Button2Mask:
+			return "Button2Mask";
+		case Button3Mask:
+			return "Button3Mask";
+		case Button4Mask:
+			return "Button4Mask";
+		case Button5Mask:
+			return "Button5Mask";
+		case ShiftMask:
+			return "ShiftMask";
+		case LockMask:
+			return "LockMask";
+		case ControlMask:
+			return "ControlMask";
+		case Mod1Mask:
+			return "Mod1Mask";
+		case Mod2Mask:
+			return "Mod2Mask";
+		case Mod3Mask:
+			return "Mod3Mask";
+		case Mod4Mask:
+			return "Mod4Mask";
+		case Mod5Mask:
+			return "Mod5Mask";
+		default:
+			return NULL;
+	}
+}
+
+void MaskToSymbolFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	const char *sym;
+	UDFValue theArg;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	
+	sym = MaskToString(theArg.integerValue->contents);
+
+	if (sym != NULL)
+	{
+		returnValue->lexemeValue = CreateSymbol(theEnv, sym);
+	}
+	else
+	{
+		WriteInteger(theEnv,STDERR,theArg.integerValue->contents);
+		WriteString(theEnv,STDERR," is not a valid mask\n");
+		returnValue->voidValue = VoidConstant(theEnv);
+	}
+}
+
+Multifield *MaskToMultifield(
+		unsigned int mask,
 		MultifieldBuilder *mb)
 {
-	if (state & Button1Mask) {
+	if (mask & Button1Mask) {
 		MBAppendSymbol(mb, "Button1Mask");
 	}
-	if (state & Button2Mask) {
+	if (mask & Button2Mask) {
 		MBAppendSymbol(mb, "Button2Mask");
 	}
-	if (state & Button3Mask) {
+	if (mask & Button3Mask) {
 		MBAppendSymbol(mb, "Button3Mask");
 	}
-	if (state & Button4Mask) {
+	if (mask & Button4Mask) {
 		MBAppendSymbol(mb, "Button4Mask");
 	}
-	if (state & Button5Mask) {
+	if (mask & Button5Mask) {
 		MBAppendSymbol(mb, "Button5Mask");
 	}
-	if (state & ShiftMask) {
+	if (mask & ShiftMask) {
 		MBAppendSymbol(mb, "ShiftMask");
 	}
-	if (state & LockMask) {
+	if (mask & LockMask) {
 		MBAppendSymbol(mb, "LockMask");
 	}
-	if (state & ControlMask) {
+	if (mask & ControlMask) {
 		MBAppendSymbol(mb, "ControlMask");
 	}
-	if (state & Mod1Mask) {
+	if (mask & Mod1Mask) {
 		MBAppendSymbol(mb, "Mod1Mask");
 	}
-	if (state & Mod2Mask) {
+	if (mask & Mod2Mask) {
 		MBAppendSymbol(mb, "Mod2Mask");
 	}
-	if (state & Mod3Mask) {
+	if (mask & Mod3Mask) {
 		MBAppendSymbol(mb, "Mod3Mask");
 	}
-	if (state & Mod4Mask) {
+	if (mask & Mod4Mask) {
 		MBAppendSymbol(mb, "Mod4Mask");
 	}
-	if (state & Mod5Mask) {
+	if (mask & Mod5Mask) {
 		MBAppendSymbol(mb, "Mod5Mask");
 	}
 	return MBCreate(mb);
+}
+
+void MaskToMultifieldFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	MultifieldBuilder *mb = CreateMultifieldBuilder(theEnv, 0);
+	UDFValue theArg;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	MaskToMultifield(theArg.integerValue->contents, mb);
+	returnValue->multifieldValue = MBCreate(mb);
+	MBDispose(mb);
 }
 
 Multifield *XKeyEventToMultifield(
@@ -2212,11 +2717,8 @@ Multifield *XKeyEventToMultifield(
 		XKeyEvent *e,
 		MultifieldBuilder *mb)
 {
-	XComposeStatus compose = { 0 };
 	MultifieldBuilder *statemb;
 	Multifield *statemf;
-	char buffer[32];
-	KeySym keysym;
 
 	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, e));
 	MBAppendSymbol(mb, XEventTypeToStr(e->type));
@@ -2232,7 +2734,7 @@ Multifield *XKeyEventToMultifield(
 	MBAppendInteger(mb, e->x_root);
 	MBAppendInteger(mb, e->y_root);
 	statemb = CreateMultifieldBuilder(theEnv, 0);
-	statemf = StateToMultifield(e->state, statemb);
+	statemf = MaskToMultifield(e->state, statemb);
 	MBDispose(statemb);
 	if (statemf == NULL)
 	{
@@ -2242,11 +2744,6 @@ Multifield *XKeyEventToMultifield(
 	MBAppendMultifield(mb, statemf);
 	MBAppendInteger(mb, e->keycode);
 	MBAppendSymbol(mb, BoolToStr(e->same_screen));
-	XLookupString(e, buffer, sizeof(buffer), &keysym, &compose);
-	MBAppendSymbol(mb, buffer);
-	MBAppendInteger(mb, keysym);
-	MBAppendCLIPSExternalAddress(mb, CreateCExternalAddress(theEnv, compose.compose_ptr));
-	MBAppendInteger(mb, compose.chars_matched);
 	return MBCreate(mb);
 }
 
@@ -2273,7 +2770,7 @@ Multifield *XButtonEventToMultifield(
 	MBAppendInteger(mb, e->x_root);
 	MBAppendInteger(mb, e->y_root);
 	statemb = CreateMultifieldBuilder(theEnv, 0);
-	statemf = StateToMultifield(e->state, statemb);
+	statemf = MaskToMultifield(e->state, statemb);
 	MBDispose(statemb);
 	if (statemf == NULL)
 	{
@@ -2309,7 +2806,7 @@ Multifield *XMotionEventToMultifield(
 	MBAppendInteger(mb, e->x_root);
 	MBAppendInteger(mb, e->y_root);
 	statemb = CreateMultifieldBuilder(theEnv, 0);
-	statemf = StateToMultifield(e->state, statemb);
+	statemf = MaskToMultifield(e->state, statemb);
 	MBDispose(statemb);
 	if (statemf == NULL)
 	{
@@ -2403,7 +2900,7 @@ Multifield *XCrossingEventToMultifield(
 	MBAppendSymbol(mb, BoolToStr(e->same_screen));
 	MBAppendSymbol(mb, BoolToStr(e->focus));
 	statemb = CreateMultifieldBuilder(theEnv, 0);
-	statemf = StateToMultifield(e->state, statemb);
+	statemf = MaskToMultifield(e->state, statemb);
 	MBDispose(statemb);
 	if (statemf == NULL)
 	{
@@ -3185,11 +3682,8 @@ Fact *XKeyEventToFact(
 		XKeyEvent *e,
 		FactBuilder *fb)
 {
-	XComposeStatus compose = { 0 };
 	MultifieldBuilder *mb;
 	Multifield *mf;
-	char buffer[32];
-	KeySym keysym;
 
 	FBSetDeftemplate(fb, "x-key-event");
 	FBPutSlotCLIPSExternalAddress(fb, "c-pointer", CreateCExternalAddress(theEnv, e));
@@ -3206,7 +3700,7 @@ Fact *XKeyEventToFact(
 	FBPutSlotInteger(fb, "x-root", e->x_root);
 	FBPutSlotInteger(fb, "y-root", e->y_root);
 	mb = CreateMultifieldBuilder(theEnv, 0);
-	mf = StateToMultifield(e->state, mb);
+	mf = MaskToMultifield(e->state, mb);
 	MBDispose(mb);
 	if (mf == NULL)
 	{
@@ -3216,11 +3710,6 @@ Fact *XKeyEventToFact(
 	FBPutSlotMultifield(fb, "state", mf);
 	FBPutSlotInteger(fb, "keycode", e->keycode);
 	FBPutSlotSymbol(fb, "same-screen", BoolToStr(e->same_screen));
-	XLookupString(e, buffer, sizeof(buffer), &keysym, &compose);
-	FBPutSlotString(fb, "buffer", buffer);
-	FBPutSlotInteger(fb, "keysym", keysym);
-	FBPutSlotCLIPSExternalAddress(fb, "compose-ptr", CreateCExternalAddress(theEnv, compose.compose_ptr));
-	FBPutSlotInteger(fb, "chars-matched", compose.chars_matched);
 
 	return FBAssert(fb);
 }
@@ -3249,7 +3738,7 @@ Fact *XButtonEventToFact(
 	FBPutSlotInteger(fb, "x-root", e->x_root);
 	FBPutSlotInteger(fb, "y-root", e->y_root);
 	mb = CreateMultifieldBuilder(theEnv, 0);
-	mf = StateToMultifield(e->state, mb);
+	mf = MaskToMultifield(e->state, mb);
 	MBDispose(mb);
 	if (mf == NULL)
 	{
@@ -3287,7 +3776,7 @@ Fact *XMotionEventToFact(
 	FBPutSlotInteger(fb, "x-root", e->x_root);
 	FBPutSlotInteger(fb, "y-root", e->y_root);
 	mb = CreateMultifieldBuilder(theEnv, 0);
-	mf = StateToMultifield(e->state, mb);
+	mf = MaskToMultifield(e->state, mb);
 	MBDispose(mb);
 	if (mf == NULL)
 	{
@@ -3341,7 +3830,7 @@ Fact *XCrossingEventToFact(
 	FBPutSlotSymbol(fb, "same-screen", BoolToStr(e->same_screen));
 	FBPutSlotSymbol(fb, "focus", BoolToStr(e->focus));
 	mb = CreateMultifieldBuilder(theEnv, 0);
-	mf = StateToMultifield(e->state, mb);
+	mf = MaskToMultifield(e->state, mb);
 	MBDispose(mb);
 	if (mf == NULL)
 	{
@@ -4043,11 +4532,8 @@ Instance *XKeyEventToInstance(
 		InstanceBuilder *ib,
 		const char *name)
 {
-	XComposeStatus compose = { 0 };
 	MultifieldBuilder *mb;
 	Multifield *mf;
-	char buffer[32];
-	KeySym keysym;
 
 	IBSetDefclass(ib, "X-KEY-EVENT");
 	IBPutSlotExternalAddress(ib, "c-pointer", CreateCExternalAddress(theEnv, e));
@@ -4064,7 +4550,7 @@ Instance *XKeyEventToInstance(
 	IBPutSlotInteger(ib, "x-root", e->x_root);
 	IBPutSlotInteger(ib, "y-root", e->y_root);
 	mb = CreateMultifieldBuilder(theEnv, 0);
-	mf = StateToMultifield(e->state, mb);
+	mf = MaskToMultifield(e->state, mb);
 	MBDispose(mb);
 	if (mf == NULL)
 	{
@@ -4074,11 +4560,6 @@ Instance *XKeyEventToInstance(
 	IBPutSlotMultifield(ib, "state", mf);
 	IBPutSlotInteger(ib, "keycode", e->keycode);
 	IBPutSlotSymbol(ib, "same-screen", BoolToStr(e->same_screen));
-	XLookupString(e, buffer, sizeof(buffer), &keysym, &compose);
-	IBPutSlotString(ib, "buffer", buffer);
-	IBPutSlotInteger(ib, "keysym", keysym);
-	IBPutSlotExternalAddress(ib, "compose-ptr", CreateCExternalAddress(theEnv, compose.compose_ptr));
-	IBPutSlotInteger(ib, "chars-matched", compose.chars_matched);
 
 	return IBMake(ib, name);
 }
@@ -4108,7 +4589,7 @@ Instance *XButtonEventToInstance(
 	IBPutSlotInteger(ib, "x-root", e->x_root);
 	IBPutSlotInteger(ib, "y-root", e->y_root);
 	mb = CreateMultifieldBuilder(theEnv, 0);
-	mf = StateToMultifield(e->state, mb);
+	mf = MaskToMultifield(e->state, mb);
 	MBDispose(mb);
 	if (mf == NULL)
 	{
@@ -4147,7 +4628,7 @@ Instance *XMotionEventToInstance(
 	IBPutSlotInteger(ib, "x-root", e->x_root);
 	IBPutSlotInteger(ib, "y-root", e->y_root);
 	mb = CreateMultifieldBuilder(theEnv, 0);
-	mf = StateToMultifield(e->state, mb);
+	mf = MaskToMultifield(e->state, mb);
 	MBDispose(mb);
 	if (mf == NULL)
 	{
@@ -4202,7 +4683,7 @@ Instance *XCrossingEventToInstance(
 	IBPutSlotSymbol(ib, "same-screen", BoolToStr(e->same_screen));
 	IBPutSlotSymbol(ib, "focus", BoolToStr(e->focus));
 	mb = CreateMultifieldBuilder(theEnv, 0);
-	mf = StateToMultifield(e->state, mb);
+	mf = MaskToMultifield(e->state, mb);
 	MBDispose(mb);
 	if (mf == NULL)
 	{
@@ -5098,36 +5579,2554 @@ void XNextEventToFactFunction(
 	FBDispose(fb);
 }
 
-/*
-static int SymbolToEventMask(const char *name)
+void MultifieldToXKeyEvent(Environment *theEnv, Multifield *mf, XKeyEvent *event)
 {
-	if (0 == strcmp(name, "NoEventMask")) return NoEventMask;
-	if (0 == strcmp(name, "KeyPressMask")) return KeyPressMask;
-	if (0 == strcmp(name, "KeyReleaseMask")) return KeyReleaseMask;
-	if (0 == strcmp(name, "ButtonPressMask")) return ButtonPressMask;
-	if (0 == strcmp(name, "ButtonReleaseMask")) return ButtonReleaseMask;
-	if (0 == strcmp(name, "EnterWindowMask")) return EnterWindowMask;
-	if (0 == strcmp(name, "LeaveWindowMask")) return LeaveWindowMask;
-	if (0 == strcmp(name, "PointerMotionMask")) return PointerMotionMask;
-	if (0 == strcmp(name, "PointerMotionHintMask")) return PointerMotionHintMask;
-	if (0 == strcmp(name, "Button1MotionMask")) return Button1MotionMask;
-	if (0 == strcmp(name, "Button2MotionMask")) return Button2MotionMask;
-	if (0 == strcmp(name, "Button3MotionMask")) return Button3MotionMask;
-	if (0 == strcmp(name, "Button4MotionMask")) return Button4MotionMask;
-	if (0 == strcmp(name, "Button5MotionMask")) return Button5MotionMask;
-	if (0 == strcmp(name, "ButtonMotionMask")) return ButtonMotionMask;
-	if (0 == strcmp(name, "KeymapStateMask")) return KeymapStateMask;
-	if (0 == strcmp(name, "ExposureMask")) return ExposureMask;
-	if (0 == strcmp(name, "VisibilityChangeMask")) return VisibilityChangeMask;
-	if (0 == strcmp(name, "StructureNotifyMask")) return StructureNotifyMask;
-	if (0 == strcmp(name, "ResizeRedirectMask")) return ResizeRedirectMask;
-	if (0 == strcmp(name, "SubstructureNotifyMask")) return SubstructureNotifyMask;
-	if (0 == strcmp(name, "SubstructureRedirectMask")) return SubstructureRedirectMask;
-	if (0 == strcmp(name, "FocusChangeMask")) return FocusChangeMask;
-	if (0 == strcmp(name, "PropertyChangeMask")) return PropertyChangeMask;
-	if (0 == strcmp(name, "ColormapChangeMask")) return ColormapChangeMask;
-	if (0 == strcmp(name, "OwnerGrabButtonMask")) return OwnerGrabButtonMask;
-	return -1;
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->root = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->subwindow = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == INTEGER_TYPE)
+	{
+		event->time = mf->contents[4].integerValue->contents;
+	}
+	if (mf->length >= 6 && mf->contents[5].header->type == INTEGER_TYPE)
+	{
+		event->x = mf->contents[5].integerValue->contents;
+	}
+	if (mf->length >= 7 && mf->contents[6].header->type == INTEGER_TYPE)
+	{
+		event->y = mf->contents[6].integerValue->contents;
+	}
+	if (mf->length >= 8 && mf->contents[7].header->type == INTEGER_TYPE)
+	{
+		event->x_root = mf->contents[7].integerValue->contents;
+	}
+	if (mf->length >= 9 && mf->contents[8].header->type == INTEGER_TYPE)
+	{
+		event->y_root = mf->contents[8].integerValue->contents;
+	}
+	if (mf->length >= 10 && mf->contents[9].header->type == INTEGER_TYPE)
+	{
+		event->state = mf->contents[9].integerValue->contents;
+	}
+	if (mf->length >= 11 && mf->contents[10].header->type == INTEGER_TYPE)
+	{
+		event->keycode = mf->contents[10].integerValue->contents;
+	}
+	if (mf->length >= 12 && mf->contents[11].header->type == SYMBOL_TYPE)
+	{
+		event->same_screen = mf->contents[11].lexemeValue == theEnv->TrueSymbol;
+	}
+}
+
+void MultifieldToXButtonEvent(Environment *theEnv, Multifield *mf, XButtonEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->root = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->subwindow = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == INTEGER_TYPE)
+	{
+		event->time = mf->contents[4].integerValue->contents;
+	}
+	if (mf->length >= 6 && mf->contents[5].header->type == INTEGER_TYPE)
+	{
+		event->x = mf->contents[5].integerValue->contents;
+	}
+	if (mf->length >= 7 && mf->contents[6].header->type == INTEGER_TYPE)
+	{
+		event->y = mf->contents[6].integerValue->contents;
+	}
+	if (mf->length >= 8 && mf->contents[7].header->type == INTEGER_TYPE)
+	{
+		event->x_root = mf->contents[7].integerValue->contents;
+	}
+	if (mf->length >= 9 && mf->contents[8].header->type == INTEGER_TYPE)
+	{
+		event->y_root = mf->contents[8].integerValue->contents;
+	}
+	if (mf->length >= 10 && mf->contents[9].header->type == INTEGER_TYPE)
+	{
+		event->state = mf->contents[9].integerValue->contents;
+	}
+	if (mf->length >= 11 && mf->contents[10].header->type == INTEGER_TYPE)
+	{
+		event->button = mf->contents[10].integerValue->contents;
+	}
+	if (mf->length >= 12 && mf->contents[11].header->type == SYMBOL_TYPE)
+	{
+		event->same_screen = mf->contents[11].lexemeValue == theEnv->TrueSymbol;
+	}
+}
+
+void MultifieldToXMotionEvent(Environment *theEnv, Multifield *mf, XMotionEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->root = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->subwindow = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == INTEGER_TYPE)
+	{
+		event->time = mf->contents[4].integerValue->contents;
+	}
+	if (mf->length >= 6 && mf->contents[5].header->type == INTEGER_TYPE)
+	{
+		event->x = mf->contents[5].integerValue->contents;
+	}
+	if (mf->length >= 7 && mf->contents[6].header->type == INTEGER_TYPE)
+	{
+		event->y = mf->contents[6].integerValue->contents;
+	}
+	if (mf->length >= 8 && mf->contents[7].header->type == INTEGER_TYPE)
+	{
+		event->x_root = mf->contents[7].integerValue->contents;
+	}
+	if (mf->length >= 9 && mf->contents[8].header->type == INTEGER_TYPE)
+	{
+		event->y_root = mf->contents[8].integerValue->contents;
+	}
+	if (mf->length >= 10 && mf->contents[9].header->type == INTEGER_TYPE)
+	{
+		event->state = mf->contents[9].integerValue->contents;
+	}
+	if (mf->length >= 11 && mf->contents[10].header->type == SYMBOL_TYPE)
+	{
+		if (1 == strcmp(mf->contents[10].lexemeValue->contents, "NotifyNormal")) event->is_hint = NotifyNormal;
+		else if (1 == strcmp(mf->contents[10].lexemeValue->contents, "NotifyHint")) event->is_hint = NotifyHint;
+	}
+	if (mf->length >= 12 && mf->contents[11].header->type == SYMBOL_TYPE)
+	{
+		event->same_screen = mf->contents[11].lexemeValue == theEnv->TrueSymbol;
+	}
+}
+
+void MultifieldToXCrossingEvent(Environment *theEnv, Multifield *mf, XCrossingEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->root = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->subwindow = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == INTEGER_TYPE)
+	{
+		event->time = mf->contents[4].integerValue->contents;
+	}
+	if (mf->length >= 6 && mf->contents[5].header->type == INTEGER_TYPE)
+	{
+		event->x = mf->contents[5].integerValue->contents;
+	}
+	if (mf->length >= 7 && mf->contents[6].header->type == INTEGER_TYPE)
+	{
+		event->y = mf->contents[6].integerValue->contents;
+	}
+	if (mf->length >= 8 && mf->contents[7].header->type == INTEGER_TYPE)
+	{
+		event->x_root = mf->contents[7].integerValue->contents;
+	}
+	if (mf->length >= 9 && mf->contents[8].header->type == INTEGER_TYPE)
+	{
+		event->y_root = mf->contents[8].integerValue->contents;
+	}
+	if (mf->length >= 10 && mf->contents[9].header->type == SYMBOL_TYPE)
+	{
+		if (1 == strcmp(mf->contents[9].lexemeValue->contents, "NotifyNormal")) event->mode = NotifyNormal;
+		else if (1 == strcmp(mf->contents[9].lexemeValue->contents, "NotifyGrab")) event->mode = NotifyGrab;
+		else if (1 == strcmp(mf->contents[9].lexemeValue->contents, "NotifyUngrab")) event->mode = NotifyUngrab;
+	}
+	if (mf->length >= 11 && mf->contents[10].header->type == SYMBOL_TYPE)
+	{
+		if (1 == strcmp(mf->contents[10].lexemeValue->contents, "NotifyAncestor")) event->detail = NotifyAncestor;
+		else if (1 == strcmp(mf->contents[10].lexemeValue->contents, "NotifyVirtual")) event->detail = NotifyVirtual;
+		else if (1 == strcmp(mf->contents[10].lexemeValue->contents, "NotifyInferior")) event->detail = NotifyInferior;
+		else if (1 == strcmp(mf->contents[10].lexemeValue->contents, "NotifyNonlinear")) event->detail = NotifyNonlinear;
+		else if (1 == strcmp(mf->contents[10].lexemeValue->contents, "NotifyNonlinearVirtual")) event->detail = NotifyNonlinearVirtual;
+		else if (1 == strcmp(mf->contents[10].lexemeValue->contents, "NotifyPointer")) event->detail = NotifyPointer;
+		else if (1 == strcmp(mf->contents[10].lexemeValue->contents, "NotifyPointerRoot")) event->detail = NotifyPointerRoot;
+		else if (1 == strcmp(mf->contents[10].lexemeValue->contents, "NotifyDetailNone")) event->detail = NotifyDetailNone;
+	}
+	if (mf->length >= 12 && mf->contents[11].header->type == SYMBOL_TYPE)
+	{
+		event->same_screen = mf->contents[11].lexemeValue == theEnv->TrueSymbol;
+	}
+	if (mf->length >= 13 && mf->contents[12].header->type == SYMBOL_TYPE)
+	{
+		event->focus = mf->contents[12].lexemeValue == theEnv->TrueSymbol;
+	}
+	if (mf->length >= 14 && mf->contents[13].header->type == INTEGER_TYPE)
+	{
+		event->state = mf->contents[13].integerValue->contents;
+	}
+}
+
+void MultifieldToXFocusChangeEvent(Environment *theEnv, Multifield *mf, XFocusChangeEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == SYMBOL_TYPE)
+	{
+		if (1 == strcmp(mf->contents[2].lexemeValue->contents, "NotifyNormal")) event->mode = NotifyNormal;
+		else if (1 == strcmp(mf->contents[2].lexemeValue->contents, "NotifyGrab")) event->mode = NotifyGrab;
+		else if (1 == strcmp(mf->contents[2].lexemeValue->contents, "NotifyUngrab")) event->mode = NotifyUngrab;
+	}
+
+	if (mf->length >= 4 && mf->contents[3].header->type == SYMBOL_TYPE)
+	{
+		if (1 == strcmp(mf->contents[3].lexemeValue->contents, "NotifyAncestor")) event->detail = NotifyAncestor;
+		else if (1 == strcmp(mf->contents[3].lexemeValue->contents, "NotifyVirtual")) event->detail = NotifyVirtual;
+		else if (1 == strcmp(mf->contents[3].lexemeValue->contents, "NotifyInferior")) event->detail = NotifyInferior;
+		else if (1 == strcmp(mf->contents[3].lexemeValue->contents, "NotifyNonlinear")) event->detail = NotifyNonlinear;
+		else if (1 == strcmp(mf->contents[3].lexemeValue->contents, "NotifyNonlinearVirtual")) event->detail = NotifyNonlinearVirtual;
+		else if (1 == strcmp(mf->contents[3].lexemeValue->contents, "NotifyPointer")) event->detail = NotifyPointer;
+		else if (1 == strcmp(mf->contents[3].lexemeValue->contents, "NotifyPointerRoot")) event->detail = NotifyPointerRoot;
+		else if (1 == strcmp(mf->contents[3].lexemeValue->contents, "NotifyDetailNone")) event->detail = NotifyDetailNone;
+	}
+}
+
+void MultifieldToXKeymapEvent(Environment *theEnv, Multifield *mf, XKeymapEvent *event)
+{
+	int min_kc, max_kc;
+	long bitIndex;
+	if (mf->length >= 2 && mf->contents[1].header->type == EXTERNAL_ADDRESS_TYPE)
+	{
+		XDisplayKeycodes(mf->contents[1].externalAddressValue->contents, &min_kc, &max_kc);
+		memset(event->key_vector, 1, sizeof(event->key_vector));
+		if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+		{
+			event->window = mf->contents[2].integerValue->contents;
+		}
+		for (int x = 1; x < mf->length; x++)
+		{
+			if (mf->contents[x].header->type == SYMBOL_TYPE && mf->contents[x].lexemeValue == theEnv->TrueSymbol)
+			{
+				bitIndex = x + min_kc;
+				event->key_vector[ bitIndex >> 3 ] |= (1 << (bitIndex & 7));
+			}
+			else
+			if (mf->contents[x].header->type == INTEGER_TYPE && mf->contents[x].integerValue->contents >= 0 && mf->contents[x].integerValue->contents <= 255)
+			{
+				event->key_vector[ mf->contents[x].integerValue->contents >> 3 ] |= (1 << (mf->contents[x].integerValue->contents & 7));
+			}
+		}
+	}
+}
+
+void MultifieldToXExposeEvent(Environment *theEnv, Multifield *mf, XExposeEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->x = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->y = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == INTEGER_TYPE)
+	{
+		event->width = mf->contents[4].integerValue->contents;
+	}
+	if (mf->length >= 6 && mf->contents[5].header->type == INTEGER_TYPE)
+	{
+		event->height = mf->contents[5].integerValue->contents;
+	}
+	if (mf->length >= 7 && mf->contents[6].header->type == INTEGER_TYPE)
+	{
+		event->count = mf->contents[6].integerValue->contents;
+	}
+}
+
+void MultifieldToXGraphicsExposeEvent(Environment *theEnv, Multifield *mf, XGraphicsExposeEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->drawable = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->x = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->y = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == INTEGER_TYPE)
+	{
+		event->width = mf->contents[4].integerValue->contents;
+	}
+	if (mf->length >= 6 && mf->contents[5].header->type == INTEGER_TYPE)
+	{
+		event->height = mf->contents[5].integerValue->contents;
+	}
+	if (mf->length >= 7 && mf->contents[6].header->type == INTEGER_TYPE)
+	{
+		event->count = mf->contents[6].integerValue->contents;
+	}
+	if (mf->length >= 8 && mf->contents[7].header->type == INTEGER_TYPE)
+	{
+		event->major_code = mf->contents[7].integerValue->contents;
+	}
+	if (mf->length >= 9 && mf->contents[8].header->type == INTEGER_TYPE)
+	{
+		event->minor_code = mf->contents[8].integerValue->contents;
+	}
+}
+
+void MultifieldToXNoExposeEvent(Environment *theEnv, Multifield *mf, XNoExposeEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->drawable = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->major_code = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->minor_code = mf->contents[3].integerValue->contents;
+	}
+}
+
+void MultifieldToXVisibilityEvent(Environment *theEnv, Multifield *mf, XVisibilityEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == SYMBOL_TYPE)
+	{
+		if (0 == strcmp(mf->contents[2].lexemeValue->contents, "VisibilityUnobscured")) event->state = VisibilityUnobscured;
+		else if (0 == strcmp(mf->contents[2].lexemeValue->contents, "VisibilityPartiallyObscured")) event->state = VisibilityPartiallyObscured;
+		else if (0 == strcmp(mf->contents[2].lexemeValue->contents, "VisibilityFullyObscured")) event->state = VisibilityFullyObscured;
+	}
+}
+
+void MultifieldToXCreateWindowEvent(Environment *theEnv, Multifield *mf, XCreateWindowEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->parent = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->x = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == INTEGER_TYPE)
+	{
+		event->y = mf->contents[4].integerValue->contents;
+	}
+	if (mf->length >= 6 && mf->contents[5].header->type == INTEGER_TYPE)
+	{
+		event->width = mf->contents[5].integerValue->contents;
+	}
+	if (mf->length >= 7 && mf->contents[6].header->type == INTEGER_TYPE)
+	{
+		event->height = mf->contents[6].integerValue->contents;
+	}
+	if (mf->length >= 8 && mf->contents[7].header->type == INTEGER_TYPE)
+	{
+		event->border_width = mf->contents[7].integerValue->contents;
+	}
+	if (mf->length >= 9 && mf->contents[8].header->type == SYMBOL_TYPE)
+	{
+		event->override_redirect = mf->contents[8].lexemeValue == theEnv->TrueSymbol; 
+	}
+}
+
+void MultifieldToXDestroyWindowEvent(Environment *theEnv, Multifield *mf, XDestroyWindowEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->event = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[2].integerValue->contents;
+	}
+}
+
+void MultifieldToXUnmapEvent(Environment *theEnv, Multifield *mf, XUnmapEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->event = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == SYMBOL_TYPE)
+	{
+		event->from_configure = mf->contents[3].lexemeValue == theEnv->TrueSymbol; 
+	}
+}
+
+void MultifieldToXMapEvent(Environment *theEnv, Multifield *mf, XMapEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->event = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == SYMBOL_TYPE)
+	{
+		event->override_redirect = mf->contents[3].lexemeValue == theEnv->TrueSymbol; 
+	}
+}
+
+void MultifieldToXMapRequestEvent(Environment *theEnv, Multifield *mf, XMapRequestEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->parent = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[2].integerValue->contents;
+	}
+}
+
+
+void MultifieldToXReparentEvent(Environment *theEnv, Multifield *mf, XReparentEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->event = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->parent = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == INTEGER_TYPE)
+	{
+		event->x = mf->contents[4].integerValue->contents;
+	}
+	if (mf->length >= 6 && mf->contents[5].header->type == INTEGER_TYPE)
+	{
+		event->y = mf->contents[5].integerValue->contents;
+	}
+	if (mf->length >= 7 && mf->contents[6].header->type == SYMBOL_TYPE)
+	{
+		event->override_redirect = mf->contents[6].lexemeValue == theEnv->TrueSymbol; 
+	}
+}
+
+void MultifieldToXConfigureEvent(Environment *theEnv, Multifield *mf, XConfigureEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->event = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->x = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == INTEGER_TYPE)
+	{
+		event->y = mf->contents[4].integerValue->contents;
+	}
+	if (mf->length >= 6 && mf->contents[5].header->type == INTEGER_TYPE)
+	{
+		event->width = mf->contents[5].integerValue->contents;
+	}
+	if (mf->length >= 7 && mf->contents[6].header->type == INTEGER_TYPE)
+	{
+		event->height = mf->contents[6].integerValue->contents;
+	}
+	if (mf->length >= 8 && mf->contents[7].header->type == INTEGER_TYPE)
+	{
+		event->border_width = mf->contents[7].integerValue->contents;
+	}
+	if (mf->length >= 9 && mf->contents[8].header->type == INTEGER_TYPE)
+	{
+		event->above = mf->contents[8].integerValue->contents;
+	}
+	if (mf->length >= 10 && mf->contents[9].header->type == SYMBOL_TYPE)
+	{
+		event->override_redirect = mf->contents[9].lexemeValue == theEnv->TrueSymbol; 
+	}
+}
+
+void MultifieldToXGravityEvent(Environment *theEnv, Multifield *mf, XGravityEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->event = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->x = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == INTEGER_TYPE)
+	{
+		event->y = mf->contents[4].integerValue->contents;
+	}
+}
+
+void MultifieldToXResizeRequestEvent(Environment *theEnv, Multifield *mf, XResizeRequestEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->width = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->height = mf->contents[3].integerValue->contents;
+	}
+}
+
+void MultifieldToXConfigureRequestEvent(Environment *theEnv, Multifield *mf, XConfigureRequestEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->parent = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->x = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == INTEGER_TYPE)
+	{
+		event->y = mf->contents[4].integerValue->contents;
+	}
+	if (mf->length >= 6 && mf->contents[5].header->type == INTEGER_TYPE)
+	{
+		event->width = mf->contents[5].integerValue->contents;
+	}
+	if (mf->length >= 7 && mf->contents[6].header->type == INTEGER_TYPE)
+	{
+		event->height = mf->contents[6].integerValue->contents;
+	}
+	if (mf->length >= 8 && mf->contents[7].header->type == INTEGER_TYPE)
+	{
+		event->border_width = mf->contents[7].integerValue->contents;
+	}
+	if (mf->length >= 9 && mf->contents[8].header->type == INTEGER_TYPE)
+	{
+		event->above = mf->contents[8].integerValue->contents;
+	}
+	if (mf->length >= 10 && mf->contents[9].header->type == SYMBOL_TYPE)
+	{
+		if (0 == strcmp(mf->contents[9].lexemeValue->contents, "Above")) event->detail = Above;
+		else if (0 == strcmp(mf->contents[9].lexemeValue->contents, "Below")) event->detail = Below;
+		else if (0 == strcmp(mf->contents[9].lexemeValue->contents, "TopIf")) event->detail = TopIf;
+		else if (0 == strcmp(mf->contents[9].lexemeValue->contents, "BottomIf")) event->detail = BottomIf;
+		else if (0 == strcmp(mf->contents[9].lexemeValue->contents, "Opposite")) event->detail = Opposite;
+	}
+	if (mf->length >= 11 && mf->contents[10].header->type == INTEGER_TYPE)
+	{
+		event->value_mask = mf->contents[10].integerValue->contents;
+	}
+}
+
+void MultifieldToXCirculateEvent(Environment *theEnv, Multifield *mf, XCirculateEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->event = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == SYMBOL_TYPE)
+	{
+		if (0 == strcmp(mf->contents[3].lexemeValue->contents, "PlaceOnTop")) event->place = PlaceOnTop;
+		else if (0 == strcmp(mf->contents[3].lexemeValue->contents, "PlaceOnBottom")) event->place = PlaceOnBottom;
+	}
+}
+
+void MultifieldToXCirculateRequestEvent(Environment *theEnv, Multifield *mf, XCirculateRequestEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->parent = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == SYMBOL_TYPE)
+	{
+		if (0 == strcmp(mf->contents[3].lexemeValue->contents, "PlaceOnTop")) event->place = PlaceOnTop;
+		else if (0 == strcmp(mf->contents[3].lexemeValue->contents, "PlaceOnBottom")) event->place = PlaceOnBottom;
+	}
+}
+
+void MultifieldToXPropertyEvent(Environment *theEnv, Multifield *mf, XPropertyEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->atom = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->time = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == SYMBOL_TYPE)
+	{
+		if (0 == strcmp(mf->contents[4].lexemeValue->contents, "PropertyNewValue")) event->state = PropertyNewValue;
+		else if (0 == strcmp(mf->contents[4].lexemeValue->contents, "PropertyDelete")) event->state = PropertyDelete;
+	}
+}
+
+void MultifieldToXSelectionClearEvent(Environment *theEnv, Multifield *mf, XSelectionClearEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->selection = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->time = mf->contents[3].integerValue->contents;
+	}
+}
+
+void MultifieldToXSelectionRequestEvent(Environment *theEnv, Multifield *mf, XSelectionRequestEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->owner = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->requestor = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->selection = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == INTEGER_TYPE)
+	{
+		event->target = mf->contents[4].integerValue->contents;
+	}
+	if (mf->length >= 6 && mf->contents[5].header->type == INTEGER_TYPE)
+	{
+		event->property = mf->contents[5].integerValue->contents;
+	}
+	if (mf->length >= 7 && mf->contents[6].header->type == INTEGER_TYPE)
+	{
+		event->time = mf->contents[6].integerValue->contents;
+	}
+}
+
+void MultifieldToXSelectionEvent(Environment *theEnv, Multifield *mf, XSelectionEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->requestor = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->selection = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->target = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == INTEGER_TYPE)
+	{
+		event->property = mf->contents[4].integerValue->contents;
+	}
+	if (mf->length >= 6 && mf->contents[5].header->type == INTEGER_TYPE)
+	{
+		event->time = mf->contents[5].integerValue->contents;
+	}
+}
+
+void MultifieldToXColormapEvent(Environment *theEnv, Multifield *mf, XColormapEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->colormap = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == SYMBOL_TYPE)
+	{
+		event->new = mf->contents[3].lexemeValue == theEnv->TrueSymbol;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == SYMBOL_TYPE)
+	{
+		if (0 == strcmp(mf->contents[4].lexemeValue->contents, "ColormapInstalled")) event->state = ColormapInstalled;
+		else if (0 == strcmp(mf->contents[4].lexemeValue->contents, "ColormapUninstalled")) event->state = ColormapUninstalled;
+	}
+}
+
+void MultifieldToXClientMessageEvent(Environment *theEnv, Multifield *mf, XClientMessageEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->message_type = mf->contents[2].integerValue->contents;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->format = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5)
+	{
+		if (event->format == 8 && mf->length >= 28)
+		{
+			for (int x = 0; x < 20; x++)
+			{
+				if (mf->contents[3 + x].header->type == INTEGER_TYPE)
+				event->data.b[x] = mf->contents[3 + x].integerValue->contents;
+			}
+		}
+		else if (event->format == 16)
+		{
+			for (int x = 0; x < 10; x++)
+			{
+				if (mf->contents[3 + x].header->type == INTEGER_TYPE)
+				event->data.s[x] = mf->contents[3 + x].integerValue->contents;
+			}
+		}
+		else if (event->format == 32)
+		{
+			for (int x = 0; x < 5; x++)
+			{
+				if (mf->contents[3 + x].header->type == INTEGER_TYPE)
+				event->data.l[x] = mf->contents[3 + x].integerValue->contents;
+			}
+		}
+	}
+}
+
+void MultifieldToXMappingEvent(Environment *theEnv, Multifield *mf, XMappingEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->window = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == SYMBOL_TYPE)
+	{
+		if (0 == strcmp(mf->contents[2].lexemeValue->contents, "MappingModifier")) event->request = MappingModifier;
+		else if (0 == strcmp(mf->contents[2].lexemeValue->contents, "MappingKeyboard")) event->request = MappingKeyboard;
+		else if (0 == strcmp(mf->contents[2].lexemeValue->contents, "MappingPointer")) event->request = MappingPointer;
+	}
+	if (mf->length >= 4 && mf->contents[3].header->type == INTEGER_TYPE)
+	{
+		event->first_keycode = mf->contents[3].integerValue->contents;
+	}
+	if (mf->length >= 5 && mf->contents[4].header->type == INTEGER_TYPE)
+	{
+		event->count = mf->contents[4].integerValue->contents;
+	}
+}
+
+void MultifieldToXGenericEvent(Environment *theEnv, Multifield *mf, XGenericEvent *event)
+{
+	if (mf->length >= 2 && mf->contents[1].header->type == INTEGER_TYPE)
+	{
+		event->extension = mf->contents[1].integerValue->contents;
+	}
+	if (mf->length >= 3 && mf->contents[2].header->type == INTEGER_TYPE)
+	{
+		event->evtype = mf->contents[2].integerValue->contents;
+	}
+}
+
+void MultifieldToXEvent(Environment *theEnv, Multifield *mf, XEvent *event)
+{
+	if (mf->length > 0 && mf->contents[0].header->type == SYMBOL_TYPE)
+	{
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "KeyPress"))
+		{
+			event->xkey.type = KeyPress;
+			MultifieldToXKeyEvent(theEnv, mf, &(event->xkey));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "KeyRelease"))
+		{
+			event->xkey.type = KeyRelease;
+			MultifieldToXKeyEvent(theEnv, mf, &(event->xkey));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "ButtonPress"))
+		{
+			event->xbutton.type = ButtonPress;
+			MultifieldToXButtonEvent(theEnv, mf, &(event->xbutton));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "ButtonRelease"))
+		{
+			event->xbutton.type = ButtonRelease;
+			MultifieldToXButtonEvent(theEnv, mf, &(event->xbutton));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "MotionNotify"))
+		{
+			event->xmotion.type = ButtonRelease;
+			MultifieldToXMotionEvent(theEnv, mf, &(event->xmotion));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "EnterNotify"))
+		{
+			event->xcrossing.type = EnterNotify;
+			MultifieldToXCrossingEvent(theEnv, mf, &(event->xcrossing));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "LeaveNotify"))
+		{
+			event->xcrossing.type = LeaveNotify;
+			MultifieldToXCrossingEvent(theEnv, mf, &(event->xcrossing));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "FocusIn"))
+		{
+			event->xfocus.type = FocusIn;
+			MultifieldToXFocusChangeEvent(theEnv, mf, &(event->xfocus));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "FocusOut"))
+		{
+			event->xfocus.type = FocusOut;
+			MultifieldToXFocusChangeEvent(theEnv, mf, &(event->xfocus));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "KeymapNotify"))
+		{
+			event->xkeymap.type = KeymapNotify;
+			MultifieldToXKeymapEvent(theEnv, mf, &(event->xkeymap));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "Expose"))
+		{
+			event->xexpose.type = Expose;
+			MultifieldToXExposeEvent(theEnv, mf, &(event->xexpose));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "GraphicsExpose"))
+		{
+			event->xgraphicsexpose.type = GraphicsExpose;
+			MultifieldToXGraphicsExposeEvent(theEnv, mf, &(event->xgraphicsexpose));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "NoExpose"))
+		{
+			event->xnoexpose.type = NoExpose;
+			MultifieldToXNoExposeEvent(theEnv, mf, &(event->xnoexpose));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "VisibilityNotify"))
+		{
+			event->xvisibility.type = VisibilityNotify;
+			MultifieldToXVisibilityEvent(theEnv, mf, &(event->xvisibility));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "CreateNotify"))
+		{
+			event->xcreatewindow.type = CreateNotify;
+			MultifieldToXCreateWindowEvent(theEnv, mf, &(event->xcreatewindow));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "DestroyNotify"))
+		{
+			event->xdestroywindow.type = DestroyNotify;
+			MultifieldToXDestroyWindowEvent(theEnv, mf, &(event->xdestroywindow));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "UnmapNotify"))
+		{
+			event->xunmap.type = UnmapNotify;
+			MultifieldToXUnmapEvent(theEnv, mf, &(event->xunmap));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "MapNotify"))
+		{
+			event->xmap.type = MapNotify;
+			MultifieldToXMapEvent(theEnv, mf, &(event->xmap));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "MapRequest"))
+		{
+			event->xmaprequest.type = MapRequest;
+			MultifieldToXMapRequestEvent(theEnv, mf, &(event->xmaprequest));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "ReparentNotify"))
+		{
+			event->xreparent.type = ReparentNotify;
+			MultifieldToXReparentEvent(theEnv, mf, &(event->xreparent));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "ConfigureNotify"))
+		{
+			event->xconfigure.type = ConfigureNotify;
+			MultifieldToXConfigureEvent(theEnv, mf, &(event->xconfigure));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "ConfigureRequest"))
+		{
+			event->xconfigurerequest.type = ConfigureRequest;
+			MultifieldToXConfigureRequestEvent(theEnv, mf, &(event->xconfigurerequest));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "GravityNotify"))
+		{
+			event->xgravity.type = GravityNotify;
+			MultifieldToXGravityEvent(theEnv, mf, &(event->xgravity));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "ResizeRequest"))
+		{
+			event->xresizerequest.type = ResizeRequest;
+			MultifieldToXResizeRequestEvent(theEnv, mf, &(event->xresizerequest));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "CirculateNotify"))
+		{
+			event->xcirculate.type = CirculateNotify;
+			MultifieldToXCirculateEvent(theEnv, mf, &(event->xcirculate));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "CirculateRequest"))
+		{
+			event->xcirculaterequest.type = CirculateRequest;
+			MultifieldToXCirculateRequestEvent(theEnv, mf, &(event->xcirculaterequest));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "PropertyNotify"))
+		{
+			event->xproperty.type = PropertyNotify;
+			MultifieldToXPropertyEvent(theEnv, mf, &(event->xproperty));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "SelectionClear"))
+		{
+			event->xselectionclear.type = SelectionClear;
+			MultifieldToXSelectionClearEvent(theEnv, mf, &(event->xselectionclear));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "SelectionRequest"))
+		{
+			event->xselectionrequest.type = SelectionRequest;
+			MultifieldToXSelectionRequestEvent(theEnv, mf, &(event->xselectionrequest));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "SelectionNotify"))
+		{
+			event->xselection.type = SelectionNotify;
+			MultifieldToXSelectionEvent(theEnv, mf, &(event->xselection));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "ColormapNotify"))
+		{
+			event->xcolormap.type = ColormapNotify;
+			MultifieldToXColormapEvent(theEnv, mf, &(event->xcolormap));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "ClientMessage"))
+		{
+			event->xclient.type = ClientMessage;
+			MultifieldToXClientMessageEvent(theEnv, mf, &(event->xclient));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "MappingNotify"))
+		{
+			event->xmapping.type = MappingNotify;
+			MultifieldToXMappingEvent(theEnv, mf, &(event->xmapping));
+		}
+		else
+		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "GenericEvent"))
+		{
+			event->xgeneric.type = GenericEvent;
+			MultifieldToXGenericEvent(theEnv, mf, &(event->xgeneric));
+		}
+		else
+		{
+			WriteString(theEnv, STDERR, "Event '");
+			WriteString(theEnv, STDERR, mf->contents[0].lexemeValue->contents);
+			WriteString(theEnv, STDERR, "' not supported.\n");
+		}
+	}
+	else
+	{
+		WriteString(theEnv, STDERR, "First value in multifield sent to x-send-event as last argument must be a symbol");
+	}
+}
+
+void FactToXKeyEvent(Environment *theEnv, Fact *f, XKeyEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "root", &out);
+	event->root = out.integerValue->contents;
+	GetFactSlot(f, "subwindow", &out);
+	event->subwindow = out.integerValue->contents;
+	GetFactSlot(f, "time", &out);
+	event->time = out.integerValue->contents;
+	GetFactSlot(f, "x", &out);
+	event->x = out.integerValue->contents;
+	GetFactSlot(f, "y", &out);
+	event->y = out.integerValue->contents;
+	GetFactSlot(f, "x_root", &out);
+	event->x_root = out.integerValue->contents;
+	GetFactSlot(f, "y_root", &out);
+	event->y_root = out.integerValue->contents;
+	GetFactSlot(f, "state", &out);
+	event->state = out.integerValue->contents;
+	GetFactSlot(f, "keycode", &out);
+	event->keycode = out.integerValue->contents;
+	GetFactSlot(f, "same-screen", &out);
+	event->same_screen = out.lexemeValue == theEnv->TrueSymbol;
+}
+
+void FactToXButtonEvent(Environment *theEnv, Fact *f, XButtonEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "root", &out);
+	event->root = out.integerValue->contents;
+	GetFactSlot(f, "subwindow", &out);
+	event->subwindow = out.integerValue->contents;
+	GetFactSlot(f, "time", &out);
+	event->time = out.integerValue->contents;
+	GetFactSlot(f, "x", &out);
+	event->x = out.integerValue->contents;
+	GetFactSlot(f, "y", &out);
+	event->y = out.integerValue->contents;
+	GetFactSlot(f, "x_root", &out);
+	event->x_root = out.integerValue->contents;
+	GetFactSlot(f, "y_root", &out);
+	event->y_root = out.integerValue->contents;
+	GetFactSlot(f, "state", &out);
+	event->state = out.integerValue->contents;
+	GetFactSlot(f, "button", &out);
+	event->button = out.integerValue->contents;
+	GetFactSlot(f, "same-screen", &out);
+	event->same_screen = out.lexemeValue == theEnv->TrueSymbol;
+}
+
+void FactToXMotionEvent(Environment *theEnv, Fact *f, XMotionEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "root", &out);
+	event->root = out.integerValue->contents;
+	GetFactSlot(f, "subwindow", &out);
+	event->subwindow = out.integerValue->contents;
+	GetFactSlot(f, "time", &out);
+	event->time = out.integerValue->contents;
+	GetFactSlot(f, "x", &out);
+	event->x = out.integerValue->contents;
+	GetFactSlot(f, "y", &out);
+	event->y = out.integerValue->contents;
+	GetFactSlot(f, "x_root", &out);
+	event->x_root = out.integerValue->contents;
+	GetFactSlot(f, "y_root", &out);
+	event->y_root = out.integerValue->contents;
+	GetFactSlot(f, "state", &out);
+	event->state = out.integerValue->contents;
+	GetFactSlot(f, "is-hint", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "NotifyNormal")) event->is_hint = NotifyNormal;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyHint")) event->is_hint = NotifyGrab;
+	GetFactSlot(f, "same-screen", &out);
+	event->same_screen = out.lexemeValue == theEnv->TrueSymbol;
+}
+
+void FactToXCrossingEvent(Environment *theEnv, Fact *f, XCrossingEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "root", &out);
+	event->root = out.integerValue->contents;
+	GetFactSlot(f, "subwindow", &out);
+	event->subwindow = out.integerValue->contents;
+	GetFactSlot(f, "time", &out);
+	event->time = out.integerValue->contents;
+	GetFactSlot(f, "x", &out);
+	event->x = out.integerValue->contents;
+	GetFactSlot(f, "y", &out);
+	event->y = out.integerValue->contents;
+	GetFactSlot(f, "x_root", &out);
+	event->x_root = out.integerValue->contents;
+	GetFactSlot(f, "y_root", &out);
+	event->y_root = out.integerValue->contents;
+	GetFactSlot(f, "mode", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "NotifyNormal")) event->mode = NotifyNormal;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyGrab")) event->mode = NotifyGrab;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyUngrab")) event->mode = NotifyUngrab;
+	GetFactSlot(f, "detail", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "NotifyAncestor")) event->detail = NotifyAncestor;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyVirtual")) event->detail = NotifyVirtual;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyInferior")) event->detail = NotifyInferior;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyNonlinear")) event->detail = NotifyNonlinear;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyNonlinearVirtual")) event->detail = NotifyNonlinearVirtual;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyPointer")) event->detail = NotifyPointer;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyPointerRoot")) event->detail = NotifyPointerRoot;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyDetailNone")) event->detail = NotifyDetailNone;
+	GetFactSlot(f, "same-screen", &out);
+	event->same_screen = out.lexemeValue == theEnv->TrueSymbol;
+	GetFactSlot(f, "focus", &out);
+	event->focus = out.lexemeValue == theEnv->TrueSymbol;
+	GetFactSlot(f, "state", &out);
+	event->state = out.integerValue->contents;
+}
+
+void FactToXFocusChangeEvent(Environment *theEnv, Fact *f, XFocusChangeEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "mode", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "NotifyNormal")) event->mode = NotifyNormal;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyGrab")) event->mode = NotifyGrab;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyUngrab")) event->mode = NotifyUngrab;
+	GetFactSlot(f, "detail", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "NotifyAncestor")) event->detail = NotifyAncestor;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyVirtual")) event->detail = NotifyVirtual;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyInferior")) event->detail = NotifyInferior;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyNonlinear")) event->detail = NotifyNonlinear;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyNonlinearVirtual")) event->detail = NotifyNonlinearVirtual;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyPointer")) event->detail = NotifyPointer;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyPointerRoot")) event->detail = NotifyPointerRoot;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyDetailNone")) event->detail = NotifyDetailNone;
+}
+
+void FactToXKeymapEvent(Environment *theEnv, Fact *f, XKeymapEvent *event)
+{
+	int min_kc, max_kc;
+	long bitIndex;
+	CLIPSValue out;
+	GetFactSlot(f, "display", &out);
+	XDisplayKeycodes(out.externalAddressValue->contents, &min_kc, &max_kc);
+	memset(event->key_vector, 0, sizeof(event->key_vector));
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "key-vector", &out);
+	for (int x = 1; x < out.multifieldValue->length; x++)
+	{
+		if (out.multifieldValue->contents[x].header->type == SYMBOL_TYPE && out.multifieldValue->contents[x].lexemeValue == theEnv->TrueSymbol)
+		{
+			bitIndex = x + min_kc;
+			event->key_vector[ bitIndex >> 3 ] |= (1 << (bitIndex & 7));
+		}
+		else
+		if (out.multifieldValue->contents[x].header->type == INTEGER_TYPE && out.multifieldValue->contents[x].integerValue->contents >= 0 && out.multifieldValue->contents[x].integerValue->contents <= 255)
+		{
+			event->key_vector[ out.multifieldValue->contents[x].integerValue->contents >> 3 ] |= (1 << (out.multifieldValue->contents[x].integerValue->contents & 7));
+		}
+	}
+}
+
+void FactToXExposeEvent(Environment *theEnv, Fact *f, XExposeEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "x", &out);
+	event->x = out.integerValue->contents;
+	GetFactSlot(f, "y", &out);
+	event->y = out.integerValue->contents;
+	GetFactSlot(f, "width", &out);
+	event->width = out.integerValue->contents;
+	GetFactSlot(f, "height", &out);
+	event->height = out.integerValue->contents;
+	GetFactSlot(f, "count", &out);
+	event->count = out.integerValue->contents;
+}
+
+void FactToXGraphicsExposeEvent(Environment *theEnv, Fact *f, XGraphicsExposeEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "drawable", &out);
+	event->drawable = out.integerValue->contents;
+	GetFactSlot(f, "x", &out);
+	event->x = out.integerValue->contents;
+	GetFactSlot(f, "y", &out);
+	event->y = out.integerValue->contents;
+	GetFactSlot(f, "width", &out);
+	event->width = out.integerValue->contents;
+	GetFactSlot(f, "height", &out);
+	event->height = out.integerValue->contents;
+	GetFactSlot(f, "count", &out);
+	event->count = out.integerValue->contents;
+	GetFactSlot(f, "major-code", &out);
+	event->major_code = out.integerValue->contents;
+	GetFactSlot(f, "minor-code", &out);
+	event->minor_code = out.integerValue->contents;
+}
+
+void FactToXNoExposeEvent(Environment *theEnv, Fact *f, XNoExposeEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "drawable", &out);
+	event->drawable = out.integerValue->contents;
+	GetFactSlot(f, "major-code", &out);
+	event->major_code = out.integerValue->contents;
+	GetFactSlot(f, "minor-code", &out);
+	event->minor_code = out.integerValue->contents;
+}
+
+void FactToXVisibilityEvent(Environment *theEnv, Fact *f, XVisibilityEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "state", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "VisibilityUnobscured")) event->state = VisibilityUnobscured;
+	else if (0 == strcmp(out.lexemeValue->contents, "VisibilityPartiallyObscured")) event->state = VisibilityPartiallyObscured;
+	else if (0 == strcmp(out.lexemeValue->contents, "VisibilityFullyObscured")) event->state = VisibilityFullyObscured;
+}
+
+void FactToXCreateWindowEvent(Environment *theEnv, Fact *f, XCreateWindowEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "parent", &out);
+	event->parent = out.integerValue->contents;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "x", &out);
+	event->x = out.integerValue->contents;
+	GetFactSlot(f, "y", &out);
+	event->y = out.integerValue->contents;
+	GetFactSlot(f, "width", &out);
+	event->width = out.integerValue->contents;
+	GetFactSlot(f, "height", &out);
+	event->height = out.integerValue->contents;
+	GetFactSlot(f, "border-width", &out);
+	event->border_width = out.integerValue->contents;
+	GetFactSlot(f, "override-redirect", &out);
+	event->override_redirect = out.lexemeValue == theEnv->TrueSymbol; 
+}
+
+void FactToXDestroyWindowEvent(Environment *theEnv, Fact *f, XDestroyWindowEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "event", &out);
+	event->event = out.integerValue->contents;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+}
+
+void FactToXUnmapEvent(Environment *theEnv, Fact *f, XUnmapEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "event", &out);
+	event->event = out.integerValue->contents;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "from-configure", &out);
+	event->from_configure = out.lexemeValue == theEnv->TrueSymbol; 
+}
+
+void FactToXMapEvent(Environment *theEnv, Fact *f, XMapEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "event", &out);
+	event->event = out.integerValue->contents;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "override-redirect", &out);
+	event->override_redirect = out.lexemeValue == theEnv->TrueSymbol; 
+}
+
+void FactToXMapRequestEvent(Environment *theEnv, Fact *f, XMapRequestEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "parent", &out);
+	event->parent = out.integerValue->contents;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+}
+
+
+void FactToXReparentEvent(Environment *theEnv, Fact *f, XReparentEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "event", &out);
+	event->event = out.integerValue->contents;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "parent", &out);
+	event->parent = out.integerValue->contents;
+	GetFactSlot(f, "x", &out);
+	event->x = out.integerValue->contents;
+	GetFactSlot(f, "y", &out);
+	event->y = out.integerValue->contents;
+	GetFactSlot(f, "override-redirect", &out);
+	event->override_redirect = out.lexemeValue == theEnv->TrueSymbol; 
+}
+
+void FactToXConfigureEvent(Environment *theEnv, Fact *f, XConfigureEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "event", &out);
+	event->event = out.integerValue->contents;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "x", &out);
+	event->x = out.integerValue->contents;
+	GetFactSlot(f, "y", &out);
+	event->y = out.integerValue->contents;
+	GetFactSlot(f, "width", &out);
+	event->width = out.integerValue->contents;
+	GetFactSlot(f, "height", &out);
+	event->height = out.integerValue->contents;
+	GetFactSlot(f, "border-width", &out);
+	event->border_width = out.integerValue->contents;
+	GetFactSlot(f, "above", &out);
+	event->above = out.integerValue->contents;
+	GetFactSlot(f, "override-redirect", &out);
+	event->override_redirect = out.lexemeValue == theEnv->TrueSymbol; 
+}
+
+void FactToXGravityEvent(Environment *theEnv, Fact *f, XGravityEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "event", &out);
+	event->event = out.integerValue->contents;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "x", &out);
+	event->x = out.integerValue->contents;
+	GetFactSlot(f, "y", &out);
+	event->y = out.integerValue->contents;
+}
+
+void FactToXResizeRequestEvent(Environment *theEnv, Fact *f, XResizeRequestEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "width", &out);
+	event->width = out.integerValue->contents;
+	GetFactSlot(f, "height", &out);
+	event->height = out.integerValue->contents;
+}
+
+void FactToXConfigureRequestEvent(Environment *theEnv, Fact *f, XConfigureRequestEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "parent", &out);
+	event->parent = out.integerValue->contents;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "x", &out);
+	event->x = out.integerValue->contents;
+	GetFactSlot(f, "y", &out);
+	event->y = out.integerValue->contents;
+	GetFactSlot(f, "width", &out);
+	event->width = out.integerValue->contents;
+	GetFactSlot(f, "height", &out);
+	event->height = out.integerValue->contents;
+	GetFactSlot(f, "border-width", &out);
+	event->border_width = out.integerValue->contents;
+	GetFactSlot(f, "above", &out);
+	event->above = out.integerValue->contents;
+	GetFactSlot(f, "detail", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "Above")) event->detail = Above;
+	else if (0 == strcmp(out.lexemeValue->contents, "Below")) event->detail = Below;
+	else if (0 == strcmp(out.lexemeValue->contents, "TopIf")) event->detail = TopIf;
+	else if (0 == strcmp(out.lexemeValue->contents, "BottomIf")) event->detail = BottomIf;
+	else if (0 == strcmp(out.lexemeValue->contents, "Opposite")) event->detail = Opposite;
+	GetFactSlot(f, "value-mask", &out);
+	event->value_mask = out.integerValue->contents;
+}
+
+void FactToXCirculateEvent(Environment *theEnv, Fact *f, XCirculateEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "event", &out);
+	event->event = out.integerValue->contents;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "place", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "PlaceOnTop")) event->place = PlaceOnTop;
+	else if (0 == strcmp(out.lexemeValue->contents, "PlaceOnBottom")) event->place = PlaceOnBottom;
+}
+
+void FactToXCirculateRequestEvent(Environment *theEnv, Fact *f, XCirculateRequestEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "parent", &out);
+	event->parent = out.integerValue->contents;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "detail", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "PlaceOnTop")) event->place = PlaceOnTop;
+	else if (0 == strcmp(out.lexemeValue->contents, "PlaceOnBottom")) event->place = PlaceOnBottom;
+}
+
+void FactToXPropertyEvent(Environment *theEnv, Fact *f, XPropertyEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "atom", &out);
+	event->atom = out.integerValue->contents;
+	GetFactSlot(f, "time", &out);
+	event->time = out.integerValue->contents;
+	GetFactSlot(f, "state", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "PropertyNewValue")) event->state = PropertyNewValue;
+	else if (0 == strcmp(out.lexemeValue->contents, "PropertyDelete")) event->state = PropertyDelete;
+}
+
+void FactToXSelectionClearEvent(Environment *theEnv, Fact *f, XSelectionClearEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "selection", &out);
+	event->selection = out.integerValue->contents;
+	GetFactSlot(f, "time", &out);
+	event->time = out.integerValue->contents;
+}
+
+void FactToXSelectionRequestEvent(Environment *theEnv, Fact *f, XSelectionRequestEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "owner", &out);
+	event->owner = out.integerValue->contents;
+	GetFactSlot(f, "requestor", &out);
+	event->requestor = out.integerValue->contents;
+	GetFactSlot(f, "selection", &out);
+	event->selection = out.integerValue->contents;
+	GetFactSlot(f, "target", &out);
+	event->target = out.integerValue->contents;
+	GetFactSlot(f, "property", &out);
+	event->property = out.integerValue->contents;
+	GetFactSlot(f, "time", &out);
+	event->time = out.integerValue->contents;
+}
+
+void FactToXSelectionEvent(Environment *theEnv, Fact *f, XSelectionEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "requestor", &out);
+	event->requestor = out.integerValue->contents;
+	GetFactSlot(f, "selection", &out);
+	event->selection = out.integerValue->contents;
+	GetFactSlot(f, "target", &out);
+	event->target = out.integerValue->contents;
+	GetFactSlot(f, "property", &out);
+	event->property = out.integerValue->contents;
+	GetFactSlot(f, "time", &out);
+	event->time = out.integerValue->contents;
+}
+
+void FactToXColormapEvent(Environment *theEnv, Fact *f, XColormapEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "colormap", &out);
+	event->colormap = out.integerValue->contents;
+	GetFactSlot(f, "new", &out);
+	event->new = out.lexemeValue == theEnv->TrueSymbol;
+	GetFactSlot(f, "state", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "ColormapInstalled")) event->state = ColormapInstalled;
+	else if (0 == strcmp(out.lexemeValue->contents, "ColormapUninstalled")) event->state = ColormapUninstalled;
+}
+
+void FactToXClientMessageEvent(Environment *theEnv, Fact *f, XClientMessageEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "message-type", &out);
+	event->message_type = out.integerValue->contents;
+	GetFactSlot(f, "format", &out);
+	event->format = out.integerValue->contents;
+	GetFactSlot(f, "data", &out);
+	if (event->format == 8 && out.multifieldValue->length >= 28)
+	{
+		for (int x = 0; x < 20; x++)
+		{
+			if (out.multifieldValue->contents[3 + x].header->type == INTEGER_TYPE)
+			event->data.b[x] = out.multifieldValue->contents[3 + x].integerValue->contents;
+		}
+	}
+	else if (event->format == 16)
+	{
+		for (int x = 0; x < 10; x++)
+		{
+			if (out.multifieldValue->contents[3 + x].header->type == INTEGER_TYPE)
+			event->data.s[x] = out.multifieldValue->contents[3 + x].integerValue->contents;
+		}
+	}
+	else if (event->format == 32)
+	{
+		for (int x = 0; x < 5; x++)
+		{
+			if (out.multifieldValue->contents[3 + x].header->type == INTEGER_TYPE)
+			event->data.l[x] = out.multifieldValue->contents[3 + x].integerValue->contents;
+		}
+	}
+}
+
+void FactToXMappingEvent(Environment *theEnv, Fact *f, XMappingEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "window", &out);
+	event->window = out.integerValue->contents;
+	GetFactSlot(f, "request", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "MappingModifier")) event->request = MappingModifier;
+	else if (0 == strcmp(out.lexemeValue->contents, "MappingKeyboard")) event->request = MappingKeyboard;
+	else if (0 == strcmp(out.lexemeValue->contents, "MappingPointer")) event->request = MappingPointer;
+	GetFactSlot(f, "first-keycode", &out);
+	event->first_keycode = out.integerValue->contents;
+	GetFactSlot(f, "count", &out);
+	event->count = out.integerValue->contents;
+}
+
+void FactToXGenericEvent(Environment *theEnv, Fact *f, XGenericEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "extension", &out);
+	event->extension = out.integerValue->contents;
+	GetFactSlot(f, "evtype", &out);
+	event->evtype = out.integerValue->contents;
+}
+
+void FactToXEvent(Environment *theEnv, Fact *f, XEvent *event)
+{
+	CLIPSValue out;
+	GetFactSlot(f, "type", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "KeyPress"))
+	{
+		event->xkey.type = KeyPress;
+		FactToXKeyEvent(theEnv, f, &(event->xkey));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "KeyRelease"))
+	{
+		event->xkey.type = KeyRelease;
+		FactToXKeyEvent(theEnv, f, &(event->xkey));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ButtonPress"))
+	{
+		event->xbutton.type = ButtonPress;
+		FactToXButtonEvent(theEnv, f, &(event->xbutton));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ButtonRelease"))
+	{
+		event->xbutton.type = ButtonRelease;
+		FactToXButtonEvent(theEnv, f, &(event->xbutton));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "MotionNotify"))
+	{
+		event->xmotion.type = ButtonRelease;
+		FactToXMotionEvent(theEnv, f, &(event->xmotion));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "EnterNotify"))
+	{
+		event->xcrossing.type = EnterNotify;
+		FactToXCrossingEvent(theEnv, f, &(event->xcrossing));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "LeaveNotify"))
+	{
+		event->xcrossing.type = LeaveNotify;
+		FactToXCrossingEvent(theEnv, f, &(event->xcrossing));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "FocusIn"))
+	{
+		event->xfocus.type = FocusIn;
+		FactToXFocusChangeEvent(theEnv, f, &(event->xfocus));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "FocusOut"))
+	{
+		event->xfocus.type = FocusOut;
+		FactToXFocusChangeEvent(theEnv, f, &(event->xfocus));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "KeymapNotify"))
+	{
+		event->xkeymap.type = KeymapNotify;
+		FactToXKeymapEvent(theEnv, f, &(event->xkeymap));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "Expose"))
+	{
+		event->xexpose.type = Expose;
+		FactToXExposeEvent(theEnv, f, &(event->xexpose));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "GraphicsExpose"))
+	{
+		event->xgraphicsexpose.type = GraphicsExpose;
+		FactToXGraphicsExposeEvent(theEnv, f, &(event->xgraphicsexpose));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "NoExpose"))
+	{
+		event->xnoexpose.type = NoExpose;
+		FactToXNoExposeEvent(theEnv, f, &(event->xnoexpose));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "VisibilityNotify"))
+	{
+		event->xvisibility.type = VisibilityNotify;
+		FactToXVisibilityEvent(theEnv, f, &(event->xvisibility));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "CreateNotify"))
+	{
+		event->xcreatewindow.type = CreateNotify;
+		FactToXCreateWindowEvent(theEnv, f, &(event->xcreatewindow));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "DestroyNotify"))
+	{
+		event->xdestroywindow.type = DestroyNotify;
+		FactToXDestroyWindowEvent(theEnv, f, &(event->xdestroywindow));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "UnmapNotify"))
+	{
+		event->xunmap.type = UnmapNotify;
+		FactToXUnmapEvent(theEnv, f, &(event->xunmap));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "MapNotify"))
+	{
+		event->xmap.type = MapNotify;
+		FactToXMapEvent(theEnv, f, &(event->xmap));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "MapRequest"))
+	{
+		event->xmaprequest.type = MapRequest;
+		FactToXMapRequestEvent(theEnv, f, &(event->xmaprequest));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ReparentNotify"))
+	{
+		event->xreparent.type = ReparentNotify;
+		FactToXReparentEvent(theEnv, f, &(event->xreparent));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ConfigureNotify"))
+	{
+		event->xconfigure.type = ConfigureNotify;
+		FactToXConfigureEvent(theEnv, f, &(event->xconfigure));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ConfigureRequest"))
+	{
+		event->xconfigurerequest.type = ConfigureRequest;
+		FactToXConfigureRequestEvent(theEnv, f, &(event->xconfigurerequest));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "GravityNotify"))
+	{
+		event->xgravity.type = GravityNotify;
+		FactToXGravityEvent(theEnv, f, &(event->xgravity));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ResizeRequest"))
+	{
+		event->xresizerequest.type = ResizeRequest;
+		FactToXResizeRequestEvent(theEnv, f, &(event->xresizerequest));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "CirculateNotify"))
+	{
+		event->xcirculate.type = CirculateNotify;
+		FactToXCirculateEvent(theEnv, f, &(event->xcirculate));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "CirculateRequest"))
+	{
+		event->xcirculaterequest.type = CirculateRequest;
+		FactToXCirculateRequestEvent(theEnv, f, &(event->xcirculaterequest));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "PropertyNotify"))
+	{
+		event->xproperty.type = PropertyNotify;
+		FactToXPropertyEvent(theEnv, f, &(event->xproperty));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "SelectionClear"))
+	{
+		event->xselectionclear.type = SelectionClear;
+		FactToXSelectionClearEvent(theEnv, f, &(event->xselectionclear));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "SelectionRequest"))
+	{
+		event->xselectionrequest.type = SelectionRequest;
+		FactToXSelectionRequestEvent(theEnv, f, &(event->xselectionrequest));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "SelectionNotify"))
+	{
+		event->xselection.type = SelectionNotify;
+		FactToXSelectionEvent(theEnv, f, &(event->xselection));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ColormapNotify"))
+	{
+		event->xcolormap.type = ColormapNotify;
+		FactToXColormapEvent(theEnv, f, &(event->xcolormap));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ClientMessage"))
+	{
+		event->xclient.type = ClientMessage;
+		FactToXClientMessageEvent(theEnv, f, &(event->xclient));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "MappingNotify"))
+	{
+		event->xmapping.type = MappingNotify;
+		FactToXMappingEvent(theEnv, f, &(event->xmapping));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "GenericEvent"))
+	{
+		event->xgeneric.type = GenericEvent;
+		FactToXGenericEvent(theEnv, f, &(event->xgeneric));
+	}
+	else
+	{
+		WriteString(theEnv, STDERR, "Event '");
+		WriteString(theEnv, STDERR, out.lexemeValue->contents);
+		WriteString(theEnv, STDERR, "' not supported.\n");
+	}
+}
+
+void InstanceToXKeyEvent(Environment *theEnv, Instance *i, XKeyEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "root", &out);
+	event->root = out.integerValue->contents;
+	DirectGetSlot(i, "subwindow", &out);
+	event->subwindow = out.integerValue->contents;
+	DirectGetSlot(i, "time", &out);
+	event->time = out.integerValue->contents;
+	DirectGetSlot(i, "x", &out);
+	event->x = out.integerValue->contents;
+	DirectGetSlot(i, "y", &out);
+	event->y = out.integerValue->contents;
+	DirectGetSlot(i, "x_root", &out);
+	event->x_root = out.integerValue->contents;
+	DirectGetSlot(i, "y_root", &out);
+	event->y_root = out.integerValue->contents;
+	DirectGetSlot(i, "state", &out);
+	event->state = out.integerValue->contents;
+	DirectGetSlot(i, "keycode", &out);
+	event->keycode = out.integerValue->contents;
+	DirectGetSlot(i, "same-screen", &out);
+	event->same_screen = out.lexemeValue == theEnv->TrueSymbol;
+}
+
+void InstanceToXButtonEvent(Environment *theEnv, Instance *i, XButtonEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "root", &out);
+	event->root = out.integerValue->contents;
+	DirectGetSlot(i, "subwindow", &out);
+	event->subwindow = out.integerValue->contents;
+	DirectGetSlot(i, "time", &out);
+	event->time = out.integerValue->contents;
+	DirectGetSlot(i, "x", &out);
+	event->x = out.integerValue->contents;
+	DirectGetSlot(i, "y", &out);
+	event->y = out.integerValue->contents;
+	DirectGetSlot(i, "x_root", &out);
+	event->x_root = out.integerValue->contents;
+	DirectGetSlot(i, "y_root", &out);
+	event->y_root = out.integerValue->contents;
+	DirectGetSlot(i, "state", &out);
+	event->state = out.integerValue->contents;
+	DirectGetSlot(i, "button", &out);
+	event->button = out.integerValue->contents;
+	DirectGetSlot(i, "same-screen", &out);
+	event->same_screen = out.lexemeValue == theEnv->TrueSymbol;
+}
+
+void InstanceToXMotionEvent(Environment *theEnv, Instance *i, XMotionEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "root", &out);
+	event->root = out.integerValue->contents;
+	DirectGetSlot(i, "subwindow", &out);
+	event->subwindow = out.integerValue->contents;
+	DirectGetSlot(i, "time", &out);
+	event->time = out.integerValue->contents;
+	DirectGetSlot(i, "x", &out);
+	event->x = out.integerValue->contents;
+	DirectGetSlot(i, "y", &out);
+	event->y = out.integerValue->contents;
+	DirectGetSlot(i, "x_root", &out);
+	event->x_root = out.integerValue->contents;
+	DirectGetSlot(i, "y_root", &out);
+	event->y_root = out.integerValue->contents;
+	DirectGetSlot(i, "state", &out);
+	event->state = out.integerValue->contents;
+	DirectGetSlot(i, "is-hint", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "NotifyNormal")) event->is_hint = NotifyNormal;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyHint")) event->is_hint = NotifyGrab;
+	DirectGetSlot(i, "same-screen", &out);
+	event->same_screen = out.lexemeValue == theEnv->TrueSymbol;
+}
+
+void InstanceToXCrossingEvent(Environment *theEnv, Instance *i, XCrossingEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "root", &out);
+	event->root = out.integerValue->contents;
+	DirectGetSlot(i, "subwindow", &out);
+	event->subwindow = out.integerValue->contents;
+	DirectGetSlot(i, "time", &out);
+	event->time = out.integerValue->contents;
+	DirectGetSlot(i, "x", &out);
+	event->x = out.integerValue->contents;
+	DirectGetSlot(i, "y", &out);
+	event->y = out.integerValue->contents;
+	DirectGetSlot(i, "x_root", &out);
+	event->x_root = out.integerValue->contents;
+	DirectGetSlot(i, "y_root", &out);
+	event->y_root = out.integerValue->contents;
+	DirectGetSlot(i, "mode", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "NotifyNormal")) event->mode = NotifyNormal;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyGrab")) event->mode = NotifyGrab;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyUngrab")) event->mode = NotifyUngrab;
+	DirectGetSlot(i, "detail", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "NotifyAncestor")) event->detail = NotifyAncestor;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyVirtual")) event->detail = NotifyVirtual;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyInferior")) event->detail = NotifyInferior;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyNonlinear")) event->detail = NotifyNonlinear;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyNonlinearVirtual")) event->detail = NotifyNonlinearVirtual;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyPointer")) event->detail = NotifyPointer;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyPointerRoot")) event->detail = NotifyPointerRoot;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyDetailNone")) event->detail = NotifyDetailNone;
+	DirectGetSlot(i, "same-screen", &out);
+	event->same_screen = out.lexemeValue == theEnv->TrueSymbol;
+	DirectGetSlot(i, "focus", &out);
+	event->focus = out.lexemeValue == theEnv->TrueSymbol;
+	DirectGetSlot(i, "state", &out);
+	event->state = out.integerValue->contents;
+}
+
+void InstanceToXFocusChangeEvent(Environment *theEnv, Instance *i, XFocusChangeEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "mode", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "NotifyNormal")) event->mode = NotifyNormal;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyGrab")) event->mode = NotifyGrab;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyUngrab")) event->mode = NotifyUngrab;
+	DirectGetSlot(i, "detail", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "NotifyAncestor")) event->detail = NotifyAncestor;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyVirtual")) event->detail = NotifyVirtual;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyInferior")) event->detail = NotifyInferior;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyNonlinear")) event->detail = NotifyNonlinear;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyNonlinearVirtual")) event->detail = NotifyNonlinearVirtual;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyPointer")) event->detail = NotifyPointer;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyPointerRoot")) event->detail = NotifyPointerRoot;
+	else if (0 == strcmp(out.lexemeValue->contents, "NotifyDetailNone")) event->detail = NotifyDetailNone;
+}
+
+void InstanceToXKeymapEvent(Environment *theEnv, Instance *i, XKeymapEvent *event)
+{
+	int min_kc, max_kc;
+	long bitIndex;
+	CLIPSValue out;
+	DirectGetSlot(i, "display", &out);
+	XDisplayKeycodes(out.externalAddressValue->contents, &min_kc, &max_kc);
+	memset(event->key_vector, 0, sizeof(event->key_vector));
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "key-vector", &out);
+	for (int x = 1; x < out.multifieldValue->length; x++)
+	{
+		if (out.multifieldValue->contents[x].header->type == SYMBOL_TYPE && out.multifieldValue->contents[x].lexemeValue == theEnv->TrueSymbol)
+		{
+			bitIndex = x + min_kc;
+			event->key_vector[ bitIndex >> 3 ] |= (1 << (bitIndex & 7));
+		}
+		else
+		if (out.multifieldValue->contents[x].header->type == INTEGER_TYPE && out.multifieldValue->contents[x].integerValue->contents >= 0 && out.multifieldValue->contents[x].integerValue->contents <= 255)
+		{
+			event->key_vector[ out.multifieldValue->contents[x].integerValue->contents >> 3 ] |= (1 << (out.multifieldValue->contents[x].integerValue->contents & 7));
+		}
+	}
+}
+
+void InstanceToXExposeEvent(Environment *theEnv, Instance *i, XExposeEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "x", &out);
+	event->x = out.integerValue->contents;
+	DirectGetSlot(i, "y", &out);
+	event->y = out.integerValue->contents;
+	DirectGetSlot(i, "width", &out);
+	event->width = out.integerValue->contents;
+	DirectGetSlot(i, "height", &out);
+	event->height = out.integerValue->contents;
+	DirectGetSlot(i, "count", &out);
+	event->count = out.integerValue->contents;
+}
+
+void InstanceToXGraphicsExposeEvent(Environment *theEnv, Instance *i, XGraphicsExposeEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "drawable", &out);
+	event->drawable = out.integerValue->contents;
+	DirectGetSlot(i, "x", &out);
+	event->x = out.integerValue->contents;
+	DirectGetSlot(i, "y", &out);
+	event->y = out.integerValue->contents;
+	DirectGetSlot(i, "width", &out);
+	event->width = out.integerValue->contents;
+	DirectGetSlot(i, "height", &out);
+	event->height = out.integerValue->contents;
+	DirectGetSlot(i, "count", &out);
+	event->count = out.integerValue->contents;
+	DirectGetSlot(i, "major-code", &out);
+	event->major_code = out.integerValue->contents;
+	DirectGetSlot(i, "minor-code", &out);
+	event->minor_code = out.integerValue->contents;
+}
+
+void InstanceToXNoExposeEvent(Environment *theEnv, Instance *i, XNoExposeEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "drawable", &out);
+	event->drawable = out.integerValue->contents;
+	DirectGetSlot(i, "major-code", &out);
+	event->major_code = out.integerValue->contents;
+	DirectGetSlot(i, "minor-code", &out);
+	event->minor_code = out.integerValue->contents;
+}
+
+void InstanceToXVisibilityEvent(Environment *theEnv, Instance *i, XVisibilityEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "state", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "VisibilityUnobscured")) event->state = VisibilityUnobscured;
+	else if (0 == strcmp(out.lexemeValue->contents, "VisibilityPartiallyObscured")) event->state = VisibilityPartiallyObscured;
+	else if (0 == strcmp(out.lexemeValue->contents, "VisibilityFullyObscured")) event->state = VisibilityFullyObscured;
+}
+
+void InstanceToXCreateWindowEvent(Environment *theEnv, Instance *i, XCreateWindowEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "parent", &out);
+	event->parent = out.integerValue->contents;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "x", &out);
+	event->x = out.integerValue->contents;
+	DirectGetSlot(i, "y", &out);
+	event->y = out.integerValue->contents;
+	DirectGetSlot(i, "width", &out);
+	event->width = out.integerValue->contents;
+	DirectGetSlot(i, "height", &out);
+	event->height = out.integerValue->contents;
+	DirectGetSlot(i, "border-width", &out);
+	event->border_width = out.integerValue->contents;
+	DirectGetSlot(i, "override-redirect", &out);
+	event->override_redirect = out.lexemeValue == theEnv->TrueSymbol; 
+}
+
+void InstanceToXDestroyWindowEvent(Environment *theEnv, Instance *i, XDestroyWindowEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "event", &out);
+	event->event = out.integerValue->contents;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+}
+
+void InstanceToXUnmapEvent(Environment *theEnv, Instance *i, XUnmapEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "event", &out);
+	event->event = out.integerValue->contents;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "from-configure", &out);
+	event->from_configure = out.lexemeValue == theEnv->TrueSymbol; 
+}
+
+void InstanceToXMapEvent(Environment *theEnv, Instance *i, XMapEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "event", &out);
+	event->event = out.integerValue->contents;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "override-redirect", &out);
+	event->override_redirect = out.lexemeValue == theEnv->TrueSymbol; 
+}
+
+void InstanceToXMapRequestEvent(Environment *theEnv, Instance *i, XMapRequestEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "parent", &out);
+	event->parent = out.integerValue->contents;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+}
+
+
+void InstanceToXReparentEvent(Environment *theEnv, Instance *i, XReparentEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "event", &out);
+	event->event = out.integerValue->contents;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "parent", &out);
+	event->parent = out.integerValue->contents;
+	DirectGetSlot(i, "x", &out);
+	event->x = out.integerValue->contents;
+	DirectGetSlot(i, "y", &out);
+	event->y = out.integerValue->contents;
+	DirectGetSlot(i, "override-redirect", &out);
+	event->override_redirect = out.lexemeValue == theEnv->TrueSymbol; 
+}
+
+void InstanceToXConfigureEvent(Environment *theEnv, Instance *i, XConfigureEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "event", &out);
+	event->event = out.integerValue->contents;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "x", &out);
+	event->x = out.integerValue->contents;
+	DirectGetSlot(i, "y", &out);
+	event->y = out.integerValue->contents;
+	DirectGetSlot(i, "width", &out);
+	event->width = out.integerValue->contents;
+	DirectGetSlot(i, "height", &out);
+	event->height = out.integerValue->contents;
+	DirectGetSlot(i, "border-width", &out);
+	event->border_width = out.integerValue->contents;
+	DirectGetSlot(i, "above", &out);
+	event->above = out.integerValue->contents;
+	DirectGetSlot(i, "override-redirect", &out);
+	event->override_redirect = out.lexemeValue == theEnv->TrueSymbol; 
+}
+
+void InstanceToXGravityEvent(Environment *theEnv, Instance *i, XGravityEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "event", &out);
+	event->event = out.integerValue->contents;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "x", &out);
+	event->x = out.integerValue->contents;
+	DirectGetSlot(i, "y", &out);
+	event->y = out.integerValue->contents;
+}
+
+void InstanceToXResizeRequestEvent(Environment *theEnv, Instance *i, XResizeRequestEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "width", &out);
+	event->width = out.integerValue->contents;
+	DirectGetSlot(i, "height", &out);
+	event->height = out.integerValue->contents;
+}
+
+void InstanceToXConfigureRequestEvent(Environment *theEnv, Instance *i, XConfigureRequestEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "parent", &out);
+	event->parent = out.integerValue->contents;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "x", &out);
+	event->x = out.integerValue->contents;
+	DirectGetSlot(i, "y", &out);
+	event->y = out.integerValue->contents;
+	DirectGetSlot(i, "width", &out);
+	event->width = out.integerValue->contents;
+	DirectGetSlot(i, "height", &out);
+	event->height = out.integerValue->contents;
+	DirectGetSlot(i, "border-width", &out);
+	event->border_width = out.integerValue->contents;
+	DirectGetSlot(i, "above", &out);
+	event->above = out.integerValue->contents;
+	DirectGetSlot(i, "detail", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "Above")) event->detail = Above;
+	else if (0 == strcmp(out.lexemeValue->contents, "Below")) event->detail = Below;
+	else if (0 == strcmp(out.lexemeValue->contents, "TopIf")) event->detail = TopIf;
+	else if (0 == strcmp(out.lexemeValue->contents, "BottomIf")) event->detail = BottomIf;
+	else if (0 == strcmp(out.lexemeValue->contents, "Opposite")) event->detail = Opposite;
+	DirectGetSlot(i, "value-mask", &out);
+	event->value_mask = out.integerValue->contents;
+}
+
+void InstanceToXCirculateEvent(Environment *theEnv, Instance *i, XCirculateEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "event", &out);
+	event->event = out.integerValue->contents;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "place", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "PlaceOnTop")) event->place = PlaceOnTop;
+	else if (0 == strcmp(out.lexemeValue->contents, "PlaceOnBottom")) event->place = PlaceOnBottom;
+}
+
+void InstanceToXCirculateRequestEvent(Environment *theEnv, Instance *i, XCirculateRequestEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "parent", &out);
+	event->parent = out.integerValue->contents;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "detail", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "PlaceOnTop")) event->place = PlaceOnTop;
+	else if (0 == strcmp(out.lexemeValue->contents, "PlaceOnBottom")) event->place = PlaceOnBottom;
+}
+
+void InstanceToXPropertyEvent(Environment *theEnv, Instance *i, XPropertyEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "atom", &out);
+	event->atom = out.integerValue->contents;
+	DirectGetSlot(i, "time", &out);
+	event->time = out.integerValue->contents;
+	DirectGetSlot(i, "state", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "PropertyNewValue")) event->state = PropertyNewValue;
+	else if (0 == strcmp(out.lexemeValue->contents, "PropertyDelete")) event->state = PropertyDelete;
+}
+
+void InstanceToXSelectionClearEvent(Environment *theEnv, Instance *i, XSelectionClearEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "selection", &out);
+	event->selection = out.integerValue->contents;
+	DirectGetSlot(i, "time", &out);
+	event->time = out.integerValue->contents;
+}
+
+void InstanceToXSelectionRequestEvent(Environment *theEnv, Instance *i, XSelectionRequestEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "owner", &out);
+	event->owner = out.integerValue->contents;
+	DirectGetSlot(i, "requestor", &out);
+	event->requestor = out.integerValue->contents;
+	DirectGetSlot(i, "selection", &out);
+	event->selection = out.integerValue->contents;
+	DirectGetSlot(i, "target", &out);
+	event->target = out.integerValue->contents;
+	DirectGetSlot(i, "property", &out);
+	event->property = out.integerValue->contents;
+	DirectGetSlot(i, "time", &out);
+	event->time = out.integerValue->contents;
+}
+
+void InstanceToXSelectionEvent(Environment *theEnv, Instance *i, XSelectionEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "requestor", &out);
+	event->requestor = out.integerValue->contents;
+	DirectGetSlot(i, "selection", &out);
+	event->selection = out.integerValue->contents;
+	DirectGetSlot(i, "target", &out);
+	event->target = out.integerValue->contents;
+	DirectGetSlot(i, "property", &out);
+	event->property = out.integerValue->contents;
+	DirectGetSlot(i, "time", &out);
+	event->time = out.integerValue->contents;
+}
+
+void InstanceToXColormapEvent(Environment *theEnv, Instance *i, XColormapEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "colormap", &out);
+	event->colormap = out.integerValue->contents;
+	DirectGetSlot(i, "new", &out);
+	event->new = out.lexemeValue == theEnv->TrueSymbol;
+	DirectGetSlot(i, "state", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "ColormapInstalled")) event->state = ColormapInstalled;
+	else if (0 == strcmp(out.lexemeValue->contents, "ColormapUninstalled")) event->state = ColormapUninstalled;
+}
+
+void InstanceToXClientMessageEvent(Environment *theEnv, Instance *i, XClientMessageEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "message-type", &out);
+	event->message_type = out.integerValue->contents;
+	DirectGetSlot(i, "format", &out);
+	event->format = out.integerValue->contents;
+	DirectGetSlot(i, "data", &out);
+	if (event->format == 8 && out.multifieldValue->length >= 28)
+	{
+		for (int x = 0; x < 20; x++)
+		{
+			if (out.multifieldValue->contents[3 + x].header->type == INTEGER_TYPE)
+			event->data.b[x] = out.multifieldValue->contents[3 + x].integerValue->contents;
+		}
+	}
+	else if (event->format == 16)
+	{
+		for (int x = 0; x < 10; x++)
+		{
+			if (out.multifieldValue->contents[3 + x].header->type == INTEGER_TYPE)
+			event->data.s[x] = out.multifieldValue->contents[3 + x].integerValue->contents;
+		}
+	}
+	else if (event->format == 32)
+	{
+		for (int x = 0; x < 5; x++)
+		{
+			if (out.multifieldValue->contents[3 + x].header->type == INTEGER_TYPE)
+			event->data.l[x] = out.multifieldValue->contents[3 + x].integerValue->contents;
+		}
+	}
+}
+
+void InstanceToXMappingEvent(Environment *theEnv, Instance *i, XMappingEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "window", &out);
+	event->window = out.integerValue->contents;
+	DirectGetSlot(i, "request", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "MappingModifier")) event->request = MappingModifier;
+	else if (0 == strcmp(out.lexemeValue->contents, "MappingKeyboard")) event->request = MappingKeyboard;
+	else if (0 == strcmp(out.lexemeValue->contents, "MappingPointer")) event->request = MappingPointer;
+	DirectGetSlot(i, "first-keycode", &out);
+	event->first_keycode = out.integerValue->contents;
+	DirectGetSlot(i, "count", &out);
+	event->count = out.integerValue->contents;
+}
+
+void InstanceToXGenericEvent(Environment *theEnv, Instance *i, XGenericEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "extension", &out);
+	event->extension = out.integerValue->contents;
+	DirectGetSlot(i, "evtype", &out);
+	event->evtype = out.integerValue->contents;
+}
+
+void InstanceToXEvent(Environment *theEnv, Instance *i, XEvent *event)
+{
+	CLIPSValue out;
+	DirectGetSlot(i, "type", &out);
+	if (0 == strcmp(out.lexemeValue->contents, "KeyPress"))
+	{
+		event->xkey.type = KeyPress;
+		InstanceToXKeyEvent(theEnv, i, &(event->xkey));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "KeyRelease"))
+	{
+		event->xkey.type = KeyRelease;
+		InstanceToXKeyEvent(theEnv, i, &(event->xkey));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ButtonPress"))
+	{
+		event->xbutton.type = ButtonPress;
+		InstanceToXButtonEvent(theEnv, i, &(event->xbutton));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ButtonRelease"))
+	{
+		event->xbutton.type = ButtonRelease;
+		InstanceToXButtonEvent(theEnv, i, &(event->xbutton));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "MotionNotify"))
+	{
+		event->xmotion.type = ButtonRelease;
+		InstanceToXMotionEvent(theEnv, i, &(event->xmotion));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "EnterNotify"))
+	{
+		event->xcrossing.type = EnterNotify;
+		InstanceToXCrossingEvent(theEnv, i, &(event->xcrossing));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "LeaveNotify"))
+	{
+		event->xcrossing.type = LeaveNotify;
+		InstanceToXCrossingEvent(theEnv, i, &(event->xcrossing));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "FocusIn"))
+	{
+		event->xfocus.type = FocusIn;
+		InstanceToXFocusChangeEvent(theEnv, i, &(event->xfocus));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "FocusOut"))
+	{
+		event->xfocus.type = FocusOut;
+		InstanceToXFocusChangeEvent(theEnv, i, &(event->xfocus));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "KeymapNotify"))
+	{
+		event->xkeymap.type = KeymapNotify;
+		InstanceToXKeymapEvent(theEnv, i, &(event->xkeymap));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "Expose"))
+	{
+		event->xexpose.type = Expose;
+		InstanceToXExposeEvent(theEnv, i, &(event->xexpose));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "GraphicsExpose"))
+	{
+		event->xgraphicsexpose.type = GraphicsExpose;
+		InstanceToXGraphicsExposeEvent(theEnv, i, &(event->xgraphicsexpose));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "NoExpose"))
+	{
+		event->xnoexpose.type = NoExpose;
+		InstanceToXNoExposeEvent(theEnv, i, &(event->xnoexpose));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "VisibilityNotify"))
+	{
+		event->xvisibility.type = VisibilityNotify;
+		InstanceToXVisibilityEvent(theEnv, i, &(event->xvisibility));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "CreateNotify"))
+	{
+		event->xcreatewindow.type = CreateNotify;
+		InstanceToXCreateWindowEvent(theEnv, i, &(event->xcreatewindow));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "DestroyNotify"))
+	{
+		event->xdestroywindow.type = DestroyNotify;
+		InstanceToXDestroyWindowEvent(theEnv, i, &(event->xdestroywindow));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "UnmapNotify"))
+	{
+		event->xunmap.type = UnmapNotify;
+		InstanceToXUnmapEvent(theEnv, i, &(event->xunmap));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "MapNotify"))
+	{
+		event->xmap.type = MapNotify;
+		InstanceToXMapEvent(theEnv, i, &(event->xmap));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "MapRequest"))
+	{
+		event->xmaprequest.type = MapRequest;
+		InstanceToXMapRequestEvent(theEnv, i, &(event->xmaprequest));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ReparentNotify"))
+	{
+		event->xreparent.type = ReparentNotify;
+		InstanceToXReparentEvent(theEnv, i, &(event->xreparent));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ConfigureNotify"))
+	{
+		event->xconfigure.type = ConfigureNotify;
+		InstanceToXConfigureEvent(theEnv, i, &(event->xconfigure));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ConfigureRequest"))
+	{
+		event->xconfigurerequest.type = ConfigureRequest;
+		InstanceToXConfigureRequestEvent(theEnv, i, &(event->xconfigurerequest));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "GravityNotify"))
+	{
+		event->xgravity.type = GravityNotify;
+		InstanceToXGravityEvent(theEnv, i, &(event->xgravity));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ResizeRequest"))
+	{
+		event->xresizerequest.type = ResizeRequest;
+		InstanceToXResizeRequestEvent(theEnv, i, &(event->xresizerequest));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "CirculateNotify"))
+	{
+		event->xcirculate.type = CirculateNotify;
+		InstanceToXCirculateEvent(theEnv, i, &(event->xcirculate));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "CirculateRequest"))
+	{
+		event->xcirculaterequest.type = CirculateRequest;
+		InstanceToXCirculateRequestEvent(theEnv, i, &(event->xcirculaterequest));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "PropertyNotify"))
+	{
+		event->xproperty.type = PropertyNotify;
+		InstanceToXPropertyEvent(theEnv, i, &(event->xproperty));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "SelectionClear"))
+	{
+		event->xselectionclear.type = SelectionClear;
+		InstanceToXSelectionClearEvent(theEnv, i, &(event->xselectionclear));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "SelectionRequest"))
+	{
+		event->xselectionrequest.type = SelectionRequest;
+		InstanceToXSelectionRequestEvent(theEnv, i, &(event->xselectionrequest));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "SelectionNotify"))
+	{
+		event->xselection.type = SelectionNotify;
+		InstanceToXSelectionEvent(theEnv, i, &(event->xselection));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ColormapNotify"))
+	{
+		event->xcolormap.type = ColormapNotify;
+		InstanceToXColormapEvent(theEnv, i, &(event->xcolormap));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "ClientMessage"))
+	{
+		event->xclient.type = ClientMessage;
+		InstanceToXClientMessageEvent(theEnv, i, &(event->xclient));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "MappingNotify"))
+	{
+		event->xmapping.type = MappingNotify;
+		InstanceToXMappingEvent(theEnv, i, &(event->xmapping));
+	}
+	else
+	if (0 == strcmp(out.lexemeValue->contents, "GenericEvent"))
+	{
+		event->xgeneric.type = GenericEvent;
+		InstanceToXGenericEvent(theEnv, i, &(event->xgeneric));
+	}
+	else
+	{
+		WriteString(theEnv, STDERR, "Event '");
+		WriteString(theEnv, STDERR, out.lexemeValue->contents);
+		WriteString(theEnv, STDERR, "' not supported.\n");
+	}
 }
 
 void XSendEventFunction(
@@ -5139,7 +8138,7 @@ void XSendEventFunction(
 	Window window;
 	bool propagate;
 	long event_mask = 0;
-	XEvent *event = NULL;
+	XEvent event = { 0 };
 	UDFValue theArg;
 
 	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
@@ -5148,42 +8147,32 @@ void XSendEventFunction(
 	UDFNextArgument(context, INTEGER_BIT, &theArg);
 	window = (Window) theArg.integerValue->contents;
 
-	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	UDFNextArgument(context, SYMBOL_BIT, &theArg);
 	propagate = theArg.lexemeValue == theEnv->TrueSymbol;
 
-	while (UDFHasNextArgument(context))
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	event_mask = theArg.integerValue->contents;
+
+	UDFNextArgument(context, FACT_ADDRESS_BIT|INSTANCE_BITS|MULTIFIELD_BIT, &theArg);
+	switch (theArg.header->type)
 	{
-		UDFNextArgument(context, EXTERNAL_ADDRESS_BIT | SYMBOL_BIT, &theArg);
-
-		if (theArg.header->type == EXTERNAL_ADDRESS_TYPE)
-		{
-			event = (XEvent *) theArg.externalAddressValue->contents;
+		case MULTIFIELD_TYPE:
+			MultifieldToXEvent(theEnv, theArg.multifieldValue, &event);
 			break;
-		}
-
-		UDFNextArgument(context, SYMBOL_BIT, &theArg);
-		int m = SymbolToEventMask(theArg.lexemeValue->contents);
-		if (m < 0)
-		{
-			WriteString(theEnv, STDERR, "Event mask '");
-			WriteString(theEnv, STDERR, theArg.lexemeValue->contents);
-			WriteString(theEnv, STDERR, "' not supported.\n");
+		case FACT_ADDRESS_TYPE:
+			FactToXEvent(theEnv, theArg.factValue, &event);
+			break;
+		case INSTANCE_ADDRESS_TYPE:
+			InstanceToXEvent(theEnv, theArg.instanceValue, &event);
+			break;
+		default:
+			WriteString(theEnv, STDERR, "Passed event was not a multifield, fact, or instance.\n");
 			returnValue->integerValue->contents = 0;
 			return;
-		}
-		event_mask |= m;
 	}
 
-	if (event != NULL)
-	{
-		WriteString(theEnv, STDERR, "Missing XEvent argument to x-send-event.\n");
-		returnValue->integerValue->contents = 0;
-		return;
-	}
-
-	returnValue->integerValue = CreateInteger(theEnv, XSendEvent(display, window, propagate, event_mask, event));
+	returnValue->integerValue = CreateInteger(theEnv, XSendEvent(display, window, propagate, event_mask, &event));
 }
-*/
 
 void XDrawArcFunction(
 		Environment *theEnv,
@@ -5368,6 +8357,7 @@ void XSelectInputFunction(
 {
 	Display *display;
 	Window window;
+	int to_add;
 	long event_mask = 0;
 	UDFValue theArg;
 
@@ -5387,117 +8377,10 @@ void XSelectInputFunction(
 	while (UDFHasNextArgument(context))
 	{
 		UDFNextArgument(context,SYMBOL_BIT,&theArg);
-		if (0 == strcmp(theArg.lexemeValue->contents, "KeyPressMask"))
+		to_add = StringToEventMask(theArg.lexemeValue->contents);
+		if (to_add != -1)
 		{
-			event_mask |= KeyPressMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "KeyReleaseMask"))
-		{
-			event_mask |= KeyReleaseMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "ButtonPressMask"))
-		{
-			event_mask |= ButtonPressMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "ButtonReleaseMask"))
-		{
-			event_mask |= ButtonReleaseMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "EnterWindowMask"))
-		{
-			event_mask |= EnterWindowMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "LeaveWindowMask"))
-		{
-			event_mask |= LeaveWindowMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "PointerMotionMask"))
-		{
-			event_mask |= PointerMotionMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "PointerMotionHintMask"))
-		{
-			event_mask |= PointerMotionHintMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "Button1MotionMask"))
-		{
-			event_mask |= Button1MotionMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "Button2MotionMask"))
-		{
-			event_mask |= Button2MotionMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "Button3MotionMask"))
-		{
-			event_mask |= Button3MotionMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "Button4MotionMask"))
-		{
-			event_mask |= Button4MotionMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "Button5MotionMask"))
-		{
-			event_mask |= Button5MotionMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "ButtonMotionMask"))
-		{
-			event_mask |= ButtonMotionMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "KeymapStateMask"))
-		{
-			event_mask |= KeymapStateMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "ExposureMask"))
-		{
-			event_mask |= ExposureMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "VisibilityChangeMask"))
-		{
-			event_mask |= VisibilityChangeMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "StructureNotifyMask"))
-		{
-			event_mask |= StructureNotifyMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "ResizeRedirectMask"))
-		{
-			event_mask |= ResizeRedirectMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "SubstructureNotifyMask"))
-		{
-			event_mask |= SubstructureNotifyMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "SubstructureRedirectMask"))
-		{
-			event_mask |= SubstructureRedirectMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "FocusChangeMask"))
-		{
-			event_mask |= FocusChangeMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "PropertyChangeMask"))
-		{
-			event_mask |= PropertyChangeMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "ColormapChangeMask"))
-		{
-			event_mask |= ColormapChangeMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "OwnerGrabButtonMask"))
-		{
-			event_mask |= OwnerGrabButtonMask;
-		}
-		else if (0 == strcmp(theArg.lexemeValue->contents, "NoEventMask"))
-		{
-			event_mask |= NoEventMask;
-		}
-		else
-		{
-			WriteString(theEnv,STDERR,"Event mask '");
-			WriteString(theEnv,STDERR,theArg.lexemeValue->contents);
-			WriteString(theEnv,STDERR,"' not supported.\n");
-			returnValue->lexemeValue = FalseSymbol(theEnv);
-			return;
+			event_mask |= to_add;
 		}
 	}
 			
@@ -5541,7 +8424,7 @@ void XSetInputFocusFunction(
 		time = theArg.integerValue->contents;
 	}
 
-	returnValue->integerValue = CreateInteger(theEnv, XSetInputFocus(display, focus, revert_to, time));
+	XSetInputFocus(display, focus, revert_to, time);
 }
 
 
@@ -5602,6 +8485,94 @@ void XKeysymToKeycodeFunction(
 	returnValue->integerValue = CreateInteger(theEnv, (unsigned char)XKeysymToKeycode(display, theArg.integerValue->contents));
 }
 
+void XGrabButtonFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Cursor cursor;
+	Display *display;
+	unsigned int button;
+	Window confine_to, grab_window;
+	unsigned int event_mask, modifiers;
+	bool owner_events;
+	int pointer_mode, keyboard_mode;
+
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	button = theArg.integerValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	modifiers = theArg.integerValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	grab_window = (Window)theArg.integerValue->contents;
+
+	UDFNextArgument(context,BOOLEAN_BIT,&theArg);
+	owner_events = theArg.lexemeValue == theEnv->TrueSymbol;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	event_mask = theArg.integerValue->contents;
+
+	UDFNextArgument(context,SYMBOL_BIT,&theArg);
+	if (0 == strcmp(theArg.lexemeValue->contents, "GrabModeSync"))
+	{
+		pointer_mode = 0;
+	}
+	else
+	{
+		pointer_mode = 1;
+	}
+
+	UDFNextArgument(context,SYMBOL_BIT,&theArg);
+	if (0 == strcmp(theArg.lexemeValue->contents, "GrabModeSync"))
+	{
+		keyboard_mode = 0;
+	}
+	else
+	{
+		keyboard_mode = 1;
+	}
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	confine_to = (Window)theArg.integerValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	cursor = (Cursor)theArg.integerValue->contents;
+
+	returnValue->integerValue = CreateInteger(theEnv, XGrabButton(display, button, modifiers, grab_window, owner_events, event_mask, pointer_mode, keyboard_mode, confine_to, cursor));
+}
+
+void XUngrabButtonFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	unsigned int button;
+	Window grab_window;
+	unsigned int modifiers;
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	button = theArg.integerValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	modifiers = theArg.integerValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	grab_window = (Window)theArg.integerValue->contents;
+
+	XUngrabButton(display, button, modifiers, grab_window);
+}
+
 void XGrabKeyFunction(
 		Environment *theEnv,
 		UDFContext *context,
@@ -5622,60 +8593,8 @@ void XGrabKeyFunction(
 	UDFNextArgument(context,INTEGER_BIT,&theArg);
 	keycode = theArg.integerValue->contents;
 
-	UDFNextArgument(context,MULTIFIELD_BIT|SYMBOL_BIT,&theArg);
-	modifiers = 0;
-	if (theArg.header->type == SYMBOL_TYPE)
-	{
-		const char *mod = theArg.lexemeValue->contents;
-
-		if (strcmp(mod, "ShiftMask") == 0) {
-			modifiers |= ShiftMask;
-		} else if (strcmp(mod, "LockMask") == 0) {
-			modifiers |= LockMask;
-		} else if (strcmp(mod, "ControlMask") == 0) {
-			modifiers |= ControlMask;
-		} else if (strcmp(mod, "Mod1Mask") == 0) {
-			modifiers |= Mod1Mask;
-		} else if (strcmp(mod, "Mod2Mask") == 0) {
-			modifiers |= Mod2Mask;
-		} else if (strcmp(mod, "Mod3Mask") == 0) {
-			modifiers |= Mod3Mask;
-		} else if (strcmp(mod, "Mod4Mask") == 0) {
-			modifiers |= Mod4Mask;
-		} else if (strcmp(mod, "Mod5Mask") == 0) {
-			modifiers |= Mod5Mask;
-		} else if (strcmp(mod, "AnyModifier") == 0) {
-			modifiers = AnyModifier;
-		}
-	}
-	else
-	{
-		for (int i = 0; i < theArg.multifieldValue->length; i++)
-		{
-			const char *mod = theArg.multifieldValue->contents[i].lexemeValue->contents;
-
-			if (strcmp(mod, "Shift") == 0) {
-				modifiers |= ShiftMask;
-			} else if (strcmp(mod, "LockMask") == 0) {
-				modifiers |= LockMask;
-			} else if (strcmp(mod, "ControlMask") == 0) {
-				modifiers |= ControlMask;
-			} else if (strcmp(mod, "Mod1Mask") == 0) {
-				modifiers |= Mod1Mask;
-			} else if (strcmp(mod, "Mod2Mask") == 0) {
-				modifiers |= Mod2Mask;
-			} else if (strcmp(mod, "Mod3Mask") == 0) {
-				modifiers |= Mod3Mask;
-			} else if (strcmp(mod, "Mod4Mask") == 0) {
-				modifiers |= Mod4Mask;
-			} else if (strcmp(mod, "Mod5Mask") == 0) {
-				modifiers |= Mod5Mask;
-			} else if (strcmp(mod, "AnyModifier") == 0) {
-				modifiers = AnyModifier;
-				break;
-			}
-		}
-	}
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	modifiers = theArg.integerValue->contents;
 
 	UDFNextArgument(context,INTEGER_BIT,&theArg);
 	grab_window = (Window)theArg.integerValue->contents;
@@ -5704,6 +8623,117 @@ void XGrabKeyFunction(
 	}
 
 	returnValue->integerValue = CreateInteger(theEnv, XGrabKey(display, keycode, modifiers, grab_window, owner_events, pointer_mode, keyboard_mode));
+}
+
+void XUngrabKeyFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	unsigned char keycode;
+	Window grab_window;
+	unsigned int modifiers;
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	keycode = theArg.integerValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	modifiers = theArg.integerValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	grab_window = (Window)theArg.integerValue->contents;
+
+	XUngrabKey(display, keycode, modifiers, grab_window);
+}
+
+void XGrabPointerFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Cursor cursor;
+	Display *display;
+	Time time;
+	Window confine_to, grab_window;
+	unsigned int event_mask;
+	bool owner_events;
+	int pointer_mode, keyboard_mode;
+
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	grab_window = (Window)theArg.integerValue->contents;
+
+	UDFNextArgument(context,BOOLEAN_BIT,&theArg);
+	owner_events = theArg.lexemeValue == theEnv->TrueSymbol;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	event_mask = theArg.integerValue->contents;
+
+	UDFNextArgument(context,SYMBOL_BIT,&theArg);
+	if (0 == strcmp(theArg.lexemeValue->contents, "GrabModeSync"))
+	{
+		pointer_mode = 0;
+	}
+	else
+	{
+		pointer_mode = 1;
+	}
+
+	UDFNextArgument(context,SYMBOL_BIT,&theArg);
+	if (0 == strcmp(theArg.lexemeValue->contents, "GrabModeSync"))
+	{
+		keyboard_mode = 0;
+	}
+	else
+	{
+		keyboard_mode = 1;
+	}
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	confine_to = (Window)theArg.integerValue->contents;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+	cursor = (Cursor)theArg.integerValue->contents;
+
+	time = CurrentTime;
+	if (UDFHasNextArgument(context))
+	{
+		UDFNextArgument(context,INTEGER_BIT,&theArg);
+		time = theArg.integerValue->contents;
+	}
+
+	returnValue->integerValue = CreateInteger(theEnv, XGrabPointer(display, grab_window, owner_events, event_mask, pointer_mode, keyboard_mode, confine_to, cursor, time));
+}
+
+void XUngrabPointerFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Time time;
+	UDFValue theArg;
+
+	UDFNextArgument(context,EXTERNAL_ADDRESS_BIT,&theArg);
+	display = theArg.externalAddressValue->contents;
+
+	time = CurrentTime;
+	if (UDFHasNextArgument(context))
+	{
+		UDFNextArgument(context,INTEGER_BIT,&theArg);
+		time = (Time)theArg.integerValue->contents;
+	}
+
+	XUngrabPointer(display, time);
 }
 
 void XFlushFunction(
@@ -5759,15 +8789,19 @@ void UserFunctions(
 #pragma unused(env)
 #endif
 	  AddUDF(env,"x-open-display","be",0,1,";sy",XOpenDisplayFunction,"XOpenDisplayFunction",NULL);
+	  AddUDF(env,"x-close-display","v",1,1,";e",XCloseDisplayFunction,"XCloseDisplayFunction",NULL);
 	  AddUDF(env,"default-screen","l",1,1,";e",DefaultScreenFunction,"DefaultScreenFunction",NULL);
 	  AddUDF(env,"default-screen-of-display","e",1,1,";e",DefaultScreenOfDisplayFunction,"DefaultScreenOfDisplayFunction",NULL);
 	  AddUDF(env,"default-root-window","l",1,1,";e",DefaultRootWindowFunction,"DefaultRootWindowFunction",NULL);
 	  AddUDF(env,"root-window","l",2,2,";e;l",RootWindowFunction,"RootWindowFunction",NULL);
 	  AddUDF(env,"x-create-simple-window","bl",9,9,";e;l;l;l;l;l;l;l;l",XCreateSimpleWindowFunction,"XCreateSimpleWindowFunction",NULL);
 	  AddUDF(env,"x-create-window","bl",12,12,";e;l;l;l;l;l;l;l;l;e;l;e",XCreateWindowFunction,"XCreateWindowFunction",NULL);
+	  AddUDF(env,"x-destroy-window","v",2,2,";e;l",XDestroyWindowFunction,"XDestroyWindowFunction",NULL);
 	  AddUDF(env,"x-create-font-cursor","bl",2,2,";e;y",XCreateFontCursorFunction,"XCreateFontCursorFunction",NULL);
 	  AddUDF(env,"x-define-cursor","v",3,3,";e;l;l",XDefineCursorFunction,"XDefineCursorFunction",NULL);
 	  AddUDF(env,"x-map-window","v",2,2,";e;l",XMapWindowFunction,"XMapWindowFunction",NULL);
+	  AddUDF(env,"x-unmap-window","v",2,2,";e;l",XUnmapWindowFunction,"XUnmapWindowFunction",NULL);
+	  AddUDF(env,"x-reparent-window","v",5,5,";e;l;l;l;l",XReparentWindowFunction,"XReparentWindowFunction",NULL);
 	  AddUDF(env,"x-move-resize-window","l",6,6,";e;l;l;l;l;l",XMoveResizeWindowFunction,"XMoveResizeWindowFunction",NULL);
 	  AddUDF(env,"x-circulate-subwindows-up","l",2,2,";e;l",XCirculateSubwindowsUpFunction,"XCirculateSubwindowsUpFunction",NULL);
 	  AddUDF(env,"x-raise-window","l",2,2,";e;l",XRaiseWindowFunction,"XRaiseWindowFunction",NULL);
@@ -5775,7 +8809,10 @@ void UserFunctions(
 	  AddUDF(env,"x-get-window-attributes","mv",2,2,";e;l",XGetWindowAttributesFunction,"XGetWindowAttributesFunction",NULL);
 	  AddUDF(env,"x-get-window-attributes-to-fact","mv",2,2,";e;l",XGetWindowAttributesToFactFunction,"XGetWindowAttributesToFactFunction",NULL);
 	  AddUDF(env,"x-get-window-attributes-to-instance","mv",2,3,";e;l;sy",XGetWindowAttributesToInstanceFunction,"XGetWindowAttributesToInstanceFunction",NULL);
-	  AddUDF(env,"x-event-mask-to-multifield","m",1,1,";l",XEventMaskToMultifieldFunction,"XEventMaskToMultifieldFunction",NULL);
+	  AddUDF(env,"event-mask-to-multifield","m",1,1,";l",EventMaskToMultifieldFunction,"EventMaskToMultifieldFunction",NULL);
+	  AddUDF(env,"mask-to-multifield","m",1,1,";l",MaskToMultifieldFunction,"MaskToMultifieldFunction",NULL);
+	  AddUDF(env,"event-mask-to-symbol","vy",1,1,";l",EventMaskToSymbolFunction,"EventMaskToSymbolFunction",NULL);
+	  AddUDF(env,"mask-to-symbol","vy",1,1,";l",MaskToSymbolFunction,"MaskToSymbolFunction",NULL);
 	  AddUDF(env,"x-query-tree","mv",2,2,";e;l",XQueryTreeFunction,"XQueryTreeFunction",NULL);
 	  AddUDF(env,"x-kill-client","l",2,2,";e;l",XKillClientFunction,"XKillClientFunction",NULL);
 	  AddUDF(env,"screen-to-fact","f",1,1,";e",ScreenToFactFunction,"ScreenToFactFunction",NULL);
@@ -5793,6 +8830,10 @@ void UserFunctions(
 	  AddUDF(env,"x-get-input-focus","bm",1,1,";e",XGetInputFocusFunction,"XGetInputFocusFunction",NULL);
 	  AddUDF(env,"x-warp-pointer","v",9,9,";e;l;l;l;l;l;l;l;l",XWarpPointerFunction,"XWarpPointerFunction",NULL);
 	  AddUDF(env,"x-query-pointer","bm",1,1,";e",XQueryPointerFunction,"XQueryPointerFunction",NULL);
+	  AddUDF(env,"multifield-to-mask","l",1,1,";m",MultifieldToMaskFunction,"MultifieldToMaskFunction",NULL);
+	  AddUDF(env,"multifield-to-event-mask","l",1,1,";m",MultifieldToEventMaskFunction,"MultifieldToEventMaskFunction",NULL);
+	  AddUDF(env,"lexeme-to-mask","l",1,1,";sy",LexemeToMaskFunction,"LexemeToMaskFunction",NULL);
+	  AddUDF(env,"lexeme-to-event-mask","l",1,1,";sy",LexemeToEventMaskFunction,"LexemeToEventMaskFunction",NULL);
 
 	  AddUDF(env,"black-pixel","l",2,2,";e;l",BlackPixelFunction,"BlackPixelFunction",NULL);
 	  AddUDF(env,"white-pixel","l",2,2,";e;l",WhitePixelFunction,"WhitePixelFunction",NULL);
@@ -5811,6 +8852,7 @@ void UserFunctions(
 	  AddUDF(env,"x-next-event","bm",1,1,";e",XNextEventFunction,"XNextEventFunction",NULL);
 	  AddUDF(env,"x-next-event-to-fact","bf",1,1,";e",XNextEventToFactFunction,"XNextEventToFactFunction",NULL);
 	  AddUDF(env,"x-next-event-to-instance","bi",1,2,";e;sy",XNextEventToInstanceFunction,"XNextEventToInstanceFunction",NULL);
+	  AddUDF(env,"x-send-event","l",5,5,";e;l;b;l;fim",XSendEventFunction,"XSendEventFunction",NULL);
 
 	  AddUDF(env,"x-draw-arc","v",9,9,";e;l;e;l;l;l;l;l;l",XDrawArcFunction,"XDrawArcFunction",NULL);
 	  AddUDF(env,"x-draw-line","v",7,7,";e;l;e;l;l;l;l",XDrawLineFunction,"XDrawLineFunction",NULL);
@@ -5825,7 +8867,12 @@ void UserFunctions(
 	  AddUDF(env,"x-string-to-keysym","l",1,1,";sy",XStringToKeysymFunction,"XStringToKeysymFunction",NULL);
 	  AddUDF(env,"x-keysym-to-keycode","l",2,2,";e;l",XKeysymToKeycodeFunction,"XKeysymToKeycodeFunction",NULL);
 
+	  AddUDF(env,"x-grab-button","l",10,10,";e;l;l;l;b;l;l;l;l;l",XGrabButtonFunction,"XGrabButtonFunction",NULL);
+	  AddUDF(env,"x-ungrab-button","v",4,4,";e;l;l;l",XUngrabButtonFunction,"XUngrabButtonFunction",NULL);
 	  AddUDF(env,"x-grab-key","l",7,7,";e;l;ym;l;b;y;y",XGrabKeyFunction,"XGrabKeyFunction",NULL);
+	  AddUDF(env,"x-ungrab-key","v",4,4,";e;l;ly;l",XUngrabKeyFunction,"XUngrabKeyFunction",NULL);
+	  AddUDF(env,"x-grab-pointer","l",8,9,";e;l;b;l;l;l;l;l;l",XGrabPointerFunction,"XGrabPointerFunction",NULL);
+	  AddUDF(env,"x-ungrab-pointer","v",1,2,";e;l",XUngrabPointerFunction,"XUngrabPointerFunction",NULL);
 
 	  AddUDF(env,"x-flush","l",1,1,";e",XFlushFunction,"XFlushFunction",NULL);
 	  AddUDF(env,"x-sync","l",1,2,";e;b",XSyncFunction,"XSyncFunction",NULL);

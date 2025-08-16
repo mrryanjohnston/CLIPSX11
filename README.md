@@ -87,6 +87,18 @@ Connects to the X server.
 
 ---
 
+#### `x-close-display`
+
+```clips
+(x-close-display <display pointer>) → <VOID>
+```
+
+##### Description
+
+Closes previously opened display.
+
+---
+
 #### `default-screen`
 
 ```clips
@@ -221,6 +233,23 @@ Creates a window with full attribute control.
 
 ---
 
+#### `x-destroy-window`
+
+```clips
+(x-destroy-window <display> <window>)
+```
+
+##### Description
+
+Destroys a window. Immediately unmaps it. Does nothing if is Root window.
+
+##### Parameters
+
+- `display` (EXTERNAL-ADDRESS)
+- `screen` (INTEGER)
+
+---
+
 #### `x-map-window`
 
 ```clips
@@ -235,6 +264,43 @@ Maps (shows) a window.
 
 1. `display` (EXTERNAL-ADDRESS)
 2. `window` (INTEGER)
+
+---
+
+#### `x-unmap-window`
+
+```clips
+(x-unmap-window <display> <window>) → VOID
+```
+
+##### Description
+
+Unmaps (hides) a window.
+
+##### Parameters
+
+1. `display` (EXTERNAL-ADDRESS)
+2. `window` (INTEGER)
+
+---
+
+#### `x-reparent-window`
+
+```clips
+(x-reparent-window <display> <window> <parent> <x> <y>) → VOID
+```
+
+##### Description
+
+Reparents a window and positions it within the new parent at the x, y coordinates.
+
+##### Parameters
+
+1. `display` (EXTERNAL-ADDRESS)
+2. `window` (INTEGER)
+2. `parent` (INTEGER)
+2. `x` (INTEGER)
+2. `y` (INTEGER)
 
 ---
 
@@ -750,6 +816,28 @@ A multifield containing two elements:
 
 ---
 
+#### `x-set-input-focus`
+
+```clips
+(x-set-input-focus <display> <focus> <revert_to> [<time>]) → INTEGER
+```
+
+##### Description
+
+Sets the current input focus window and the revert-to setting for the specified display.
+
+##### Arguments
+
+- `<display>`: External address to an X11 `Display` (as returned by `x-open-display`).
+- `<focus>`: The new window to set focus to
+- `<revert_to>`: The revert-to policy as a symbol. Possible values:
+   - `RevertToParent`
+   - `RevertToPointerRoot`
+   - `RevertToNone`
+- `<time>`: Timestamp integer, `CurrentTime` if missing (`0`)
+
+---
+
 #### `x-select-input`
 
 ```clips
@@ -917,6 +1005,180 @@ to remove it from the event queue.
 
 ---
 
+#### `x-send-event`
+
+```clips
+(x-send-event <display> <window> <propagate> <event-mask> <event>) → INTEGER
+```
+
+##### Description
+
+Sends the event specified as the last argument to the display/window.
+Can be received with `x-next-event` if the event mask is selected
+using `x-select-input`.
+
+
+##### Arguments
+
+- `<display>` - A c-pointer to the display object to send the event to
+- `<window>` - A window ID to send the event to
+- `<propagate>` - A boolean to determine whether or not to propagate the event if not received.
+- `<event-mask>` - An integer of the event mask
+- `<event>` - A MULTIFIELD, FACT, or INSTANCE that contains the event details
+
+If using FACT or INSTANCE as `<event>`, refer to the
+`deftemplates.clp` or `defclasses.clp` respectively
+to determine which slots need to be set. In all casses,
+`c-pointer`, `serial`, `send-event` and `display` slot values
+will not be used.
+
+If using a MULTIFIELD, refer to the following to determine
+the order in which you must append values to the multifield
+for them to be received by the appropriate event types
+(all values are `INTEGER`s unless otherwise noted):
+
+```
+(KeyPress <window> <root> <subwindow> <time> <x> <y> <x_root> <y_root> <state> <keycode> <same_screen>)
+(KeyRelease <window> <root> <subwindow> <time> <x> <y> <x_root> <y_root> <state> <keycode> <same_screen>)
+(ButtonPress <window> <root> <subwindow> <time> <x> <y> <x_root> <y_root> <state> <keycode> <same_screen>)
+(ButtonRelease <window> <root> <subwindow> <time> <x> <y> <x_root> <y_root> <state> <keycode> <same_screen>)
+```
+
+- `same_screen` - `TRUE` or `FALSE`
+- `state` - an `INTEGER` for a mask. Retrievable by `lexeme-to-mask` or `multifield-to-mask`
+
+```
+(MotionNotify <window> <root> <subwindow> <time> <x> <y> <x_root> <y_root> <state> <is_hint> <same_screen>)
+```
+
+- `is_hint` - `NotifyNormal` or `NotifyHint`
+- `same_screen` - `TRUE` or `FALSE`
+- `state` - an `INTEGER` for a mask. Retrievable by `lexeme-to-mask` or `multifield-to-mask`
+
+```
+(EnterNotify <window> <root> <subwindow> <time> <x> <y> <x_root> <y_root> <mode> <detal> <same_screen> <focus> <state>)
+(LeaveNotify <window> <root> <subwindow> <time> <x> <y> <x_root> <y_root> <mode> <detal> <same_screen> <focus> <state>)
+```
+
+- `mode` - `NotifyNormal`, `NotifyGrab`, or `NotifyUngrab`
+- `detail` - `NotifyAncestor`, `NotifyVirtual`, `NotifyInferior`, `NotifyNonlinear`, `NotifyNonlinearVirtual`, `NotifyPointer`, `NotifyPointerRoot`, or `NotifyDetailNone`
+- `same_screen` - `TRUE` or `FALSE`
+- `focus` - `TRUE` or `FALSE`
+- `state` - an `INTEGER` for a mask. Retrievable by `lexeme-to-mask` or `multifield-to-mask`
+
+```
+(FocusIn <window> <mode> <detail>)
+(FocusOut <window> <mode> <detail>)
+```
+
+- `mode` - `NotifyNormal`, `NotifyGrab`, or `NotifyUngrab`
+- `detail` - `NotifyAncestor`, `NotifyVirtual`, `NotifyInferior`, `NotifyNonlinear`, `NotifyNonlinearVirtual`, `NotifyPointer`, `NotifyPointerRoot`, or `NotifyDetailNone`
+
+```
+(KeymapNotify <display> <window> <bool>...<bool>)
+```
+
+- `display` - C Pointer to `Display`
+
+```
+(Expose <window> <x> <y> <width> <height> <count>)
+(GraphicsExpose <drawable> <x> <y> <width> <height> <count> <major_code> <minor_code>)
+(NoExpose <drawable> <major_code> <minor_code>)
+```
+
+```
+(VisibilityNotify <window> <state>)
+```
+
+- `state` - `VisibilityUnobscured`, `VisibilityPartiallyObscured`, or `VisibilityFullyObscured`
+
+```
+(CreateNotify <parent> <window> <x> <y> <width> <height> <border_width> <override_redirect>)
+```
+
+- `override_redirect` - `TRUE` or `FALSE`
+
+```
+(DestroyNotify <event> <window>)
+```
+
+```
+(UnmapNotify <event> <window> <from_configure>)
+```
+
+- `from_configure` - `TRUE` or `FALSE`
+
+```
+(MapNotify <event> <window> <override_redirect>)
+```
+
+- `override_redirect` - `TRUE` or `FALSE`
+
+```
+(MapRequest <parent> <window>)
+```
+
+```
+(ReparentNotify <event> <window> <parent> <x> <y> <override_redirect>)
+(ConfigureNotify <event> <window> <parent> <x> <y> <width> <height> <border_width> <above> <override_redirect>)
+```
+
+- `override_redirect` - `TRUE` or `FALSE`
+
+```
+(ConfigureRequest <parent> <window> <x> <y> <width> <height> <border_width> <above> <detail> <value_mask>)
+```
+
+- `detail` - `Above`, `Below`, `TopIf`, `BottomIf`, `Opposite`
+
+```
+(GravityNotify <event> <window> <x> <y>)
+(ResizeRequest <window> <width> <height>)
+```
+
+```
+(CirculateNotify <event> <window> <place>)
+(CirculateRequest <parent> <window> <place>)
+```
+
+- `place` - `PlaceOnTop` or `PlaceOnBottom`
+
+```
+(PropertyNotify <window> <atom> <time> <state>)
+```
+
+- `state` - `PropertyNewValue` or `PropertyDelete`
+
+```
+(SelectionClear <window> <selection> <time>)
+(SelectionRequest <owner> <requestor> <selection> <target> <property> <time>)
+(SelectionNotify <requestor> <selection> <target> <property> <time>)
+```
+
+```
+(ColormapNotify <window> <colormap> <new> <state>)
+```
+
+- `state` - `ColormapInstalled` or `ColormapUninstalled`
+
+```
+(ClientMessage <window> <message_type> <format> <b or s or l integers>...<b or s or l integers>)
+```
+
+- `format` - `8`, `16`, or `32`
+
+```
+(MappingNotify <window> <request> <first_keycode> <count>)
+```
+
+- `request` - `MappingModifier`, `MappingKeyboard`, or `MappingPointer`
+
+```
+(GenericEvent <extension> <evtype>)
+```
+
+---
+
 ### Keyboard Utilities
 
 #### `x-lookup-string`
@@ -951,6 +1213,58 @@ Maps a key name (e.g. `"Return"`) to its keysym.
 
 ---
 
+#### `x-grab-button`
+
+```clips
+(x-grab-button <display> <button> <modifiers> <grab_window> <owner-events?> <event_mask> <pointer-mode> <keyboard-mode> <confine_to> <cursor>) → <status>
+```
+
+##### Description
+
+Grabs a specific button (with optional modifier masks) on a given window so that the application receives button events even if another client would normally have focus. This is an X11 passive button grab.
+
+##### Arguments
+
+1. `<display>` – External address to an X11 Display object.
+2. `<button>` – Integer button to grab.
+3. `<modifiers>` – An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+4. `<grab-window>` – Integer representing the X11 window in which the button is to be grabbed.
+5. `<owner-events?>` – Boolean; if TRUE, events are reported as if the grabbing client owned the events (owner_events argument to XGrabKey).
+6. `<pointer-mode-symbol>` – Symbol controlling pointer freezing behavior during the grab. Recognized value:
+     * "GrabModeSync" – pointer is frozen until explicitly released (maps to X11 GrabModeSync)
+     * anything else (typically "GrabModeAsync") – pointer operates asynchronously (maps to GrabModeAsync)
+7. `<keyboard-mode-symbol>` – Symbol controlling keyboard freezing behavior during the grab. Same semantics as pointer-mode-symbol.
+8. `<confine_to>` - Window to confine the grab to
+9. `<cursor>` - Specifies the cursor to be displayed
+
+##### Example
+
+```clips
+;grabs button t when mod4 (typically windows button) is held down
+(x-grab-button ?display (x-buttonsym-to-buttoncode ?display (x-string-to-buttonsym "t")) Mod4Mask ?window TRUE GrabModeAsync GrabModeAsync)))
+```
+
+---
+
+#### `x-ungrab-button`
+
+```clips
+(x-ungrab-button <display> <button> <modifiers> <grab_window>) → VOID
+```
+
+##### Description
+
+Releases a specific button (with optional modifier masks) on a given window if it was grabbed by this client.
+
+##### Arguments
+
+1. `<display>` – External address to an X11 Display object.
+2. `<button>` – Integer button to grab.
+3. `<modifiers>` – An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+4. `<grab-window>` – Integer representing the X11 window in which the button is to be grabbed.
+
+---
+
 #### `x-grab-key`
 
 ```clips
@@ -965,17 +1279,7 @@ Grabs a specific key (with optional modifier masks) on a given window so that th
 
 1. `<display>` – External address to an X11 Display object.
 2. `<keycode>` – Integer keycode to grab.
-3. `<modifiers>` – Either a symbol or a multifield list of symbols specifying modifier masks. Supported symbols:
-     * `ShiftMask`
-     * `LockMask`
-     * `ControlMask`
-     * `Mod1Mask`
-     * `Mod2Mask`
-     * `Mod3Mask`
-     * `Mod4Mask`
-     * `Mod5Mask`
-     * `AnyModifier` (special; matches any combination)
-   If a multifield is provided, each symbol is OR'ed together to form the modifier mask.
+3. `<modifiers>` – An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
 4. `<grab-window>` – Integer representing the X11 window in which the key is to be grabbed.
 5. `<owner-events?>` – Boolean; if TRUE, events are reported as if the grabbing client owned the events (owner_events argument to XGrabKey).
 6. `<pointer-mode-symbol>` – Symbol controlling pointer freezing behavior during the grab. Recognized value:
@@ -989,6 +1293,68 @@ Grabs a specific key (with optional modifier masks) on a given window so that th
 ;grabs key t when mod4 (typically windows key) is held down
 (x-grab-key ?display (x-keysym-to-keycode ?display (x-string-to-keysym "t")) Mod4Mask ?window TRUE GrabModeAsync GrabModeAsync)))
 ```
+
+---
+
+#### `x-ungrab-key`
+
+```clips
+(x-ungrab-key <display> <keycode> <modifiers> <grab_window>) → VOID
+```
+
+##### Description
+
+Releases a specific key (with optional modifier masks) on a given window if it was grabbed by this client.
+
+##### Arguments
+
+1. `<display>` – External address to an X11 Display object.
+2. `<keycode>` – Integer keycode to grab.
+3. `<modifiers>` – An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+4. `<grab-window>` – Integer representing the X11 window in which the key is to be grabbed.
+
+---
+
+#### `x-grab-pointer`
+
+```clips
+(x-grab-pointer <display> <grab_window> <owner_events?> <event_mask> <pointer-mode> <keyboard-mode> <confine_to> <cursor> [<time>]) → <status>
+```
+
+##### Description
+
+Grabs control of the pointer. Further pointer events are reported only to the grabbing client.
+
+##### Arguments
+
+1. `<display>` – External address to an X11 Display object.
+2. `<grab-window>` – Integer representing the X11 window in which the pointer is to be grabbed.
+3. `<owner-events?>` – Boolean; if TRUE, events are reported as if the grabbing client owned the events (owner_events argument to XGrabKey).
+4. `<event_mask>` – An integer representing the event masks for which Pointer events are reported. See `lexeme-to-event-mask` or `multifield-to-event-mask` for converting names of event masks into an integer.
+5. `<pointer-mode-symbol>` – Symbol controlling pointer freezing behavior during the grab. Recognized value:
+     * "GrabModeSync" – pointer is frozen until explicitly released (maps to X11 GrabModeSync)
+     * anything else (typically "GrabModeAsync") – pointer operates asynchronously (maps to GrabModeAsync)
+6. `<keyboard-mode-symbol>` – Symbol controlling keyboard freezing behavior during the grab. Same semantics as pointer-mode-symbol.
+7. `<confine_to>` - Window to confine the grab to
+8. `<cursor>` - Specifies the cursor to be displayed
+9. `<time>` - Specifies the time of the grab. `CurrentTime` if not provided.
+
+---
+
+#### `x-ungrab-pointer`
+
+```clips
+(x-ungrab-pointer <display> [<time>]) → VOID
+```
+
+##### Description
+
+Releases the pointer and any queued events.
+
+##### Arguments
+
+1. `<display>` – External address to an X11 Display object.
+2. `<time>` – Specifies the time. `CurrentTime` if not provided.
 
 ---
 
@@ -1050,16 +1416,16 @@ Returns the same information as a multifield vector.
 
 ### Utility
 
-#### `x-event-mask-to-multifield`
+#### `event-mask-to-symbol`
 
 ```clips
-(x-event-mask-to-multifield <mask integer>) → <multifield>
+(event-mask-to-symbol <mask integer>) → <symbol>
 ```
 
 #### Description
 
-Converts an integer event mask to a multifield of symbols
-representing the event mask names. Possible event masks that will return:
+Converts an integer event mask to a symbol
+representing the event mask name. Possible event masks that will return:
 
 - `KeyPressMask`
 - `KeyReleaseMask`
@@ -1086,3 +1452,119 @@ representing the event mask names. Possible event masks that will return:
 - `PropertyChangeMask`
 - `ColormapChangeMask`
 - `OwnerGrabButtonMask`
+
+---
+
+#### `mask-to-symbol`
+
+```clips
+(mask-to-symbol <mask integer>) → <symbol>
+```
+
+#### Description
+
+Converts an integer mask to a symbol
+representing the mask names. Possible masks that will return:
+
+- `ShiftMask`
+- `LockMask`
+- `ControlMask`
+- `Mod1Mask`
+- `Mod2Mask`
+- `Mod3Mask`
+- `Mod4Mask`
+- `Mod5Mask`
+- `Button1Mask`
+- `Button2Mask`
+- `Button3Mask`
+- `Button4Mask`
+- `Button5Mask`
+- `AnyModifier`
+
+---
+
+#### `event-mask-to-multifield`
+
+```clips
+(event-mask-to-multifield <mask integer>) → <multifield>
+```
+
+#### Description
+
+Converts an integer event mask to a multifield of symbols
+representing the event mask names. Refer to `event-mask-to-symbol`
+for possible values that will return in the multifield.
+
+---
+
+#### `mask-to-multifield`
+
+```clips
+(mask-to-multifield <mask integer>) → <multifield>
+```
+
+#### Description
+
+Converts an integer mask to a multifield of symbols
+representing the mask names. Refer to `mask-to-symbol`
+for possible values that will return in the multifield.
+
+---
+
+#### `lexeme-to-event-mask`
+
+```clips
+(lexeme-to-event-mask <symbol or string>) → <integer>
+```
+
+##### Description
+
+Converts a symbol or string of an event mask
+to the integer mask for the event mask.
+See `event-mask-to-symbol` for a list of possible symbols
+that may be passed as the argument.
+
+---
+
+#### `lexeme-to-mask`
+
+```clips
+(lexeme-to-mask <symbol or string>) → <integer>
+```
+
+##### Description
+
+Converts a symbol or string of a mask
+to the integer mask for the mask.
+See `mask-to-symbol` for a list of possible symbols
+that may be passed in the multifield.
+
+---
+
+#### `multifield-to-event-mask`
+
+```clips
+(multifield-to-event-mask <multifield>) → <integer>
+```
+
+##### Description
+
+Converts a multifield containing symbols of event masks
+to the integer mask containing all event masks specified.
+See `event-mask-to-symbol` for a list of possible symbols
+that may be passed in the multifield.
+
+---
+
+#### `multifield-to-mask`
+
+```clips
+(multifield-to-mask <multifield>) → <integer>
+```
+
+##### Description
+
+Converts a multifield containing symbols of masks
+to the integer mask containing all masks specified.
+See `mask-to-symbol` for a list of possible symbols
+that may be passed in the multifield.

@@ -45,11 +45,7 @@
 		?y_root
 		$?
 		=(x-keysym-to-keycode ?display (x-string-to-keysym "n"))
-		?same-screen
-		?buffer
-		?keysym
-		?compose-ptr
-		?chars-matched)
+		?same-screen)
 	=>
 	(x-circulate-subwindows-up ?display ?root)
 	(x-set-input-focus ?display ?window RevertToParent 0)
@@ -73,11 +69,7 @@
 		?y_root
 		$?
 		=(x-keysym-to-keycode ?display (x-string-to-keysym "q"))
-		?same-screen
-		?buffer
-		?keysym
-		?compose-ptr
-		?chars-matched)
+		?same-screen)
 	=>
 	(x-kill-client ?display ?subwindow)
 	(retract ?event)
@@ -100,11 +92,7 @@
 		?y_root
 		$?
 		=(x-keysym-to-keycode ?display (x-string-to-keysym "e"))
-		?same-screen
-		?buffer
-		?keysym
-		?compose-ptr
-		?chars-matched)
+		?same-screen)
 	=>
 	(system "dmenu_run &")
 	(retract ?event)
