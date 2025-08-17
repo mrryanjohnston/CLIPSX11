@@ -9098,6 +9098,202 @@ void XConfigureWindowFunction(
 	returnValue->integerValue = CreateInteger(theEnv, XConfigureWindow(display, w, (unsigned int) value_mask, &changes));
 }
 
+unsigned long StringToCWAttrMask(const char *s)
+{
+	if (!s) return 0;
+	if (strcmp(s,"CWBackPixmap") == 0)       return CWBackPixmap;
+	if (strcmp(s,"CWBackPixel") == 0)        return CWBackPixel;
+	if (strcmp(s,"CWBorderPixmap") == 0)     return CWBorderPixmap;
+	if (strcmp(s,"CWBorderPixel") == 0)      return CWBorderPixel;
+	if (strcmp(s,"CWBitGravity") == 0)       return CWBitGravity;
+	if (strcmp(s,"CWWinGravity") == 0)       return CWWinGravity;
+	if (strcmp(s,"CWBackingStore") == 0)     return CWBackingStore;
+	if (strcmp(s,"CWBackingPlanes") == 0)    return CWBackingPlanes;
+	if (strcmp(s,"CWBackingPixel") == 0)     return CWBackingPixel;
+	if (strcmp(s,"CWOverrideRedirect") == 0) return CWOverrideRedirect;
+	if (strcmp(s,"CWSaveUnder") == 0)        return CWSaveUnder;
+	if (strcmp(s,"CWEventMask") == 0)        return CWEventMask;
+	if (strcmp(s,"CWDontPropagate") == 0)    return CWDontPropagate;
+	if (strcmp(s,"CWColormap") == 0)         return CWColormap;
+	if (strcmp(s,"CWCursor") == 0)           return CWCursor;
+	return 0;
+}
+
+int StringToGravity(const char *s)
+{
+	if (!s) return ForgetGravity;
+	if (strcmp(s,"ForgetGravity")==0)    return ForgetGravity;
+	if (strcmp(s,"NorthWestGravity")==0) return NorthWestGravity;
+	if (strcmp(s,"NorthGravity")==0)     return NorthGravity;
+	if (strcmp(s,"NorthEastGravity")==0) return NorthEastGravity;
+	if (strcmp(s,"WestGravity")==0)      return WestGravity;
+	if (strcmp(s,"CenterGravity")==0)    return CenterGravity;
+	if (strcmp(s,"EastGravity")==0)      return EastGravity;
+	if (strcmp(s,"SouthWestGravity")==0) return SouthWestGravity;
+	if (strcmp(s,"SouthGravity")==0)     return SouthGravity;
+	if (strcmp(s,"SouthEastGravity")==0) return SouthEastGravity;
+	if (strcmp(s,"StaticGravity")==0)    return StaticGravity;
+	return ForgetGravity;
+}
+
+int StringToBackingStore(const char *s)
+{
+	if (!s) return NotUseful;
+	if (strcmp(s,"NotUseful")==0)  return NotUseful;
+	if (strcmp(s,"WhenMapped")==0) return WhenMapped;
+	if (strcmp(s,"Always")==0)     return Always;
+	return NotUseful;
+}
+
+void XChangeWindowAttributesFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window w;
+	unsigned long value_mask = 0;
+	XSetWindowAttributes attrs;
+	UDFValue theArg;
+
+	memset(&attrs, 0, sizeof(attrs));
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	w = (Window) theArg.integerValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT | LEXEME_BITS | MULTIFIELD_BIT, &theArg);
+	switch (theArg.header->type) {
+		case INTEGER_TYPE:
+			value_mask = (unsigned long) theArg.integerValue->contents;
+			break;
+		case SYMBOL_TYPE:
+		case STRING_TYPE:
+			value_mask = StringToCWAttrMask(theArg.lexemeValue->contents);
+			break;
+		case MULTIFIELD_TYPE: {
+					      size_t n = theArg.multifieldValue->length;
+					      for (size_t i = 0; i < n; ++i) {
+						      if (theArg.multifieldValue->contents[i].header->type == SYMBOL_TYPE ||
+								      theArg.multifieldValue->contents[i].header->type == STRING_TYPE) {
+							      value_mask |= StringToCWAttrMask(
+									      theArg.multifieldValue->contents[i].lexemeValue->contents);
+						      } else if (theArg.multifieldValue->contents[i].header->type == INTEGER_TYPE) {
+							      value_mask |= (unsigned long) theArg.multifieldValue->contents[i].integerValue->contents;
+						      }
+					      }
+					      break;
+				      }
+		default:
+				      value_mask = 0;
+				      break;
+	}
+
+	if (value_mask & CWBackPixel && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, INTEGER_BIT, &theArg);
+		attrs.background_pixel = (unsigned long) theArg.integerValue->contents;
+	}
+	if (value_mask & CWBackPixmap && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, INTEGER_BIT, &theArg);
+		attrs.background_pixmap = (Pixmap) theArg.integerValue->contents;
+	}
+	if (value_mask & CWBorderPixel && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, INTEGER_BIT, &theArg);
+		attrs.border_pixel = (unsigned long) theArg.integerValue->contents;
+	}
+	if (value_mask & CWBorderPixmap && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, INTEGER_BIT, &theArg);
+		attrs.border_pixmap = (Pixmap) theArg.integerValue->contents;
+	}
+	if (value_mask & CWBitGravity && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, SYMBOL_BIT | INTEGER_BIT, &theArg);
+		if (theArg.header->type == INTEGER_TYPE)
+			attrs.bit_gravity = (int) theArg.integerValue->contents;
+		else
+			attrs.bit_gravity = StringToGravity(theArg.lexemeValue->contents);
+	}
+	if (value_mask & CWWinGravity && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, SYMBOL_BIT | INTEGER_BIT, &theArg);
+		if (theArg.header->type == INTEGER_TYPE)
+			attrs.win_gravity = (int) theArg.integerValue->contents;
+		else
+			attrs.win_gravity = StringToGravity(theArg.lexemeValue->contents);
+	}
+	if (value_mask & CWBackingStore && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, SYMBOL_BIT | INTEGER_BIT, &theArg);
+		if (theArg.header->type == INTEGER_TYPE)
+			attrs.backing_store = (int) theArg.integerValue->contents;
+		else
+			attrs.backing_store = StringToBackingStore(theArg.lexemeValue->contents);
+	}
+	if (value_mask & CWBackingPlanes && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, INTEGER_BIT, &theArg);
+		attrs.backing_planes = (unsigned long) theArg.integerValue->contents;
+	}
+	if (value_mask & CWBackingPixel && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, INTEGER_BIT, &theArg);
+		attrs.backing_pixel = (unsigned long) theArg.integerValue->contents;
+	}
+	if (value_mask & CWOverrideRedirect && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, SYMBOL_BIT | INTEGER_BIT, &theArg);
+		if (theArg.header->type == INTEGER_TYPE)
+			attrs.override_redirect = (theArg.integerValue->contents != 0);
+		else
+			attrs.override_redirect = (theArg.lexemeValue == theEnv->TrueSymbol);
+	}
+	if (value_mask & CWSaveUnder && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, SYMBOL_BIT | INTEGER_BIT, &theArg);
+		if (theArg.header->type == INTEGER_TYPE)
+			attrs.save_under = (theArg.integerValue->contents != 0);
+		else
+			attrs.save_under = (theArg.lexemeValue == theEnv->TrueSymbol);
+	}
+	if (value_mask & CWEventMask && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, INTEGER_BIT, &theArg);
+		attrs.event_mask = (long) theArg.integerValue->contents;
+	}
+	if (value_mask & CWDontPropagate && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, INTEGER_BIT, &theArg);
+		attrs.do_not_propagate_mask = (long) theArg.integerValue->contents;
+	}
+	if (value_mask & CWColormap && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, INTEGER_BIT, &theArg);
+		attrs.colormap = (Colormap) theArg.integerValue->contents;
+	}
+	if (value_mask & CWCursor && UDFHasNextArgument(context)) {
+		UDFNextArgument(context, INTEGER_BIT, &theArg);
+		attrs.cursor = (Cursor) theArg.integerValue->contents;
+	}
+
+	returnValue->integerValue = CreateInteger(theEnv,
+			XChangeWindowAttributes(display, w, (unsigned long) value_mask, &attrs));
+}
+
+void XSetWindowBackgroundFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window w;
+	unsigned long pixel;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	w = (Window) theArg.integerValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	pixel = (unsigned long) theArg.integerValue->contents;
+
+	XSetWindowBackground(display, w, pixel);
+	returnValue->integerValue = CreateInteger(theEnv, 1);
+}
+
 /*********************************************************/
 /* UserFunctions: Informs the expert system environment  */
 /*   of any user defined functions. In the default case, */
@@ -9210,4 +9406,6 @@ void UserFunctions(
 	  AddUDF(env,"x-allow-events","v",2,3,";e;lsy;l",XAllowEventsFunction,"XAllowEventsFunction",NULL);
 	  AddUDF(env,"x-restack-windows","v",2,3,";e;m;l",XRestackWindowsFunction,"XRestackWindowsFunction",NULL);
 	  AddUDF(env,"x-configure-window","l",10,10,";e;l;lmsy;l;l;l;l;l;l;ly",XConfigureWindowFunction,"XConfigureWindowFunction",NULL);
+	  AddUDF(env,"x-change-window-attributes","l",3,18,";e;l;lmsy;l;l;l;l;ly;ly;ly;l;l;ly;ly;l;l;l;l",XChangeWindowAttributesFunction,"XChangeWindowAttributesFunction",NULL);
+	  AddUDF(env,"x-set-window-background","l",3,3,";e;l;l",XSetWindowBackgroundFunction,"XSetWindowBackgroundFunction",NULL);
   }

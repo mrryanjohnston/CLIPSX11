@@ -316,12 +316,12 @@ Moves and resizes a window in one call.
 
 ##### Parameters
 
-1. `<display>` – External address to an X11 Display object. Represents the connection to the X server.
-2. `<window>` – Integer handle identifying the window to move/resize.
-3. `<x>` – Integer specifying the new X coordinate (position) of the window’s origin relative to its parent.
-4. `<y>` – Integer specifying the new Y coordinate of the window’s origin relative to its parent.
-5. `<width>` – Integer giving the new width of the window in pixels.
-6. `<height>` – Integer giving the new height of the window in pixels.
+1. `<display>` - External address to an X11 Display object. Represents the connection to the X server.
+2. `<window>` - Integer handle identifying the window to move/resize.
+3. `<x>` - Integer specifying the new X coordinate (position) of the window’s origin relative to its parent.
+4. `<y>` - Integer specifying the new Y coordinate of the window’s origin relative to its parent.
+5. `<width>` - Integer giving the new width of the window in pixels.
+6. `<height>` - Integer giving the new height of the window in pixels.
 
 ##### Returns
 
@@ -341,8 +341,8 @@ Raises all child windows of `window`.
 
 ##### Arguments
 
-1. `<display>` – External address to an X11 `Display` object.  
-2. `<window>` – Integer representing the X11 `Window` to bring to the top.
+1. `<display>` - External address to an X11 `Display` object.  
+2. `<window>` - Integer representing the X11 `Window` to bring to the top.
 
 ---
 
@@ -358,8 +358,8 @@ Lowers all child windows of `window`.
 
 ##### Arguments
 
-1. `<display>` – External address to an X11 `Display` object.  
-2. `<window>` – Integer representing the X11 `Window` to bring to the bottom.
+1. `<display>` - External address to an X11 `Display` object.  
+2. `<window>` - Integer representing the X11 `Window` to bring to the bottom.
 
 ---
 
@@ -375,8 +375,8 @@ Raises `window` to the top of its siblings.
 
 ##### Arguments
 
-1. `<display>` – External address to an X11 `Display` object.  
-2. `<window>` – Integer representing the X11 `Window` to bring to the top.
+1. `<display>` - External address to an X11 `Display` object.  
+2. `<window>` - Integer representing the X11 `Window` to bring to the top.
 
 ---
 
@@ -392,8 +392,8 @@ Lowers `window` to the bottom of its siblings.
 
 ##### Arguments
 
-1. `<display>` – External address to an X11 `Display` object.  
-2. `<window>` – Integer representing the X11 `Window` to lower to the bottom.
+1. `<display>` - External address to an X11 `Display` object.  
+2. `<window>` - Integer representing the X11 `Window` to lower to the bottom.
 
 ---
 
@@ -425,19 +425,19 @@ Clears (removes) one or more size/position-related hint flags from the `WM_NORMA
 
 ##### Arguments
 
-1. `<display>` – External address to an X11 `Display` object.  
-2. `<window>` – Integer representing the X11 `Window` whose hints are to be modified.  
+1. `<display>` - External address to an X11 `Display` object.  
+2. `<window>` - Integer representing the X11 `Window` whose hints are to be modified.  
 3. Zero or more of the following hint symbols indicating which bits to **remove** from the current `XSizeHints.flags`:
-   - `USPosition` – User-specified position.
-   - `USSize` – User-specified size.
-   - `PPosition` – Program-specified position.
-   - `PSize` – Program-specified size.
-   - `PMinSize` – Program-specified minimum size.
-   - `PMaxSize` – Program-specified maximum size.
-   - `PResizeInc` – Resize increment.
-   - `PAspect` – Aspect ratio.
-   - `PBaseSize` – Base size.
-   - `PWinGravity` – Window gravity.
+   - `USPosition` - User-specified position.
+   - `USSize` - User-specified size.
+   - `PPosition` - Program-specified position.
+   - `PSize` - Program-specified size.
+   - `PMinSize` - Program-specified minimum size.
+   - `PMaxSize` - Program-specified maximum size.
+   - `PResizeInc` - Resize increment.
+   - `PAspect` - Aspect ratio.
+   - `PBaseSize` - Base size.
+   - `PWinGravity` - Window gravity.
 
 ##### Example
 
@@ -463,9 +463,9 @@ Sets the window gravity in the `WM_NORMAL_HINTS` property for a given X11 window
 
 ##### Arguments
 
-1. <display> – External address to an X11 Display object.
-2. <window> – Integer representing the X11 Window whose gravity is to be set.
-3. <gravity-symbol> – One of the supported gravity symbols:
+1. <display> - External address to an X11 Display object.
+2. <window> - Integer representing the X11 Window whose gravity is to be set.
+3. <gravity-symbol> - One of the supported gravity symbols:
    - ForgetGravity
    - NorthWestGravity
    - NorthGravity
@@ -1297,15 +1297,15 @@ Grabs a specific button (with optional modifier masks) on a given window so that
 
 ##### Arguments
 
-1. `<display>` – External address to an X11 Display object.
-2. `<button>` – Integer button to grab.
-3. `<modifiers>` – An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
-4. `<grab-window>` – Integer representing the X11 window in which the button is to be grabbed.
-5. `<owner-events?>` – Boolean; if TRUE, events are reported as if the grabbing client owned the events (owner_events argument to XGrabKey).
-6. `<pointer-mode-symbol>` – Symbol controlling pointer freezing behavior during the grab. Recognized value:
-     * "GrabModeSync" – pointer is frozen until explicitly released (maps to X11 GrabModeSync)
-     * anything else (typically "GrabModeAsync") – pointer operates asynchronously (maps to GrabModeAsync)
-7. `<keyboard-mode-symbol>` – Symbol controlling keyboard freezing behavior during the grab. Same semantics as pointer-mode-symbol.
+1. `<display>` - External address to an X11 Display object.
+2. `<button>` - Integer button to grab.
+3. `<modifiers>` - An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+4. `<grab-window>` - Integer representing the X11 window in which the button is to be grabbed.
+5. `<owner-events?>` - Boolean; if TRUE, events are reported as if the grabbing client owned the events (owner_events argument to XGrabKey).
+6. `<pointer-mode-symbol>` - Symbol controlling pointer freezing behavior during the grab. Recognized value:
+     * "GrabModeSync" - pointer is frozen until explicitly released (maps to X11 GrabModeSync)
+     * anything else (typically "GrabModeAsync") - pointer operates asynchronously (maps to GrabModeAsync)
+7. `<keyboard-mode-symbol>` - Symbol controlling keyboard freezing behavior during the grab. Same semantics as pointer-mode-symbol.
 8. `<confine_to>` - Window to confine the grab to
 9. `<cursor>` - Specifies the cursor to be displayed
 
@@ -1330,10 +1330,10 @@ Releases a specific button (with optional modifier masks) on a given window if i
 
 ##### Arguments
 
-1. `<display>` – External address to an X11 Display object.
-2. `<button>` – Integer button to grab.
-3. `<modifiers>` – An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
-4. `<grab-window>` – Integer representing the X11 window in which the button is to be grabbed.
+1. `<display>` - External address to an X11 Display object.
+2. `<button>` - Integer button to grab.
+3. `<modifiers>` - An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+4. `<grab-window>` - Integer representing the X11 window in which the button is to be grabbed.
 
 ---
 
@@ -1349,15 +1349,15 @@ Grabs a specific key (with optional modifier masks) on a given window so that th
 
 ##### Arguments
 
-1. `<display>` – External address to an X11 Display object.
-2. `<keycode>` – Integer keycode to grab.
-3. `<modifiers>` – An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
-4. `<grab-window>` – Integer representing the X11 window in which the key is to be grabbed.
-5. `<owner-events?>` – Boolean; if TRUE, events are reported as if the grabbing client owned the events (owner_events argument to XGrabKey).
-6. `<pointer-mode-symbol>` – Symbol controlling pointer freezing behavior during the grab. Recognized value:
-     * "GrabModeSync" – pointer is frozen until explicitly released (maps to X11 GrabModeSync)
-     * anything else (typically "GrabModeAsync") – pointer operates asynchronously (maps to GrabModeAsync)
-7. `<keyboard-mode-symbol>` – Symbol controlling keyboard freezing behavior during the grab. Same semantics as pointer-mode-symbol.
+1. `<display>` - External address to an X11 Display object.
+2. `<keycode>` - Integer keycode to grab.
+3. `<modifiers>` - An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+4. `<grab-window>` - Integer representing the X11 window in which the key is to be grabbed.
+5. `<owner-events?>` - Boolean; if TRUE, events are reported as if the grabbing client owned the events (owner_events argument to XGrabKey).
+6. `<pointer-mode-symbol>` - Symbol controlling pointer freezing behavior during the grab. Recognized value:
+     * "GrabModeSync" - pointer is frozen until explicitly released (maps to X11 GrabModeSync)
+     * anything else (typically "GrabModeAsync") - pointer operates asynchronously (maps to GrabModeAsync)
+7. `<keyboard-mode-symbol>` - Symbol controlling keyboard freezing behavior during the grab. Same semantics as pointer-mode-symbol.
 
 ##### Example
 
@@ -1380,10 +1380,10 @@ Releases a specific key (with optional modifier masks) on a given window if it w
 
 ##### Arguments
 
-1. `<display>` – External address to an X11 Display object.
-2. `<keycode>` – Integer keycode to grab.
-3. `<modifiers>` – An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
-4. `<grab-window>` – Integer representing the X11 window in which the key is to be grabbed.
+1. `<display>` - External address to an X11 Display object.
+2. `<keycode>` - Integer keycode to grab.
+3. `<modifiers>` - An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+4. `<grab-window>` - Integer representing the X11 window in which the key is to be grabbed.
 
 ---
 
@@ -1399,14 +1399,14 @@ Grabs control of the pointer. Further pointer events are reported only to the gr
 
 ##### Arguments
 
-1. `<display>` – External address to an X11 Display object.
-2. `<grab-window>` – Integer representing the X11 window in which the pointer is to be grabbed.
-3. `<owner-events?>` – Boolean; if TRUE, events are reported as if the grabbing client owned the events (owner_events argument to XGrabKey).
-4. `<event_mask>` – An integer representing the event masks for which Pointer events are reported. See `lexeme-to-event-mask` or `multifield-to-event-mask` for converting names of event masks into an integer.
-5. `<pointer-mode-symbol>` – Symbol controlling pointer freezing behavior during the grab. Recognized value:
-     * "GrabModeSync" – pointer is frozen until explicitly released (maps to X11 GrabModeSync)
-     * anything else (typically "GrabModeAsync") – pointer operates asynchronously (maps to GrabModeAsync)
-6. `<keyboard-mode-symbol>` – Symbol controlling keyboard freezing behavior during the grab. Same semantics as pointer-mode-symbol.
+1. `<display>` - External address to an X11 Display object.
+2. `<grab-window>` - Integer representing the X11 window in which the pointer is to be grabbed.
+3. `<owner-events?>` - Boolean; if TRUE, events are reported as if the grabbing client owned the events (owner_events argument to XGrabKey).
+4. `<event_mask>` - An integer representing the event masks for which Pointer events are reported. See `lexeme-to-event-mask` or `multifield-to-event-mask` for converting names of event masks into an integer.
+5. `<pointer-mode-symbol>` - Symbol controlling pointer freezing behavior during the grab. Recognized value:
+     * "GrabModeSync" - pointer is frozen until explicitly released (maps to X11 GrabModeSync)
+     * anything else (typically "GrabModeAsync") - pointer operates asynchronously (maps to GrabModeAsync)
+6. `<keyboard-mode-symbol>` - Symbol controlling keyboard freezing behavior during the grab. Same semantics as pointer-mode-symbol.
 7. `<confine_to>` - Window to confine the grab to
 8. `<cursor>` - Specifies the cursor to be displayed
 9. `<time>` - Specifies the time of the grab. `CurrentTime` if not provided.
@@ -1425,8 +1425,8 @@ Releases the pointer and any queued events.
 
 ##### Arguments
 
-1. `<display>` – External address to an X11 Display object.
-2. `<time>` – Specifies the time. `CurrentTime` if not provided.
+1. `<display>` - External address to an X11 Display object.
+2. `<time>` - Specifies the time. `CurrentTime` if not provided.
 
 ---
 
@@ -1699,3 +1699,128 @@ Restacks the windows in the order specified, from top to bottom.
 - `display` - Specifies the connection to the X server.
 - `windows` - Specifies a multifield containing the window `INTEGER`s to be restacked.
 - `nwindows` - Optional. Specifies the number of windows to be restacked. Will use the length of `windows` multifield if omitted.
+
+---
+
+#### `x-sync`
+
+```clips
+(x-sync <display> [<discard?>]) → <status>
+```
+
+##### Description
+
+Synchronizes with the X server. Sends all pending requests and waits until they are processed.
+Optionally discards any events already in the queue.
+
+- `<display>` - External address to an X11 `Display*`.
+- `<discard?>` - Optional boolean.
+    - `TRUE` discards all queued events.
+    - `FALSE` (default) keeps queued events.
+
+##### Returns
+
+Integer status (non-zero on success).
+
+---
+
+#### `x-flush`
+
+```clips
+(x-flush <display>) → <status>
+```
+
+##### Description
+
+Flushes the output buffer of the X server connection, ensuring all pending requests are sent.
+Does not wait for responses from the server.
+
+##### Arguments
+
+- `<display>` - External address to an X11 `Display*`.
+
+##### Returns
+
+Integer status (always non-zero).
+
+---
+
+#### `x-set-window-background`
+
+```clips
+(x-set-window-background <display> <window> <pixel>) → <status>
+```
+
+##### Description
+
+Sets the background color of a window to the specified pixel value. The window background is used when the window is cleared.
+
+##### Arguments
+
+- `<display>` - External address to an X11 `Display*`.
+- `<window>` - Integer window ID.
+- `<pixel>` - Integer pixel value to set as the background. Typically retrieved from black-pixel, white-pixel, or x-alloc-color.
+
+##### Returns
+
+Integer status code (`1` on success).
+
+##### Example
+
+```
+(x-set-window-background ?display ?window (white-pixel ?display (default-screen ?display)))
+```
+
+---
+
+#### `x-change-window-attributes`
+
+```clips
+(x-change-window-attributes <display> <window> <value-mask> [<attr1> <attr2> ...]) → <status>
+```
+
+##### Description
+
+Updates one or more attributes of a window. The `<value-mask>` determines which fields are modified.
+Arguments for the attributes must be supplied in the canonical struct order and only for the bits set in `<value-mask>`.
+
+##### Arguments
+
+- `<display>` - External address to `Display*`.
+- `<window>` - Integer window ID.
+- `<value-mask>` - One of:
+    - Integer bitmask
+    - Symbol (e.g. "CWBackPixel")
+    - Multifield of symbols/strings/integers (all OR'ed together)
+Supported mask bits and their corresponding arguments:
+`CWBackPixmap` - Pixmap ID or None/ParentRelative
+`CWBackPixel` - Integer pixel value
+`CWBorderPixmap` - Pixmap ID
+`CWBorderPixel` - Integer pixel value
+`CWBitGravity` - Symbol or integer gravity value
+`CWWinGravity` - Symbol or integer gravity value
+`CWBackingStore` - Symbol (NotUseful | WhenMapped | Always) or integer
+`CWBackingPlanes` - Integer
+`CWBackingPixel` - Integer
+`CWOverrideRedirect` - Boolean or integer (0/1)
+`CWSaveUnder` - Boolean or integer (0/1)
+`CWEventMask` - Integer mask of event bits
+`CWDontPropagate` - Integer mask
+`CWColormap` - Colormap ID
+`CWCursor` - Cursor ID
+
+##### Returns
+
+Integer status code (non-zero on success).
+
+##### Examples
+
+```clips
+; Set only override-redirect
+(x-change-window-attributes ?display ?window CWOverrideRedirect TRUE)
+
+; Set background pixel and event mask
+(x-change-window-attributes ?display ?window (create$ CWBackPixel CWEventMask)
+    0
+    (multifield-to-event-mask (create$ SubstructureRedirectMask StructureNotifyMask)))
+```
