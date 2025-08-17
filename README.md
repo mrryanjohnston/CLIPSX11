@@ -1763,7 +1763,7 @@ Sets the background color of a window to the specified pixel value. The window b
 
 ##### Returns
 
-Integer status code (`1` on success).
+VOID
 
 ##### Example
 
@@ -1823,4 +1823,140 @@ Integer status code (non-zero on success).
 (x-change-window-attributes ?display ?window (create$ CWBackPixel CWEventMask)
     0
     (multifield-to-event-mask (create$ SubstructureRedirectMask StructureNotifyMask)))
+```
+
+---
+
+#### `x-clear-window`
+
+```clips
+(x-clear-window <display> <window>) → <status>
+```
+
+##### Description
+
+Clears the entire window to its background.
+Exposes regions of the window according to its current background settings.
+
+##### Arguments
+
+- `<display>` - External address to `Display*`.
+- `<window>` - Integer window ID.
+
+##### Returns
+
+VOID
+
+---
+
+#### `x-clear-area`
+
+```clips
+(x-clear-area <display> <window> <x> <y> <width> <height> [<exposures?>]) → <status>
+```
+
+##### Description
+
+Clears a rectangular region of a window to the window’s background.
+Optionally controls whether `Expose` events are generated.
+
+##### Arguments
+
+- `<display>` - External address to `Display*`.
+- `<window>` - Integer window ID.
+- `<x>` - X coordinate of top-left corner.
+- `<y>` - Y coordinate of top-left corner.
+- `<width>` - Width of the rectangle.
+- `<height>` - Height of the rectangle.
+- `<exposures?>` - Optional boolean or integer. If TRUE (default), generate Expose events; if FALSE, suppress them
+
+##### Example
+
+```clips
+(x-clear-area ?display ?window 10 10 200 100 FALSE)
+```
+
+---
+
+#### `x-set-selection-owner`
+
+```clips
+(x-set-selection-owner <display> <selection> <owner> [<time>]) → <status>
+```
+
+##### Description
+
+Sets the window that “owns” a selection (e.g., `PRIMARY`, `CLIPBOARD`). Ownership means your window will provide the data when requested.
+
+##### Arguments
+
+- `<display>` - External address to `Display*`.
+- `<selection>` - Atom name or ID (e.g., "PRIMARY", "CLIPBOARD").
+- `<owner>` - Window ID that will own the selection.
+- `<time>` - Optional timestamp (integer). Defaults to CurrentTime (0).
+
+##### Example
+
+```clips
+(x-set-selection-owner ?display "PRIMARY" ?mywin)
+```
+
+---
+
+#### `x-get-selection-owner`
+
+```clips
+(x-get-selection-owner <display> <selection>) → <window>
+```
+
+##### Description
+
+Gets the current owner window of a selection.
+
+##### Arguments
+
+- `<display>` - External address to `Display*`.
+- `<selection>` - Atom name or ID.
+
+##### Returns
+
+Window ID (integer) or 0 if no owner.
+
+##### Example
+
+```clips
+(bind ?owner (x-get-selection-owner ?display "CLIPBOARD"))
+```
+
+---
+
+#### `x-convert-selection`
+
+```clips
+(x-convert-selection <display> <selection> <target> <property> <requestor> [<time>]) → <status>
+```
+
+##### Description
+
+Requests the current owner of a selection to convert its data to a given target (format)
+and place the result into a property on your requestor window.
+After `SelectionNotify`, read it with `x-get-property`.
+
+##### Arguments
+
+- `<display>` - External address to `Display*`.
+- `<selection>` - Atom name or ID (e.g., "PRIMARY", "CLIPBOARD").
+- `<target>` - Atom name or ID of desired format (e.g., "UTF8_STRING", "STRING", "TARGETS").
+- `<property>` - Atom name or ID where data should be stored on the requestor (e.g., "XSEL_DATA").
+- `<requestor>` - Your window ID.
+- `<time>` - Optional timestamp. Defaults to CurrentTime (0).
+
+##### Example
+
+```clips
+; Ask for PRIMARY as UTF8 and store bytes in XSEL_DATA on our window
+(x-convert-selection ?display "PRIMARY" "UTF8_STRING" "XSEL_DATA" ?mywin)
+
+; Later, upon SelectionNotify, read it:
+(x-get-property ?display ?mywin "XSEL_DATA")
 ```

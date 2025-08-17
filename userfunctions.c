@@ -9291,7 +9291,160 @@ void XSetWindowBackgroundFunction(
 	pixel = (unsigned long) theArg.integerValue->contents;
 
 	XSetWindowBackground(display, w, pixel);
-	returnValue->integerValue = CreateInteger(theEnv, 1);
+}
+
+void XClearWindowFunction(
+                Environment *theEnv,
+                UDFContext *context,
+                UDFValue *returnValue)
+{
+        Display *display;
+        Window w;
+        UDFValue theArg;
+
+        UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+        display = (Display *) theArg.externalAddressValue->contents;
+
+        UDFNextArgument(context, INTEGER_BIT, &theArg);
+        w = (Window) theArg.integerValue->contents;
+
+        XClearWindow(display, w);
+}
+
+void XClearAreaFunction(
+                Environment *theEnv,
+                UDFContext *context,
+                UDFValue *returnValue)
+{
+        Display *display;
+        Window w;
+        int x, y;
+        unsigned int width, height;
+        Bool exposures = True;
+        UDFValue theArg;
+
+        UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+        display = (Display *) theArg.externalAddressValue->contents;
+
+        UDFNextArgument(context, INTEGER_BIT, &theArg);
+        w = (Window) theArg.integerValue->contents;
+
+        UDFNextArgument(context, INTEGER_BIT, &theArg);
+        x = (int) theArg.integerValue->contents;
+
+        UDFNextArgument(context, INTEGER_BIT, &theArg);
+        y = (int) theArg.integerValue->contents;
+
+        UDFNextArgument(context, INTEGER_BIT, &theArg);
+        width = (unsigned int) theArg.integerValue->contents;
+
+        UDFNextArgument(context, INTEGER_BIT, &theArg);
+        height = (unsigned int) theArg.integerValue->contents;
+
+        if (UDFHasNextArgument(context)) {
+                UDFNextArgument(context, SYMBOL_BIT | INTEGER_BIT, &theArg);
+                if (theArg.header->type == INTEGER_TYPE) {
+                        exposures = (theArg.integerValue->contents != 0);
+                } else {
+                        exposures = (theArg.lexemeValue == theEnv->TrueSymbol);
+                }
+        }
+
+        XClearArea(display, w, x, y, width, height, exposures);
+}
+
+static Atom AtomFromUDFArg(Environment *theEnv, Display *dpy, UDFValue *arg, Bool only_if_exists)
+{
+        if (arg->header->type == INTEGER_TYPE) {
+                return (Atom) arg->integerValue->contents;
+        } else if (arg->header->type == SYMBOL_TYPE || arg->header->type == STRING_TYPE) {
+                const char *s = arg->lexemeValue->contents;
+                if (strcmp(s, "None") == 0) return None;
+                return XInternAtom(dpy, s, only_if_exists);
+        }
+        return None;
+}
+
+void XSetSelectionOwnerFunction(
+                Environment *theEnv,
+                UDFContext *context,
+                UDFValue *returnValue)
+{
+        Display *display;
+        Atom selection;
+        Window owner;
+        Time time = CurrentTime;
+        UDFValue theArg;
+
+        UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+        display = (Display *) theArg.externalAddressValue->contents;
+
+        UDFNextArgument(context, INTEGER_BIT | LEXEME_BITS, &theArg);
+        selection = AtomFromUDFArg(theEnv, display, &theArg, False);
+
+        UDFNextArgument(context, INTEGER_BIT, &theArg);
+        owner = (Window) theArg.integerValue->contents;
+
+        if (UDFHasNextArgument(context)) {
+                UDFNextArgument(context, INTEGER_BIT, &theArg);
+                time = (Time) theArg.integerValue->contents;
+        }
+
+        XSetSelectionOwner(display, selection, owner, time);
+}
+
+void XGetSelectionOwnerFunction(
+                Environment *theEnv,
+                UDFContext *context,
+                UDFValue *returnValue)
+{
+        Display *display;
+        Atom selection;
+        Window owner;
+        UDFValue theArg;
+
+        UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+        display = (Display *) theArg.externalAddressValue->contents;
+
+        UDFNextArgument(context, INTEGER_BIT | LEXEME_BITS, &theArg);
+        selection = AtomFromUDFArg(theEnv, display, &theArg, False);
+
+        owner = XGetSelectionOwner(display, selection);
+        returnValue->integerValue = CreateInteger(theEnv, (long long) owner);
+}
+
+void XConvertSelectionFunction(
+                Environment *theEnv,
+                UDFContext *context,
+                UDFValue *returnValue)
+{
+        Display *display;
+        Atom selection, target, property;
+        Window requestor;
+        Time time = CurrentTime;
+        UDFValue theArg;
+
+        UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+        display = (Display *) theArg.externalAddressValue->contents;
+
+        UDFNextArgument(context, INTEGER_BIT | LEXEME_BITS, &theArg);
+        selection = AtomFromUDFArg(theEnv, display, &theArg, False);
+
+        UDFNextArgument(context, INTEGER_BIT | LEXEME_BITS, &theArg);
+        target = AtomFromUDFArg(theEnv, display, &theArg, False);
+
+        UDFNextArgument(context, INTEGER_BIT | LEXEME_BITS, &theArg);
+        property = AtomFromUDFArg(theEnv, display, &theArg, False);
+
+        UDFNextArgument(context, INTEGER_BIT, &theArg);
+        requestor = (Window) theArg.integerValue->contents;
+
+        if (UDFHasNextArgument(context)) {
+            UDFNextArgument(context, INTEGER_BIT, &theArg);
+            time = (Time) theArg.integerValue->contents;
+        }
+
+        XConvertSelection(display, selection, target, property, requestor, time);
 }
 
 /*********************************************************/
@@ -9407,5 +9560,11 @@ void UserFunctions(
 	  AddUDF(env,"x-restack-windows","v",2,3,";e;m;l",XRestackWindowsFunction,"XRestackWindowsFunction",NULL);
 	  AddUDF(env,"x-configure-window","l",10,10,";e;l;lmsy;l;l;l;l;l;l;ly",XConfigureWindowFunction,"XConfigureWindowFunction",NULL);
 	  AddUDF(env,"x-change-window-attributes","l",3,18,";e;l;lmsy;l;l;l;l;ly;ly;ly;l;l;ly;ly;l;l;l;l",XChangeWindowAttributesFunction,"XChangeWindowAttributesFunction",NULL);
-	  AddUDF(env,"x-set-window-background","l",3,3,";e;l;l",XSetWindowBackgroundFunction,"XSetWindowBackgroundFunction",NULL);
+	  AddUDF(env,"x-set-window-background","v",3,3,";e;l;l",XSetWindowBackgroundFunction,"XSetWindowBackgroundFunction",NULL);
+	  AddUDF(env,"x-clear-window","l",2,2,";e;l",XClearWindowFunction,"XClearWindowFunction",NULL);
+	  AddUDF(env,"x-clear-area","l",6,7,";e;l;l;l;l;l;ly",XClearAreaFunction,"XClearAreaFunction",NULL);
+
+	  AddUDF(env,"x-set-selection-owner","l",3,4,";e;lys;l;l",XSetSelectionOwnerFunction,"XSetSelectionOwnerFunction",NULL);
+	  AddUDF(env,"x-get-selection-owner","l",2,2,";e;lys",XGetSelectionOwnerFunction,"XGetSelectionOwnerFunction",NULL);
+	  AddUDF(env,"x-convert-selection","l",5,6,";e;lys;lys;lys;l;l",XConvertSelectionFunction,"XConvertSelectionFunction",NULL);
   }
