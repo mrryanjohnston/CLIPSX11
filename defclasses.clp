@@ -1,3 +1,56 @@
+(defclass X-WM-HINTS
+  (is-a USER)
+  (role concrete)
+
+  (slot flags            (type INTEGER))
+
+  (slot input            (type SYMBOL) (allowed-symbols TRUE FALSE))
+  (slot initial_state    (type SYMBOL)
+        (allowed-symbols WithdrawnState NormalState IconicState))
+
+  (slot icon_pixmap      (type INTEGER))
+  (slot icon_window      (type INTEGER))
+  (slot icon_x           (type INTEGER))
+  (slot icon_y           (type INTEGER))
+  (slot icon_mask        (type INTEGER))
+  (slot window_group     (type INTEGER)))
+
+(defclass X-SIZE-HINTS
+ (is-a USER)
+ (role concrete)
+
+ (slot flags            (type INTEGER))
+
+ (slot x                (type INTEGER))
+ (slot y                (type INTEGER))
+ (slot width            (type INTEGER))
+ (slot height           (type INTEGER))
+
+ (slot min_width        (type INTEGER))
+ (slot min_height       (type INTEGER))
+
+ (slot max_width        (type INTEGER))
+ (slot max_height       (type INTEGER))
+
+ (slot width_inc        (type INTEGER))
+ (slot height_inc       (type INTEGER))
+
+ (slot min_aspect_num   (type INTEGER))
+	(slot min_aspect_den   (type INTEGER))
+	(slot max_aspect_num   (type INTEGER))
+(slot max_aspect_den   (type INTEGER))
+
+	(slot base_width       (type INTEGER))
+(slot base_height      (type INTEGER))
+
+	(slot win_gravity
+	 (type SYMBOL)
+	 (allowed-symbols
+	  ForgetGravity
+	  NorthWestGravity NorthGravity NorthEastGravity
+	  WestGravity      CenterGravity      EastGravity
+	  SouthWestGravity SouthGravity SouthEastGravity
+	  StaticGravity)))
 (defclass X-WINDOW-ATTRIBUTES
 	(is-a USER)
 	(slot x

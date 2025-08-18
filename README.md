@@ -699,7 +699,7 @@ Returns multifield whose members are:
 #### `x-store-name`
 
 ```
-(x-fetch-name ?display ?window ?name)
+(x-store-name <display> <window> <name>) → VOID
 ```
 
 ##### Arguments
@@ -1959,4 +1959,363 @@ After `SelectionNotify`, read it with `x-get-property`.
 
 ; Later, upon SelectionNotify, read it:
 (x-get-property ?display ?mywin "XSEL_DATA")
+```
+
+---
+
+#### `x-get-wm-normal-hints`
+
+```clips
+(x-get-wm-normal-hints <display> <window>) → <multifield> | FALSE
+```
+
+##### Description
+
+Thin wrapper over XGetWMNormalHints. Reads ICCCM `WM_NORMAL_HINTS` (size/position constraints).
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`
+- `<window>`: INTEGER window id
+
+##### Returns
+
+A MULTIFIELD of 19 elements (order fixed):
+
+1. flags (INTEGER bitmask: `USPosition` `USSize` `PPosition` `PSize` `PMinSize` `PMaxSize` `PResizeInc` `PAspect` `PBaseSize` `PWinGravity`)
+2. x
+3. y
+4. width
+5. height
+6. min_width
+7. min_height
+8. max_width
+9. max_height
+10. width_inc
+11. height_inc
+12. min_aspect_num
+13. min_aspect_den
+14. max_aspect_num
+15. max_aspect_den
+16. base_width
+17. base_height
+18. win_gravity (SYMBOL: ForgetGravity/NorthWestGravity/.../StaticGravity)
+
+##### Example
+
+```clips
+(bind ?hints (x-get-wm-normal-hints ?d ?w))
+(if (neq ?hints FALSE) then
+  (printout t "flags=" (nth$ 1 ?hints) " min=(" (nth$ 6 ?hints) "," (nth$ 7 ?hints) ")" crlf))
+```
+
+---
+
+#### `x-get-wm-normal-hints-to-fact`
+
+```clips
+(x-get-wm-normal-hints-to-fact <display> <window>) → <fact-address> | FALSE
+```
+
+##### Description
+
+Reads `WM_NORMAL_HINTS` and asserts a fact using the `x-size-hints` deftemplate.
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`
+- `<window>`: INTEGER window id
+
+##### Returns
+
+- Fact address of (x-size-hints ...) on success
+- FALSE on failure
+
+##### Example
+
+```clips
+(bind ?f (x-get-wm-normal-hints-to-fact ?d ?w))
+(if (neq ?f FALSE) then
+  (bind ?minw (fact-slot-value ?f min_width))
+  (bind ?minh (fact-slot-value ?f min_height)))
+```
+
+---
+
+#### `x-get-wm-normal-hints-to-instance`
+
+```clips
+(x-get-wm-normal-hints-to-instance <display> <window>) → <instance-address> | FALSE
+```
+
+##### Description
+
+Reads WM_NORMAL_HINTS and creates an instance of class X-SIZE-HINTS (you provide this class).
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`
+- `<window>`: INTEGER window id
+
+##### Returns
+
+- Instance address of (make-instance of X-SIZE-HINTS ...) on success
+- FALSE on failure
+
+##### Example
+
+```clips
+(bind ?i (x-get-wm-normal-hints-to-instance ?d ?w))
+(if (neq ?i FALSE) then
+  (send ?i get-min_width))
+```
+
+---
+
+#### `x-get-wm-hints`
+
+```clips
+(x-get-wm-hints <display> <window>) → <multifield> | FALSE
+```
+
+##### Description
+
+Thin wrapper over XGetWMHints. Reads ICCCM `WM_HINTS`.
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`
+- `<window>`: INTEGER window id
+
+##### Returns
+
+A MULTIFIELD of 9 elements (order fixed):
+
+- `flags` (INTEGER bitmask: InputHint, StateHint, IconPixmapHint, IconWindowHint, IconPositionHint, IconMaskHint, WindowGroupHint)
+- `input` (SYMBOL TRUE|FALSE)
+- `initial_state` (SYMBOL WithdrawnState|NormalState|IconicState)
+- `icon_pixmap` (INTEGER)
+- `icon_window` (INTEGER)
+- `icon_x` (INTEGER)
+- `icon_y` (INTEGER)
+- `icon_mask` (INTEGER)
+- `window_group` (INTEGER)
+
+##### Example
+
+```clips
+(bind ?h (x-get-wm-hints ?d ?w))
+(if (neq ?h FALSE) then
+  (printout t "state=" (nth$ 3 ?h) " group=" (nth$ 9 ?h) crlf))
+```
+
+---
+
+#### `x-get-wm-hints-to-fact`
+
+```clips
+(x-get-wm-hints-to-fact <display> <window>) → <fact-address> | FALSE
+```
+
+##### Description
+
+Reads WM_HINTS and asserts a fact using the x-wm-hints deftemplate.
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`
+- `<window>`: INTEGER window id
+
+##### Returns
+
+- Fact address on success
+- `FALSE` on failure
+
+##### Example
+
+```clips
+(bind ?f (x-get-wm-hints-to-fact ?d ?w))
+(if (neq ?f FALSE) then
+  (bind ?state (fact-slot-value ?f initial_state))
+  (printout t "initial_state=" ?state crlf))
+```
+
+---
+
+#### `x-get-wm-hints-to-instance`
+
+```clips
+(x-get-wm-hints-to-instance <display> <window>) → <instance-address> | FALSE
+```
+
+##### Description
+
+Reads WM_HINTS and creates an instance of class X-WM-HINTS.
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`
+- `<window>`: INTEGER window id
+
+##### Returns
+
+- Instance address on success
+- `FALSE` on failure
+
+##### Example
+
+```clips
+(bind ?i (x-get-wm-hints-to-instance ?d ?w))
+(if (neq ?i FALSE) then
+  (send ?i get-window_group))
+```
+
+---
+
+#### `x-get-wm-protocols`
+
+```clips
+(x-get-wm-protocols <display> <window>) → <multifield-of-atoms> | FALSE
+```
+
+##### Description
+
+Returns the list of ICCCM WM_PROTOCOLS supported by a window (e.g., WM_DELETE_WINDOW, WM_TAKE_FOCUS) as integer Atom IDs.
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`
+- `<window>`: INTEGER window id
+
+##### Returns
+
+MULTIFIELD of INTEGER atom IDs in server order, or FALSE if the property is absent/unavailable.
+
+##### Example
+
+```clips
+(bind ?protos (x-get-wm-protocols ?d ?w))
+(if (neq ?protos FALSE) then
+  (bind ?del (x-intern-atom ?d "WM_DELETE_WINDOW" TRUE))
+  (if (member$ ?del ?protos) then
+      (printout t "Client supports WM_DELETE_WINDOW" crlf)))
+```
+
+---
+
+#### `x-intern-atom`
+
+```clips
+(x-intern-atom <display> <name> [<only-if-exists?>]) → <atom-id (INTEGER)>
+```
+
+##### Description
+
+Interns an atom by name on the X server (ICCCM/EWMH rely on atoms).
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`.
+- `<name>`: Symbol or string (e.g., `WM_DELETE_WINDOW`, `_NET_WM_NAME`).
+- `<only-if-exists?>` (optional): Boolean/symbol/int. If true, returns 0 when the atom doesn’t already exist. Default FALSE.
+
+##### Return
+
+Integer atom ID (0 = None when only-if-exists? is true).
+
+##### Example
+
+```clips
+(bind ?UTF8 (x-intern-atom ?d "UTF8_STRING" TRUE))
+```
+
+---
+
+#### `x-intern-atoms`
+
+```clips
+(x-intern-atoms <display> <names-mf> [<only-if-exists?>]) → <multifield-of-atom-ids>
+```
+
+##### Description
+
+Batch version of x-intern-atom. Interns multiple names with a single round trip.
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`.
+- `<names-mf>`: Multifield of symbols/strings (atom names).
+- `<only-if-exists?>` (optional): Boolean/symbol/int. If true, returns 0 when the atom doesn’t already exist. Default FALSE.
+
+##### Return
+
+- Multifield of INTEGER atom IDs (same order as `<names-mf>`).
+- Empty multifield if `<names-mf>` is empty or on validation error (error text is printed to STDERR if any element isn’t a symbol/string).
+
+##### Example
+
+```clips
+(bind ?atoms (x-intern-atoms ?d (create$ "_NET_WM_NAME" "UTF8_STRING" "WM_DELETE_WINDOW") TRUE))
+```
+
+---
+
+#### `x-get-atom-name`
+
+```clips
+(x-get-atom-name <display> <atom>) → <string> | FALSE
+```
+
+##### Description
+
+Resolves an atom ID back to its server-side name.
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`.
+- `<atom>`: INTEGER atom ID.
+
+##### Return
+
+- String name on success.
+- FALSE if the atom is invalid/unknown.
+
+##### Example
+
+```clips
+(bind ?name (x-get-atom-name ?d ?atom))
+```
+
+---
+
+#### `x-get-class-hint`
+
+```clips
+(x-get-class-hint <display> <window>) → <multifield> | FALSE
+```
+
+##### Description
+
+Returns the X resource instance (res_name) and class (res_class) of a window, used for rule matching (e.g., float dialogs, apply tags).
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`
+- `<window>`: INTEGER window id
+
+##### Return
+
+- MULTIFIELD of 2 strings:
+    - `res_name`
+    - `res_class`
+- `FALSE` if unavailable.
+
+##### Example
+
+```clips
+(bind ?rc (x-get-class-hint ?d ?w))
+(if (neq ?rc FALSE) then
+  (bind ?name  (nth$ 1 ?rc))
+  (bind ?class (nth$ 2 ?rc))
+  (printout t "class=" ?class " name=" ?name crlf))
 ```

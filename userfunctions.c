@@ -9447,6 +9447,618 @@ void XConvertSelectionFunction(
         XConvertSelection(display, selection, target, property, requestor, time);
 }
 
+void XInternAtomFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	const char *name;
+	UDFValue theArg;
+	int only_if_exists = False;
+	Atom atom;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, LEXEME_BITS, &theArg);
+	name = theArg.lexemeValue->contents;
+
+	if (UDFHasNextArgument(context)) {
+		UDFNextArgument(context, INTEGER_BIT | LEXEME_BITS, &theArg);
+		if (theArg.header->type == INTEGER_TYPE) {
+			only_if_exists = (theArg.integerValue->contents != 0) ? True : False;
+		} else {
+			const char *s = theArg.lexemeValue->contents;
+			only_if_exists = ((strcmp(s,"TRUE")==0) || (strcmp(s,"true")==0)) ? True : False;
+		}
+	}
+
+	atom = XInternAtom(display, (char *)name, only_if_exists ? True : False);
+	returnValue->integerValue = CreateInteger(theEnv, (long long) atom);
+}
+
+void XInternAtomsFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	UDFValue theArg;
+	int only_if_exists = False;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, MULTIFIELD_BIT, &theArg);
+	Multifield *mf = theArg.multifieldValue;
+	size_t n = mf->length;
+
+	if (UDFHasNextArgument(context)) {
+		UDFNextArgument(context, INTEGER_BIT | LEXEME_BITS, &theArg);
+		if (theArg.header->type == INTEGER_TYPE) {
+			only_if_exists = (theArg.integerValue->contents != 0) ? True : False;
+		} else {
+			const char *s = theArg.lexemeValue->contents;
+			only_if_exists = ((strcmp(s,"TRUE")==0) || (strcmp(s,"true")==0)) ? True : False;
+		}
+	}
+
+	for (size_t i = 0; i < n; i++) {
+		if (mf->contents[i].header->type != SYMBOL_TYPE &&
+				mf->contents[i].header->type != STRING_TYPE) {
+			WriteString(theEnv, STDERR, "x-intern-atoms: names multifield must contain only symbols/strings\n");
+			returnValue->multifieldValue = CreateMultifield(theEnv, 0);
+			return;
+		}
+	}
+
+	MultifieldBuilder *mb = CreateMultifieldBuilder(theEnv, (long) n);
+
+	if (n == 0) {
+		returnValue->multifieldValue = MBCreate(mb);
+		MBDispose(mb);
+		return;
+	}
+
+	if (n > (size_t)INT_MAX) {
+		WriteString(theEnv, STDERR, "x-intern-atoms: too many names\n");
+		returnValue->multifieldValue = MBCreate(mb);
+		MBDispose(mb);
+		return;
+	}
+
+	int count = (int)n;
+	char *names[count];
+	Atom atoms[count];
+
+	for (int i = 0; i < count; i++) {
+		names[i] = (char *) mf->contents[i].lexemeValue->contents;
+	}
+
+	(void)XInternAtoms(display, names, count, only_if_exists ? True : False, atoms);
+
+	for (int i = 0; i < count; i++) {
+		MBAppendInteger(mb, (long long) atoms[i]);
+	}
+
+	returnValue->multifieldValue = MBCreate(mb);
+	MBDispose(mb);
+}
+
+void XGetAtomNameFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	UDFValue theArg;
+	Atom atom;
+	char *name;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	atom = (Atom) theArg.integerValue->contents;
+
+	name = XGetAtomName(display, atom);
+	if (name == NULL) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	returnValue->lexemeValue = CreateString(theEnv, name);
+	XFree(name);
+}
+
+void XGetWmNormalHintsFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window   window;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	XSizeHints hints;
+	long supplied = 0;
+	memset(&hints, 0, sizeof(hints));
+
+	if (!XGetWMNormalHints(display, window, &hints, &supplied)) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	const char *gravSym;
+	switch (hints.win_gravity) {
+		case ForgetGravity:     gravSym = "ForgetGravity"; break;
+		case NorthWestGravity:  gravSym = "NorthWestGravity"; break;
+		case NorthGravity:      gravSym = "NorthGravity"; break;
+		case NorthEastGravity:  gravSym = "NorthEastGravity"; break;
+		case WestGravity:       gravSym = "WestGravity"; break;
+		case CenterGravity:     gravSym = "CenterGravity"; break;
+		case EastGravity:       gravSym = "EastGravity"; break;
+		case SouthWestGravity:  gravSym = "SouthWestGravity"; break;
+		case SouthGravity:      gravSym = "SouthGravity"; break;
+		case SouthEastGravity:  gravSym = "SouthEastGravity"; break;
+		case StaticGravity:     gravSym = "StaticGravity"; break;
+		default:                gravSym = "ForgetGravity"; break;
+	}
+
+	MultifieldBuilder *mb = CreateMultifieldBuilder(theEnv, 19);
+
+	MBAppendInteger(mb, (long long) hints.flags);
+
+	MBAppendInteger(mb, (long long) hints.x);
+	MBAppendInteger(mb, (long long) hints.y);
+	MBAppendInteger(mb, (long long) hints.width);
+	MBAppendInteger(mb, (long long) hints.height);
+
+	MBAppendInteger(mb, (long long) hints.min_width);
+	MBAppendInteger(mb, (long long) hints.min_height);
+
+	MBAppendInteger(mb, (long long) hints.max_width);
+	MBAppendInteger(mb, (long long) hints.max_height);
+
+	MBAppendInteger(mb, (long long) hints.width_inc);
+	MBAppendInteger(mb, (long long) hints.height_inc);
+
+	MBAppendInteger(mb, (long long) hints.min_aspect.x);
+	MBAppendInteger(mb, (long long) hints.min_aspect.y);
+
+	MBAppendInteger(mb, (long long) hints.max_aspect.x);
+	MBAppendInteger(mb, (long long) hints.max_aspect.y);
+
+	MBAppendInteger(mb, (long long) hints.base_width);
+	MBAppendInteger(mb, (long long) hints.base_height);
+
+	MBAppendSymbol(mb, gravSym);
+
+	returnValue->multifieldValue = MBCreate(mb);
+	MBDispose(mb);
+}
+
+void XGetWmNormalHintsToFactFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window   window;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	XSizeHints hints;
+	long supplied = 0;
+	memset(&hints, 0, sizeof(hints));
+
+	if (!XGetWMNormalHints(display, window, &hints, &supplied)) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	const char *gravSym;
+	switch (hints.win_gravity) {
+		case ForgetGravity:     gravSym = "ForgetGravity"; break;
+		case NorthWestGravity:  gravSym = "NorthWestGravity"; break;
+		case NorthGravity:      gravSym = "NorthGravity"; break;
+		case NorthEastGravity:  gravSym = "NorthEastGravity"; break;
+		case WestGravity:       gravSym = "WestGravity"; break;
+		case CenterGravity:     gravSym = "CenterGravity"; break;
+		case EastGravity:       gravSym = "EastGravity"; break;
+		case SouthWestGravity:  gravSym = "SouthWestGravity"; break;
+		case SouthGravity:      gravSym = "SouthGravity"; break;
+		case SouthEastGravity:  gravSym = "SouthEastGravity"; break;
+		case StaticGravity:     gravSym = "StaticGravity"; break;
+		default:                gravSym = "ForgetGravity"; break;
+	}
+
+	FactBuilder *fb = CreateFactBuilder(theEnv, "x-size-hints");
+	if (fb == NULL) {
+		WriteString(theEnv, STDERR, "x-get-wm-normal-hints-to-fact: missing deftemplate x-size-hints\n");
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	FBPutSlotInteger(fb, "flags",          (long long) hints.flags);
+
+	FBPutSlotInteger(fb, "x",              (long long) hints.x);
+	FBPutSlotInteger(fb, "y",              (long long) hints.y);
+	FBPutSlotInteger(fb, "width",          (long long) hints.width);
+	FBPutSlotInteger(fb, "height",         (long long) hints.height);
+
+	FBPutSlotInteger(fb, "min_width",      (long long) hints.min_width);
+	FBPutSlotInteger(fb, "min_height",     (long long) hints.min_height);
+
+	FBPutSlotInteger(fb, "max_width",      (long long) hints.max_width);
+	FBPutSlotInteger(fb, "max_height",     (long long) hints.max_height);
+
+	FBPutSlotInteger(fb, "width_inc",      (long long) hints.width_inc);
+	FBPutSlotInteger(fb, "height_inc",     (long long) hints.height_inc);
+
+	FBPutSlotInteger(fb, "min_aspect_num", (long long) hints.min_aspect.x);
+	FBPutSlotInteger(fb, "min_aspect_den", (long long) hints.min_aspect.y);
+
+	FBPutSlotInteger(fb, "max_aspect_num", (long long) hints.max_aspect.x);
+	FBPutSlotInteger(fb, "max_aspect_den", (long long) hints.max_aspect.y);
+
+	FBPutSlotInteger(fb, "base_width",     (long long) hints.base_width);
+	FBPutSlotInteger(fb, "base_height",    (long long) hints.base_height);
+
+	FBPutSlotSymbol(fb,  "win_gravity",    gravSym);
+
+	Fact *f = FBAssert(fb);
+	FBDispose(fb);
+
+	if (f == NULL) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	returnValue->factValue = f;
+}
+
+void XGetWmNormalHintsToInstanceFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window   window;
+	const char *name = NULL;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	if (UDFHasNextArgument(context))
+	{
+		UDFNextArgument(context, LEXEME_BITS, &theArg);
+		name = theArg.lexemeValue->contents;
+	}
+
+	XSizeHints hints;
+	long supplied = 0;
+	memset(&hints, 0, sizeof(hints));
+
+	if (!XGetWMNormalHints(display, window, &hints, &supplied)) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	const char *gravSym;
+	switch (hints.win_gravity) {
+		case ForgetGravity:     gravSym = "ForgetGravity"; break;
+		case NorthWestGravity:  gravSym = "NorthWestGravity"; break;
+		case NorthGravity:      gravSym = "NorthGravity"; break;
+		case NorthEastGravity:  gravSym = "NorthEastGravity"; break;
+		case WestGravity:       gravSym = "WestGravity"; break;
+		case CenterGravity:     gravSym = "CenterGravity"; break;
+		case EastGravity:       gravSym = "EastGravity"; break;
+		case SouthWestGravity:  gravSym = "SouthWestGravity"; break;
+		case SouthGravity:      gravSym = "SouthGravity"; break;
+		case SouthEastGravity:  gravSym = "SouthEastGravity"; break;
+		case StaticGravity:     gravSym = "StaticGravity"; break;
+		default:                gravSym = "ForgetGravity"; break;
+	}
+
+	InstanceBuilder *ib = CreateInstanceBuilder(theEnv, "X-SIZE-HINTS");
+	if (ib == NULL) {
+		WriteString(theEnv, STDERR, "x-get-wm-normal-hints-to-instance: missing defclass X-SIZE-HINTS\n");
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	IBPutSlotInteger(ib, "flags",          (long long) hints.flags);
+
+	IBPutSlotInteger(ib, "x",              (long long) hints.x);
+	IBPutSlotInteger(ib, "y",              (long long) hints.y);
+	IBPutSlotInteger(ib, "width",          (long long) hints.width);
+	IBPutSlotInteger(ib, "height",         (long long) hints.height);
+
+	IBPutSlotInteger(ib, "min_width",      (long long) hints.min_width);
+	IBPutSlotInteger(ib, "min_height",     (long long) hints.min_height);
+
+	IBPutSlotInteger(ib, "max_width",      (long long) hints.max_width);
+	IBPutSlotInteger(ib, "max_height",     (long long) hints.max_height);
+
+	IBPutSlotInteger(ib, "width_inc",      (long long) hints.width_inc);
+	IBPutSlotInteger(ib, "height_inc",     (long long) hints.height_inc);
+
+	IBPutSlotInteger(ib, "min_aspect_num", (long long) hints.min_aspect.x);
+	IBPutSlotInteger(ib, "min_aspect_den", (long long) hints.min_aspect.y);
+
+	IBPutSlotInteger(ib, "max_aspect_num", (long long) hints.max_aspect.x);
+	IBPutSlotInteger(ib, "max_aspect_den", (long long) hints.max_aspect.y);
+
+	IBPutSlotInteger(ib, "base_width",     (long long) hints.base_width);
+	IBPutSlotInteger(ib, "base_height",    (long long) hints.base_height);
+
+	IBPutSlotSymbol(ib,  "win_gravity",    gravSym);
+
+	Instance *ins = IBMake(ib, name);
+	IBDispose(ib);
+
+	if (ins == NULL) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	returnValue->instanceValue = ins;
+}
+
+void XGetWMHintsFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window   window;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	XWMHints *h = XGetWMHints(display, window);
+	if (!h) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	const char *stateSym;
+	switch (h->initial_state) {
+		case WithdrawnState: stateSym = "WithdrawnState"; break;
+		case NormalState:    stateSym = "NormalState";    break;
+		case IconicState:    stateSym = "IconicState";    break;
+		default:             stateSym = "NormalState";    break;
+	}
+
+	MultifieldBuilder *mb = CreateMultifieldBuilder(theEnv, 10);
+	MBAppendInteger(mb, (long long) h->flags);
+	MBAppendSymbol (mb, h->input ? "TRUE" : "FALSE");
+	MBAppendSymbol (mb, stateSym);
+	MBAppendInteger(mb, (long long) h->icon_pixmap);
+	MBAppendInteger(mb, (long long) h->icon_window);
+	MBAppendInteger(mb, (long long) h->icon_x);
+	MBAppendInteger(mb, (long long) h->icon_y);
+	MBAppendInteger(mb, (long long) h->icon_mask);
+	MBAppendInteger(mb, (long long) h->window_group);
+
+	returnValue->multifieldValue = MBCreate(mb);
+	MBDispose(mb);
+
+	XFree(h);
+}
+
+void XGetWMHintsToFactFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window   window;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	XWMHints *h = XGetWMHints(display, window);
+	if (!h) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	const char *stateSym;
+	switch (h->initial_state) {
+		case WithdrawnState: stateSym = "WithdrawnState"; break;
+		case NormalState:    stateSym = "NormalState";    break;
+		case IconicState:    stateSym = "IconicState";    break;
+		default:             stateSym = "NormalState";    break;
+	}
+
+	FactBuilder *fb = CreateFactBuilder(theEnv, "x-wm-hints");
+	if (!fb) {
+		WriteString(theEnv, STDERR, "x-get-wm-hints-to-fact: missing deftemplate x-wm-hints\n");
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		XFree(h);
+		return;
+	}
+
+	FBPutSlotInteger(fb, "flags",        (long long) h->flags);
+	FBPutSlotSymbol (fb, "input",        h->input ? "TRUE" : "FALSE");
+	FBPutSlotSymbol (fb, "initial_state", stateSym);
+	FBPutSlotInteger(fb, "icon_pixmap",  (long long) h->icon_pixmap);
+	FBPutSlotInteger(fb, "icon_window",  (long long) h->icon_window);
+	FBPutSlotInteger(fb, "icon_x",       (long long) h->icon_x);
+	FBPutSlotInteger(fb, "icon_y",       (long long) h->icon_y);
+	FBPutSlotInteger(fb, "icon_mask",    (long long) h->icon_mask);
+	FBPutSlotInteger(fb, "window_group", (long long) h->window_group);
+
+	Fact *f = FBAssert(fb);
+	FBDispose(fb);
+	XFree(h);
+
+	if (!f) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+	returnValue->factValue = f;
+}
+
+void XGetWMHintsToInstanceFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window   window;
+	const char *name = NULL;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	if (UDFHasNextArgument(context))
+	{
+		UDFNextArgument(context, LEXEME_BITS, &theArg);
+		name = theArg.lexemeValue->contents;
+	}
+
+	XWMHints *h = XGetWMHints(display, window);
+	if (!h) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	const char *stateSym;
+	switch (h->initial_state) {
+		case WithdrawnState: stateSym = "WithdrawnState"; break;
+		case NormalState:    stateSym = "NormalState";    break;
+		case IconicState:    stateSym = "IconicState";    break;
+		default:             stateSym = "NormalState";    break;
+	}
+
+	InstanceBuilder *ib = CreateInstanceBuilder(theEnv, "X-WM-HINTS");
+	if (!ib) {
+		WriteString(theEnv, STDERR, "x-get-wm-hints-to-instance: missing defclass X-WM-HINTS\n");
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		XFree(h);
+		return;
+	}
+
+	IBPutSlotInteger(ib, "flags",        (long long) h->flags);
+	IBPutSlotSymbol (ib, "input",        h->input ? "TRUE" : "FALSE");
+	IBPutSlotSymbol (ib, "initial_state", stateSym);
+	IBPutSlotInteger(ib, "icon_pixmap",  (long long) h->icon_pixmap);
+	IBPutSlotInteger(ib, "icon_window",  (long long) h->icon_window);
+	IBPutSlotInteger(ib, "icon_x",       (long long) h->icon_x);
+	IBPutSlotInteger(ib, "icon_y",       (long long) h->icon_y);
+	IBPutSlotInteger(ib, "icon_mask",    (long long) h->icon_mask);
+	IBPutSlotInteger(ib, "window_group", (long long) h->window_group);
+
+	Instance *ins = IBMake(ib, name);
+	IBDispose(ib);
+	XFree(h);
+
+	if (!ins) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+	returnValue->instanceValue = ins;
+}
+
+void XGetWMProtocolsFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window   window;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	Atom *protocols = NULL;
+	int   n = 0;
+
+	if (!XGetWMProtocols(display, window, &protocols, &n) || protocols == NULL) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	MultifieldBuilder *mb = CreateMultifieldBuilder(theEnv, (long)n);
+	for (int i = 0; i < n; i++) {
+		MBAppendInteger(mb, (long long) protocols[i]);
+	}
+
+	returnValue->multifieldValue = MBCreate(mb);
+	MBDispose(mb);
+
+	XFree(protocols);
+}
+
+void XGetClassHintFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	Window   window;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	UDFNextArgument(context, INTEGER_BIT, &theArg);
+	window = (Window) theArg.integerValue->contents;
+
+	XClassHint ch;
+	ch.res_name  = NULL;
+	ch.res_class = NULL;
+
+	if (!XGetClassHint(display, window, &ch)) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	MultifieldBuilder *mb = CreateMultifieldBuilder(theEnv, 2);
+	MBAppendString(mb, ch.res_name  ? ch.res_name  : "");
+	MBAppendString(mb, ch.res_class ? ch.res_class : "");
+	returnValue->multifieldValue = MBCreate(mb);
+	MBDispose(mb);
+
+	if (ch.res_name)  XFree(ch.res_name);
+	if (ch.res_class) XFree(ch.res_class);
+}
+
 /*********************************************************/
 /* UserFunctions: Informs the expert system environment  */
 /*   of any user defined functions. In the default case, */
@@ -9567,4 +10179,19 @@ void UserFunctions(
 	  AddUDF(env,"x-set-selection-owner","l",3,4,";e;lys;l;l",XSetSelectionOwnerFunction,"XSetSelectionOwnerFunction",NULL);
 	  AddUDF(env,"x-get-selection-owner","l",2,2,";e;lys",XGetSelectionOwnerFunction,"XGetSelectionOwnerFunction",NULL);
 	  AddUDF(env,"x-convert-selection","l",5,6,";e;lys;lys;lys;l;l",XConvertSelectionFunction,"XConvertSelectionFunction",NULL);
+
+	  AddUDF(env,"x-get-wm-normal-hints","bm",2,2,";e;l",XGetWmNormalHintsFunction,"XGetWmNormalHintsFunction", NULL);
+	  AddUDF(env,"x-get-wm-normal-hints-to-fact","bf",2,2,";e;l",XGetWmNormalHintsToFactFunction,"XGetWmNormalHintsToFactFunction", NULL);
+	  AddUDF(env,"x-get-wm-normal-hints-to-instance","bi",2,3,";e;l;sy",XGetWmNormalHintsToInstanceFunction,"XGetWmNormalHintsToInstanceFunction", NULL);
+
+	  AddUDF(env,"x-get-wm-hints","bm",2,2,";e;l",XGetWMHintsFunction,"XGetWMHintsFunction",NULL);
+	  AddUDF(env,"x-get-wm-hints-to-fact",";e;l",2,2,NULL,XGetWMHintsToFactFunction,"XGetWMHintsToFactFunction",NULL);
+	  AddUDF(env,"x-get-wm-hints-to-instance",";e;l;sy",2,3,NULL,XGetWMHintsToInstanceFunction,"XGetWMHintsToInstanceFunction",NULL);
+
+	  AddUDF(env,"x-get-wm-protocols","bm",2,2,";e;l",XGetWMProtocolsFunction,"XGetWMProtocolsFunction",NULL);
+	  AddUDF(env,"x-intern-atom","l",2,3,";e;sy;lsy",XInternAtomFunction,"XInternAtomFunction",NULL);
+	  AddUDF(env,"x-intern-atoms","m",2,3,";e;m;lsy",XInternAtomsFunction,"XInternAtomsFunction",NULL);
+	  AddUDF(env,"x-get-atom-name","bs",2,3,";e;l",XGetAtomNameFunction,"XGetAtomNameFunction",NULL);
+
+	  AddUDF(env,"x-get-class-hint","bm",2,2,";e;l",XGetClassHintFunction,"XGetClassHintFunction",NULL);
   }
