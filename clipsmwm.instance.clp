@@ -1,6 +1,6 @@
 (deffunction grab-keys (?display ?window $?keys)
 	(foreach ?key ?keys 
-		(x-grab-key ?display (x-keysym-to-keycode ?display (x-string-to-keysym ?key)) Mod4Mask ?window TRUE GrabModeAsync GrabModeAsync)))
+		(x-grab-key ?display (x-keysym-to-keycode ?display (x-string-to-keysym ?key)) (lexeme-to-mask Mod4Mask) ?window TRUE GrabModeAsync GrabModeAsync)))
 
 (defrule always =>
 	(bind ?display (x-open-display :0))
