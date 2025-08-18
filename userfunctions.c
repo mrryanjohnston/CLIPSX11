@@ -10158,8 +10158,8 @@ void UserFunctions(
 
 	  AddUDF(env,"x-grab-button","l",10,10,";e;l;l;l;b;l;l;l;l;l",XGrabButtonFunction,"XGrabButtonFunction",NULL);
 	  AddUDF(env,"x-ungrab-button","v",4,4,";e;l;l;l",XUngrabButtonFunction,"XUngrabButtonFunction",NULL);
-	  AddUDF(env,"x-grab-key","l",7,7,";e;l;ym;l;b;y;y",XGrabKeyFunction,"XGrabKeyFunction",NULL);
-	  AddUDF(env,"x-ungrab-key","v",4,4,";e;l;ly;l",XUngrabKeyFunction,"XUngrabKeyFunction",NULL);
+	  AddUDF(env,"x-grab-key","l",7,7,";e;l;l;l;b;y;y",XGrabKeyFunction,"XGrabKeyFunction",NULL);
+	  AddUDF(env,"x-ungrab-key","v",4,4,";e;l;l;l",XUngrabKeyFunction,"XUngrabKeyFunction",NULL);
 	  AddUDF(env,"x-grab-pointer","l",8,9,";e;l;b;l;l;l;l;l;l",XGrabPointerFunction,"XGrabPointerFunction",NULL);
 	  AddUDF(env,"x-ungrab-pointer","v",1,2,";e;l",XUngrabPointerFunction,"XUngrabPointerFunction",NULL);
 
