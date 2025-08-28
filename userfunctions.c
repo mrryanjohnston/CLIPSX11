@@ -59,6 +59,406 @@
 
 void UserFunctions(Environment *);
 
+/* ----- Fixed XContext key ----- */
+#define CLIPSX11ERR ((XContext)0x43584552) /* 'CXER' */
+
+/* ----- Error ring ----- */
+#define CLIPSX11_ERRQ_CAP 128u
+
+typedef struct {
+	unsigned long serial;
+	unsigned char error_code;
+	unsigned char request_code;
+	unsigned char minor_code;
+	unsigned long resourceid;
+} XErrRec;
+
+typedef struct {
+	unsigned int head, tail, count;
+	XErrRec buf[CLIPSX11_ERRQ_CAP];
+} XErrQueue;
+
+static inline void xerrq_push(XErrQueue *q, const XErrorEvent *e) {
+	XErrRec r;
+	r.serial       = e->serial;
+	r.error_code   = e->error_code;
+	r.request_code = e->request_code;
+	r.minor_code   = e->minor_code;
+	r.resourceid   = e->resourceid;
+
+	if (q->count == CLIPSX11_ERRQ_CAP) { /* drop oldest */
+		q->tail = (q->tail + 1u) % CLIPSX11_ERRQ_CAP;
+		q->count--;
+	}
+	q->buf[q->head] = r;
+	q->head = (q->head + 1u) % CLIPSX11_ERRQ_CAP;
+	q->count++;
+}
+
+static inline int xerrq_pop(XErrQueue *q, XErrRec *out) {
+	if (q->count == 0u) return 0;
+	*out = q->buf[q->tail];
+	q->tail = (q->tail + 1u) % CLIPSX11_ERRQ_CAP;
+	q->count--;
+	return 1;
+}
+
+static int CLIPSX11_Collector(Display *dpy, XErrorEvent *e) {
+	XPointer data = NULL;
+	if (XFindContext(dpy, (XID)dpy, CLIPSX11ERR, &data) == 0 && data) {
+		xerrq_push((XErrQueue *)data, e);
+	}
+	return 0;
+}
+
+void XStartCollectingErrorsFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	XSetErrorHandler(CLIPSX11_Collector);
+
+	XPointer existing = NULL;
+	if (XFindContext(display, (XID)display, CLIPSX11ERR, &existing) == 0 && existing) {
+		returnValue->lexemeValue = TrueSymbol(theEnv);
+		return;
+	}
+
+	XErrQueue *q = (XErrQueue *) genalloc(theEnv, sizeof(XErrQueue));
+	q->head = q->tail = q->count = 0u;
+	if (XSaveContext(display, (XID)display, CLIPSX11ERR, (XPointer)q) != 0) {
+		WriteString(theEnv,STDERR,"Could not create the XContext (and thus an error queue) for Display.");
+		genfree(theEnv, q, sizeof(XErrQueue));
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	returnValue->lexemeValue = TrueSymbol(theEnv);
+}
+
+void XPopErrorFunction(Environment *theEnv, UDFContext *context, UDFValue *returnValue) {
+	Display *display;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	XPointer data = NULL;
+	if (XFindContext(display, (XID)display, CLIPSX11ERR, &data) != 0 || data == NULL) {
+		WriteString(theEnv,STDERR,"Did not find XContext (and thus an error queue) for Display.\n");
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	XErrQueue *q = (XErrQueue *)data;
+	XErrRec r;
+	if (!xerrq_pop(q, &r)) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	MultifieldBuilder *mb = CreateMultifieldBuilder(theEnv, 5);
+	MBAppendInteger(mb, (long long)r.serial);
+	MBAppendInteger(mb, (long long)r.error_code);
+	MBAppendInteger(mb, (long long)r.request_code);
+	MBAppendInteger(mb, (long long)r.minor_code);
+	MBAppendInteger(mb, (long long)r.resourceid);
+	returnValue->multifieldValue = MBCreate(mb);
+	MBDispose(mb);
+}
+
+void ReportFBAssertError(
+		Environment *theEnv)
+{
+	switch(FBError(theEnv))
+	{
+		case FBE_NO_ERROR:
+			WriteString(theEnv,STDERR,"No error occurred\n");
+			break;
+		case FBE_NULL_POINTER_ERROR:
+			WriteString(theEnv,STDERR,"The FactBuilder does not have an associated deftemplate\n");
+			break;
+		case FBE_DEFTEMPLATE_NOT_FOUND_ERROR:
+			WriteString(theEnv,STDERR,"FBE_DEFTEMPLATE_NOT_FOUND_ERROR: This error should not happen as a result of an FBAssert...\n");
+			break;
+		case FBE_IMPLIED_DEFTEMPLATE_ERROR:
+			WriteString(theEnv,STDERR,"FBE_IMPLIED_DEFTEMPLATE_ERROR: This error should not happen as a result of an FBAssert...\n");
+			break;
+		case FBE_COULD_NOT_ASSERT_ERROR:
+			WriteString(theEnv,STDERR,"The Fact could not be asserted (such as when pattern matching of a fact or instance is already occurring)\n");
+			break;
+		case FBE_RULE_NETWORK_ERROR:
+			WriteString(theEnv,STDERR,"An error occurred while the assertion was being processed in the rule network\n");
+			break;
+		default:
+			WriteString(theEnv,STDERR,"The result of FBError was something unexpected...\n");
+			break;
+	}
+}
+
+void XPopErrorToFactFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	XPointer data = NULL;
+	if (XFindContext(display, (XID)display, CLIPSX11ERR, &data) != 0 || data == NULL) {
+		WriteString(theEnv,STDERR,"Did not find XContext (and thus an error queue) for Display.\n");
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	XErrQueue *q = (XErrQueue *)data;
+	XErrRec r;
+	if (!xerrq_pop(q, &r)) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	FactBuilder *fb = CreateFactBuilder(theEnv, "x-error");
+	FBPutSlotInteger(fb, "serial",      (long long)r.serial);
+	FBPutSlotInteger(fb, "error-code",  (long long)r.error_code);
+	FBPutSlotInteger(fb, "request-code",(long long)r.request_code);
+	FBPutSlotInteger(fb, "minor-code",  (long long)r.minor_code);
+	FBPutSlotInteger(fb, "resourceid",  (long long)r.resourceid);
+
+	Fact *f = FBAssert(fb);
+	FBDispose(fb);
+
+	if (f)
+	{
+		returnValue->factValue = f;
+	}
+	else
+	{
+		WriteString(theEnv,STDERR,"Could not assert x-error fact\n");
+		ReportFBAssertError(theEnv);
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+	}
+}
+
+void ReportIBMakeError(
+		Environment *theEnv)
+{
+	switch(IBError(theEnv))
+	{
+		case IBE_NO_ERROR:
+			WriteString(theEnv,STDERR,"No error occurred\n");
+			break;
+		case IBE_NULL_POINTER_ERROR:
+			WriteString(theEnv,STDERR,"The InstanceBuilder does not have an associated defclass\n");
+			break;
+		case IBE_DEFCLASS_NOT_FOUND_ERROR:
+			WriteString(theEnv,STDERR,"IBE_DEFCLASS_NOT_FOUND_ERROR: This error should not happen as a result of an IBMake...\n");
+			break;
+		case IBE_COULD_NOT_CREATE_ERROR:
+			WriteString(theEnv,STDERR,"The Instance could not be created (such as when pattern matching of a fact or instance is already occurring)\n");
+			break;
+		case IBE_RULE_NETWORK_ERROR:
+			WriteString(theEnv,STDERR,"An error occurred while the instance was being processed in the rule network\n");
+			break;
+		default:
+			WriteString(theEnv,STDERR,"The result of IBError was something unexpected...\n");
+			break;
+	}
+}
+
+void XPopErrorToInstanceFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	const char *name;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	name = NULL;
+	if (UDFHasNextArgument(context))
+	{
+		UDFNextArgument(context,LEXEME_BITS,&theArg);
+		name = theArg.lexemeValue->contents;
+	}
+
+	XPointer data = NULL;
+	if (XFindContext(display, (XID)display, CLIPSX11ERR, &data) != 0 || data == NULL) {
+		WriteString(theEnv,STDERR,"Did not find XContext (and thus an error queue) for Display.\n");
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	XErrQueue *q = (XErrQueue *)data;
+	XErrRec r;
+	if (!xerrq_pop(q, &r)) {
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	InstanceBuilder *ib = CreateInstanceBuilder(theEnv, "X-ERROR");
+	IBPutSlotInteger(ib, "serial",       (long long)r.serial);
+	IBPutSlotInteger(ib, "error-code",   (long long)r.error_code);
+	IBPutSlotInteger(ib, "request-code", (long long)r.request_code);
+	IBPutSlotInteger(ib, "minor-code",   (long long)r.minor_code);
+	IBPutSlotInteger(ib, "resourceid",   (long long)r.resourceid);
+
+	Instance *inst = IBMake(ib, name);
+	IBDispose(ib);
+
+	if (inst)
+	{
+		returnValue->instanceValue = inst;
+	}
+	else
+	{
+		WriteString(theEnv,STDERR,"Could not make X-ERROR instance\n");
+		ReportIBMakeError(theEnv);
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+	}
+}
+
+void XStopCollectingErrorsFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	Display *display;
+	UDFValue theArg;
+
+	UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+	display = (Display *) theArg.externalAddressValue->contents;
+
+	XPointer data = NULL;
+	if (XFindContext(display, (XID)display, CLIPSX11ERR, &data) != 0 || data == NULL) {
+		WriteString(theEnv,STDERR,"Did not find XContext (and thus an error queue) for Display.\n");
+		returnValue->lexemeValue = FalseSymbol(theEnv);
+		return;
+	}
+
+	XErrQueue *q = (XErrQueue *)data;
+	XDeleteContext(display, (XID)display, CLIPSX11ERR);
+	genfree(theEnv, q, sizeof(XErrQueue));
+
+	returnValue->lexemeValue = TrueSymbol(theEnv);
+}
+
+void XSetDefaultErrorHandlerFunction(Environment *theEnv, UDFContext *context, UDFValue *returnValue) {
+	(void)context;
+	XSetErrorHandler(NULL);
+	returnValue->lexemeValue = TrueSymbol(theEnv);
+}
+
+void XGetErrorTextFunction(
+        Environment *theEnv,
+        UDFContext *context,
+        UDFValue *returnValue)
+{
+        Display *display;
+        int code;
+        char buffer[1024];
+        UDFValue theArg;
+
+        UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+        display = (Display *) theArg.externalAddressValue->contents;
+
+        UDFNextArgument(context, INTEGER_BIT, &theArg);
+        code = (int) theArg.integerValue->contents;
+
+        buffer[0] = '\0';
+        XGetErrorText(display, code, buffer, (int)sizeof(buffer));
+
+        returnValue->lexemeValue = CreateString(theEnv, buffer);
+}
+
+void XGetErrorDatabaseTextFunction(
+        Environment *theEnv,
+        UDFContext *context,
+        UDFValue *returnValue)
+{
+        Display *display;
+        const char *name;
+        int type;
+        char buffer[1024];
+        UDFValue theArg;
+
+        UDFNextArgument(context, EXTERNAL_ADDRESS_BIT, &theArg);
+        display = (Display *) theArg.externalAddressValue->contents;
+
+        UDFNextArgument(context, LEXEME_BITS, &theArg);
+        name = theArg.lexemeValue->contents;
+
+        UDFNextArgument(context, INTEGER_BIT, &theArg);
+        type = theArg.integerValue->contents;
+	char buf[32];
+	snprintf(buf, sizeof buf, "%d", type);
+
+        buffer[0] = '\0';
+        XGetErrorDatabaseText(display, name, buf, "", buffer, (int)sizeof(buffer));
+
+        returnValue->lexemeValue = CreateString(theEnv, buffer);
+}
+
+const char *ErrorCodeToString(int code)
+{
+	switch (code)
+	{
+		case BadRequest: return "BadRequest";
+		case BadValue: return "BadValue";
+		case BadWindow: return "BadWindow";
+		case BadPixmap: return "BadPixmap";
+		case BadAtom: return "BadAtom";
+		case BadCursor: return "BadCursor";
+		case BadFont: return "BadFont";
+		case BadMatch: return "BadMatch";
+		case BadDrawable: return "BadDrawable";
+		case BadAccess: return "BadAccess";
+		case BadAlloc: return "BadAlloc";
+		case BadColor: return "BadColor";
+		case BadGC: return "BadGC";
+		case BadIDChoice: return "BadIDChoice";
+		case BadName: return "BadName";
+		case BadLength: return "BadLength";
+		case BadImplementation: return "BadImplementation";
+		default: return "UnknownError";
+	}
+}
+
+void ErrorCodeToSymbolFunction(
+		Environment *theEnv,
+		UDFContext *context,
+		UDFValue *returnValue)
+{
+	const char *sym;
+	UDFValue theArg;
+
+	UDFNextArgument(context,INTEGER_BIT,&theArg);
+
+	sym = ErrorCodeToString(theArg.integerValue->contents);
+	if (sym != NULL)
+	{
+		returnValue->lexemeValue = CreateSymbol(theEnv, sym);
+	}
+	else
+	{
+		WriteInteger(theEnv,STDERR,theArg.integerValue->contents);
+		WriteString(theEnv,STDERR," is not a valid error code\n");
+		returnValue->voidValue = VoidConstant(theEnv);
+	}
+}
+
 void XOpenDisplayFunction(
 		Environment *theEnv,
 		UDFContext *context,
@@ -919,32 +1319,6 @@ Multifield *EventMaskToMultifield(long mask, MultifieldBuilder *mb)
 	return MBCreate(mb);
 }
 
-void ReportIBMakeError(
-		Environment *theEnv)
-{
-	switch(IBError(theEnv))
-	{
-		case IBE_NO_ERROR:
-			WriteString(theEnv,STDERR,"No error occurred\n");
-			break;
-		case IBE_NULL_POINTER_ERROR:
-			WriteString(theEnv,STDERR,"The InstanceBuilder does not have an associated defclass\n");
-			break;
-		case IBE_DEFCLASS_NOT_FOUND_ERROR:
-			WriteString(theEnv,STDERR,"IBE_DEFCLASS_NOT_FOUND_ERROR: This error should not happen as a result of an IBMake...\n");
-			break;
-		case IBE_COULD_NOT_CREATE_ERROR:
-			WriteString(theEnv,STDERR,"The Instance could not be created (such as when pattern matching of a fact or instance is already occurring)\n");
-			break;
-		case IBE_RULE_NETWORK_ERROR:
-			WriteString(theEnv,STDERR,"An error occurred while the instance was being processed in the rule network\n");
-			break;
-		default:
-			WriteString(theEnv,STDERR,"The result of IBError was something unexpected...\n");
-			break;
-	}
-}
-
 void XGetWindowAttributesToInstanceFunction(
 		Environment *theEnv,
 		UDFContext   *context,
@@ -1011,35 +1385,6 @@ void XGetWindowAttributesToInstanceFunction(
 			WriteString(theEnv,STDERR,"Could not make X-WINDOW-ATTRIBUTES instance\n");
 			ReportIBMakeError(theEnv);
 		}
-	}
-}
-
-void ReportFBAssertError(
-		Environment *theEnv)
-{
-	switch(FBError(theEnv))
-	{
-		case FBE_NO_ERROR:
-			WriteString(theEnv,STDERR,"No error occurred\n");
-			break;
-		case FBE_NULL_POINTER_ERROR:
-			WriteString(theEnv,STDERR,"The FactBuilder does not have an associated deftemplate\n");
-			break;
-		case FBE_DEFTEMPLATE_NOT_FOUND_ERROR:
-			WriteString(theEnv,STDERR,"FBE_DEFTEMPLATE_NOT_FOUND_ERROR: This error should not happen as a result of an FBAssert...\n");
-			break;
-		case FBE_IMPLIED_DEFTEMPLATE_ERROR:
-			WriteString(theEnv,STDERR,"FBE_IMPLIED_DEFTEMPLATE_ERROR: This error should not happen as a result of an FBAssert...\n");
-			break;
-		case FBE_COULD_NOT_ASSERT_ERROR:
-			WriteString(theEnv,STDERR,"The Fact could not be asserted (such as when pattern matching of a fact or instance is already occurring)\n");
-			break;
-		case FBE_RULE_NETWORK_ERROR:
-			WriteString(theEnv,STDERR,"An error occurred while the assertion was being processed in the rule network\n");
-			break;
-		default:
-			WriteString(theEnv,STDERR,"The result of FBError was something unexpected...\n");
-			break;
 	}
 }
 
@@ -10194,4 +10539,15 @@ void UserFunctions(
 	  AddUDF(env,"x-get-atom-name","bs",2,3,";e;l",XGetAtomNameFunction,"XGetAtomNameFunction",NULL);
 
 	  AddUDF(env,"x-get-class-hint","bm",2,2,";e;l",XGetClassHintFunction,"XGetClassHintFunction",NULL);
+
+	  AddUDF(env,"x-start-collecting-errors","b",1,1,";e",XStartCollectingErrorsFunction,"XStartCollectingErrorsFunction",NULL);
+	  AddUDF(env,"x-pop-error","bm",1,1,";e",XPopErrorFunction,"XPopErrorFunction",NULL);
+	  AddUDF(env,"x-pop-error-to-fact","bf",1,1,";e",XPopErrorToFactFunction,"XPopErrorToFactFunction",NULL);
+	  AddUDF(env,"x-pop-error-to-instance","bi",1,1,";e",XPopErrorToInstanceFunction,"XPopErrorToInstanceFunction",NULL);
+	  AddUDF(env,"x-stop-collecting-errors","b",1,1,";e",XStopCollectingErrorsFunction,"XStopCollectingErrorsFunction",NULL);
+	  AddUDF(env,"x-set-default-error-handler","b",0,0,NULL,XSetDefaultErrorHandlerFunction,"XSetDefaultErrorHandlerFunction",NULL);
+
+	  AddUDF(env,"x-get-error-text","y",2,2,";e;l",XGetErrorTextFunction,"XGetErrorTextFunction",NULL);
+	  AddUDF(env,"x-get-error-database-text","y",3,3,";e;sy;l",XGetErrorDatabaseTextFunction,"XGetErrorDatabaseTextFunction",NULL);
+	  AddUDF(env,"error-code-to-symbol","vy",1,1,";l",ErrorCodeToSymbolFunction,"ErrorCodeToSymbolFunction",NULL);
   }

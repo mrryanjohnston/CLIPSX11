@@ -37,13 +37,13 @@
   (slot base_width       (type INTEGER))
   (slot base_height      (type INTEGER))
 
-  (slot win_gravity      (type SYMBOL))
+  (slot win_gravity      (type SYMBOL)
 	 (allowed-symbols
 	  ForgetGravity
 	  NorthWestGravity NorthGravity NorthEastGravity
 	  WestGravity      CenterGravity      EastGravity
 	  SouthWestGravity SouthGravity SouthEastGravity
-	  StaticGravity))
+	  StaticGravity)))
 
 (deftemplate x-window-attributes
 	(slot x
@@ -1062,9 +1062,11 @@
 	(slot evtype
 		(type INTEGER)))
 
-(deftemplate x-error-event
+(deftemplate x-error
 	(slot c-pointer
 		(type EXTERNAL-ADDRESS))
+	(slot serial
+		(type INTEGER))
 	(slot error-code
 		(type INTEGER))
 	(slot request-code

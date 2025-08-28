@@ -822,8 +822,10 @@
 	(slot evtype
 		(type INTEGER)))
 
-(defclass X-ERROR-EVENT
-	(is-a X-EVENT)
+(defclass X-ERROR
+	(is-a USER)
+	(slot serial
+		(type INTEGER))
 	(slot error-code
 		(type INTEGER))
 	(slot request-code

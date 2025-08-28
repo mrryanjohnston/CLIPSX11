@@ -57,6 +57,7 @@ showcasing some of the other functions provided by this library.
 6. [Keyboard Utilities](#keyboard-utilities)
 7. [Screen Conversion](#screen-conversion)
 8. [Utility](#utility)
+9. [Error Handling](#error-handling)
 
 ### Display Management
 
@@ -595,6 +596,8 @@ If `?data` is omitted, the property is updated with zero elements (effectively c
     5. `height` of the Window ID
     6. `border_width` of the Window ID in pixels
     7. `depth` of the drawable (bits per pixels of the object)
+
+---
 
 #### `x-get-window-attributes`
 #### `x-get-window-attributes-to-fact`
@@ -2318,4 +2321,343 @@ Returns the X resource instance (res_name) and class (res_class) of a window, us
   (bind ?name  (nth$ 1 ?rc))
   (bind ?class (nth$ 2 ?rc))
   (printout t "class=" ?class " name=" ?name crlf))
+```
+
+### Error Handling
+
+#### `x-start-collecting-errors`
+
+```clips
+(x-start-collecting-errors <display>)
+```
+
+##### Description
+
+Start capturing X11 errors into an internal per-Display queue handled by the library's error collector.
+If a queue already exists for this Display, it returns TRUE without creating a new one.
+Will store a maximum of 128 errors before discarding the oldest error.
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`
+
+##### Return
+
+- `TRUE` if the error queue is active (already existed or was created).
+- `FALSE` if the queue could not be created.
+
+##### Example
+
+```clips
+(bind ?d (x-open-display ""))
+(if (x-start-collecting-errors ?d) then
+  (printout t "Error collection enabled." crlf))
+```
+
+---
+
+#### `x-pop-error`
+
+```clips
+(x-pop-error <display>)  ;; -> (serial error-code request-code minor-code resourceid) | FALSE
+```
+
+##### Description
+
+Pop the oldest queued X11 error for a Display and return its fields.
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`
+
+##### Returns
+
+Returns
+
+- A multifield of 5 integers on success:
+    - `serial`
+    - `error-code`
+    - `request-code`
+    - `minor-code`
+    - `resourceid`
+- `FALSE` if no queue exists for the Display or the queue is empty.
+
+##### Example
+
+```clips
+(bind ?d (x-open-display ""))
+
+;; Start capturing errors once (usually at init)
+(x-start-collecting-errors ?d)
+
+;; ... make some X calls that might error ...
+
+;; Try to pop one error
+(bind ?err (x-pop-error ?d))
+(if (neq ?err FALSE) then
+  (bind ?serial      (nth$ 1 ?err))
+  (bind ?error-code  (nth$ 2 ?err))
+  (bind ?request     (nth$ 3 ?err))
+  (bind ?minor       (nth$ 4 ?err))
+  (bind ?resourceid  (nth$ 5 ?err))
+  (printout t "X error " ?error-code
+               " (req " ?request "/" ?minor
+               ", serial " ?serial
+               ", resource " ?resourceid ")" crlf)
+)
+
+;; Optionally resolve human-readable text
+(printout t (x-get-error-text ?d ?error-code) crlf)
+(printout t (error-code-to-symbol ?error-code) crlf)
+(printout t (x-get-error-database-text ?d XRequest ?request))
+(printout t (x-get-error-database-text ?d XProtoError ?request))
+```
+
+---
+
+#### `x-pop-error-to-fact`
+
+```clips
+(x-pop-error-to-fact <display>)  ;; -> <fact-address> | FALSE
+```
+
+##### Description
+
+Pop the oldest queued X11 error for a Display, assert it as an x-error fact, and return the fact-address.
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`
+
+##### Return
+
+- Fact-address of an asserted (x-error ...) fact on success.
+- `FALSE` if no queue exists for the Display, the queue is empty, or the fact could not be asserted.
+
+##### Example
+
+```clips
+(bind ?d (x-open-display ""))
+
+;; Start collecting errors once
+(x-start-collecting-errors ?d)
+
+;; ... do X calls that may error ...
+
+;; Pop to fact
+(bind ?f (x-pop-error-to-fact ?d))
+(if (neq ?f FALSE) then
+  (printout t "Got X error fact:"
+              " serial="      (fact-slot-value ?f serial)
+              " code="        (fact-slot-value ?f error-code)
+              " request="     (fact-slot-value ?f request-code)
+              " minor="       (fact-slot-value ?f minor-code)
+              " resourceid="  (fact-slot-value ?f resourceid)
+              crlf))
+
+;; Optional: map code to text
+;; (printout t (x-get-error-text ?d (fact-slot-value ?f error-code)) crlf)
+```
+
+---
+
+#### `x-pop-error-to-instance`
+
+```clips
+(x-pop-error-to-instance <display> [<name>])  ;; -> <instance-address> | FALSE
+```
+
+##### Description
+
+Pop the oldest queued X11 error for a Display, build an X-ERROR instance, and return the instance-address.
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`
+- `<name>`: Optional name of the instance
+
+##### Return
+
+- Instance-address of the created X-ERROR instance on success.
+- FALSE if no queue exists for the Display, the queue is empty, or the instance could not be created.
+
+##### Example
+
+```clips
+(bind ?d (x-open-display ""))
+
+;; Start once per Display
+(x-start-collecting-errors ?d)
+
+;; ... do X calls that may error ...
+
+;; Pop into an instance (auto name)
+(bind ?e (x-pop-error-to-instance ?d))
+(if (neq ?e FALSE) then
+  (printout t
+    "X error:"
+    " serial="       (send ?e get-serial)
+    " code="         (send ?e get-error-code)
+    " request="      (send ?e get-request-code)
+    " minor="        (send ?e get-minor-code)
+    " resourceid="   (send ?e get-resourceid) crlf))
+
+;; Or give it a specific name
+(bind ?e2 (x-pop-error-to-instance ?d error-1))
+```
+
+---
+
+#### `x-stop-collecting-errors
+
+```clips
+(x-stop-collecting-errors <display>)  ;; -> TRUE | FALSE
+```
+
+##### Description
+
+Stop collecting X11 errors for a Display and free the per-display error queue.
+
+##### Arguments
+
+- `<display>`: EXTERNAL-ADDRESS to `Display*`
+
+##### Return
+
+- TRUE on success.
+- FALSE if no error queue/context was found for the given Display.
+
+##### Example
+
+```clips
+(bind ?d (x-open-display ""))
+
+;; Start collecting first
+(x-start-collecting-errors ?d)
+
+;; ... perform X operations ...
+
+;; Stop and free the queue
+(if (eq (x-stop-collecting-errors ?d) TRUE)
+  then (printout t "Stopped collecting X errors." crlf)
+  else (printout t "Nothing to stop for this display." crlf))
+```
+
+---
+
+#### `x-set-default-error-handler`
+
+```clips
+(x-set-default-error-handler) -> TRUE
+```
+
+##### Description
+
+Sets the error handler to X11's default.
+WARNING: will orphan error queues if you've previously created them
+with `x-start-collecting-errors` calls.
+
+---
+
+#### `x-get-error-text`
+
+```clips
+(x-get-error-text <display> <error-code>)  ;; -> <string>
+```
+
+##### Description
+
+Return a human-readable description for an X11 error code.
+
+##### Arguments
+
+- `<display>` - external-address to an open Display* (from x-open-display).
+- `<error-code>` - integer X error code (e.g., from x-pop-error, the error-code field).
+
+##### Return
+
+A string with the error’s textual description (empty string if none is available).
+
+##### Example
+
+```clips
+;; Using a code directly
+(bind ?d (x-open-display ""))
+(printout t (x-get-error-text ?d 3) crlf)  ;; e.g., "BadWindow" on most servers
+
+;; From the error queue
+(bind ?e (x-pop-error ?d))
+(if ?e then
+  (bind ?code (nth$ 2 ?e))                 ;; serial error-code request-code minor-code resourceid
+  (printout t "Error: " (x-get-error-text ?d ?code) crlf))
+```
+
+---
+
+#### `x-get-error-database-text`
+
+```clips
+(x-get-error-database-text <display> <name> <type-int>)  ;; -> <string>
+```
+
+##### Description
+
+Look up a formatted string from the X error database using a (name, type) key.
+
+##### Arguments
+
+- `<display>` - external-address to an open Display* (from x-open-display).
+- `<name>` - symbol/string for the database “name” (commonly "XError" or "XRequest").
+- `<type-int>` - integer key; converted to a string before lookup (e.g., an error code or request code).
+
+##### Return
+
+A string from the X error database for the given key (empty string if no entry exists).
+
+##### Example
+
+```clips
+;; Get human text for an error code using the database
+(bind ?d (x-open-display ""))
+
+;; From the error queue (serial error-code request-code minor-code resourceid)
+(bind ?e (x-pop-error ?d))
+(if ?e then
+  (bind ?err (nth$ 2 ?e))
+  (bind ?req (nth$ 3 ?e))
+
+  (printout t "DB XError(" ?err "): "
+              (x-get-error-database-text ?d "XError" ?err) crlf)
+
+  (printout t "DB XRequest(" ?req "): "
+              (x-get-error-database-text ?d "XRequest" ?req) crlf))
+
+;; Direct lookups
+(printout t (x-get-error-database-text ?d "XError" 3) crlf)     ;; often "BadWindow"
+(printout t (x-get-error-database-text ?d "XRequest" 20) crlf)
+```
+
+---
+
+#### `error-code-to-symbol`
+
+```clips
+(error-code-to-symbol <code-int>)  ;; -> <symbol> | <void>
+```
+
+##### Arguments
+
+- `<code-int>` - integer X error code (e.g., 1..17 for core protocol).
+
+##### Return
+
+- The corresponding symbol (e.g., BadWindow, BadAtom) if the code is recognized.
+- void if the code is invalid; also prints "`<code>` is not a valid error code" to STDERR.
+
+##### Examples
+
+```clips
+(error-code->symbol 3)          ;; => BadWindow
+(error-code->symbol 1)          ;; => BadRequest
+(bind ?s (error-code->symbol 99))  ;; prints "99 is not a valid error code" and returns void
 ```
