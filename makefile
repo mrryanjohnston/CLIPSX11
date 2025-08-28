@@ -1,58 +1,71 @@
-#PREFIX        ?= $(HOME)/.local
 PREFIX        ?= /usr/local
 BINDIR        := $(PREFIX)/bin
-XSESSIONSDIR  := $(PREFIX)/share/xsessions
+DESTINATION   := CLIPSX11
+VERSION       ?= 0.1.0
 
-TARGET          := clips/clips
-DESTINATION     := CLIPSX11
-TARGET_CLIPSMWM := clipsmwm
-SHELL_SCRIPT    := $(TARGET_CLIPSMWM).sh
-DESKTOP         := $(TARGET_CLIPSMWM).desktop
+# Private, versioned location for the real binary (never on PATH)
+LIBEXECDIR    := $(PREFIX)/libexec/$(DESTINATION)-$(VERSION)
 
-DATADIR := $(PREFIX)/share/$(DESTINATION)
-DATAFILES := $(wildcard *.clp *.bat)
-BAT_TEMPLATE := clipsmwm.bat.in
-BAT_OUT := clipsmwm.bat
+# System-wide share dir for CLIPSX11 data
+DATADIR       := $(PREFIX)/share/$(DESTINATION)
+DATAFILES     := deftemplates.clp defclasses.clp
+
+CLIPS_VER     := 6.4.2
+ARCHIVE       := clips_core_source_642.tar.gz
+ARCHIVE_URL   := https://sourceforge.net/projects/clipsrules/files/CLIPS/$(CLIPS_VER)/$(ARCHIVE)
+BUILD_DIR     := vendor/clips
+TARGET        := $(BUILD_DIR)/clips
+LDLIBS        := -lm -lX11
+
+WRAPPER       := $(DESTINATION)-$(VERSION)
+
+.PHONY: all clips debug install install-bin install-data uninstall clean distclean
 
 all: clips
-	cp userfunctions.c clips
-	$(MAKE) -C clips LDLIBS="-lm -lX11"
 
-clips:
-	[ -e clips_core_source_642.tar.gz ] || wget https://sourceforge.net/projects/clipsrules/files/CLIPS/6.4.2/clips_core_source_642.tar.gz
-	[ -d "clips" ] || { mkdir clips && tar --strip-components=2 -xvf clips_core_source_642.tar.gz -C clips; }
+clips: $(TARGET)
+	@:
 
-debug: clips
-	cp userfunctions.c clips
-	$(MAKE) debug -C clips LDLIBS="-lm -lX11"
+$(TARGET): $(ARCHIVE) userfunctions.c | $(BUILD_DIR)
+	cp userfunctions.c $(BUILD_DIR)/
+	$(MAKE) -C $(BUILD_DIR) LDLIBS="$(LDLIBS)"
 
-install: install-bin install-desktop install-data
+debug: $(ARCHIVE) | $(BUILD_DIR)
+	cp userfunctions.c $(BUILD_DIR)/
+	$(MAKE) -C $(BUILD_DIR) debug LDLIBS="$(LDLIBS)"
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+	[ -f $(ARCHIVE) ] || wget -O $(ARCHIVE) "$(ARCHIVE_URL)"
+	tar --strip-components=2 -xvf $(ARCHIVE) -C $(BUILD_DIR)
+
+$(ARCHIVE):
+	wget -O $(ARCHIVE) "$(ARCHIVE_URL)"
+
+install: clips install-bin install-data
 
 install-bin:
-	@echo "Installing $(DESTINATION) to $(BINDIR)"
-	install -Dm755 $(TARGET) $(BINDIR)/$(DESTINATION)
-	@echo "Installing $(SHELL_SCRIPT) to $(BINDIR)"
-	install -Dm755 $(SHELL_SCRIPT) $(BINDIR)/$(SHELL_SCRIPT)
-
-install-desktop:
-	@echo "Installing $(DESKTOP) to $(XSESSIONSDIR)"
-	install -Dm644 $(DESKTOP) $(XSESSIONSDIR)/$(DESKTOP)
+	install -d "$(LIBEXECDIR)" "$(BINDIR)"
+	install -m755 "$(TARGET)" "$(LIBEXECDIR)/clips"
+	sed -e 's|@REAL@|$(LIBEXECDIR)/clips|g' \
+	    -e 's|@VERSION@|$(VERSION)|g' \
+	    CLIPSX11.in > "$(BINDIR)/$(WRAPPER)"
+	chmod 755 "$(BINDIR)/$(WRAPPER)"
+	ln -sfn "$(WRAPPER)" "$(BINDIR)/$(DESTINATION)"
 
 install-data:
-	@echo "Installing supporting files to $(DATADIR)"
-	install -d $(DATADIR)
-	install -m644 $(DATAFILES) $(DATADIR)
-	sed "s|@DATADIR@|$(DATADIR)|g" $(BAT_TEMPLATE) > $(DATADIR)/$(BAT_OUT)
+	install -d "$(DATADIR)"
+	[ -z "$(DATAFILES)" ] || install -m644 $(DATAFILES) "$(DATADIR)"
 
 uninstall:
-	@echo "Removing $(BINDIR)/$(DESTINATION)"
-	rm -f $(BINDIR)/$(DESTINATION)
-	@echo "Removing $(BINDIR)/$(SHELL_SCRIPT)"
-	rm -f $(BINDIR)/$(SHELL_SCRIPT)
-	@echo "Removing $(XSESSIONSDIR)/$(DESKTOP)"
-	rm -f $(XSESSIONSDIR)/$(DESKTOP)
-	@echo "Removing $(DATADIR)"
-	rm -rf $(DATADIR)
+	rm -f "$(BINDIR)/$(WRAPPER)" "$(BINDIR)/$(DESTINATION)"
+	rm -rf "$(LIBEXECDIR)"
+	rm -f "$(DATADIR)/deftemplates.clp" "$(DATADIR)/defclasses.clp"
+	rmdir "$(DATADIR)" 2>/dev/null || true
 
 clean:
-	$(MAKE) clean -C clips
+	-$(MAKE) -C "$(BUILD_DIR)" clean
+
+distclean:
+	rm -rf vendor
+	rm -f "$(ARCHIVE)"

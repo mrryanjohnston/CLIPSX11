@@ -1,5 +1,0 @@
-[Desktop Entry]
-Name=clipsmwm
-Comment=CLIPS implementation of mwm
-Exec=clipsmwm.sh
-Type=Application

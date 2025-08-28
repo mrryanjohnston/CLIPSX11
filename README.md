@@ -2,52 +2,46 @@
 
 A CLIPS X11 library
 
-## Usage
+## Installation
 
-Run `make` in order to:
+This library can be installed manually via `git` and `make`
+or by
+[CLIPSenv](github.com/mrryanjohnston/CLIPSenv).
+
+To install manually, `git clone` this repo and run `make`.
+This will:
 
 1. Download the CLIPS 6.4.2 source code
-2. Untar it to the `clips` dir
-3. Copy the `userfunctions.c` file into the `clips` dir
-4. Run `make` in the `clips` dir
+2. Untar it to the `vendor/clips` dir
+3. Copy the `userfunctions.c` file into the `vendor/clips` dir
+4. Run `make` in the `vendor/clips` dir
 
-Now you have an executable `clips/clips` file that has X11-related
+Now you have an executable `vendor/clips/clips` file that has X11-related
 functions available in it.
+
+To take this a step further, you can install the executable
+`CLIPSX11` system-wide by running `sudo make install`.
 
 ## Examples
 
-### clipsmwm Window Manager
+### CLIPSmwm Window Manager
 
-There are three files that provide an example window manager
-based on [mwm](https://github.com/lslvr/mwm).
-The first file `clipsmwm.multifield.clp` takes the output from
-X11 functions and returns them as CLIPS Multifields
-and asserts implied Facts.
-The second file `clipsmwm.fact.clp` asserts them directly as CLIPS Facts.
-The `deftemplates.clp` file is necessary if you use the `clipsmwm.fact.clp` file.
-The third file `clipsmwm.instance.clp` makes them as CLIPS Instances.
-The `defclasses.clp` file is necessary if you use the `clipsmwm.instance.clp` file.
-
-#### Display Managers
-
-If you want to install this to your machine, use `sudo make install`
-to install a `CLIPSX11` to your `/usr/local/bin` dir.
-This will also attempt to install the `clipsmwm.desktop` file
-into your `/usr/share/xsessions` dir
-as well as the `.clp` and `.bat` files into your `/usr/local/share/CLIPSX11` dir.
-
-#### Via `startx`
-
-Run `sudo make install` and add this to the end of your `.xinitrc`:
-
-```
-exec clipsmwm.sh
-```
+Check out
+[CLIPSmwm](https://github.com/mrryanjohnston/CLIPSmwm),
+a minimal X11 window manager implemented using CLIPSX11.
 
 ### Misc examples
 
 There are two other files `program.clp` `program2.clp`
 showcasing some of the other functions provided by this library.
+
+### Tests
+
+There are a few test `.bat` files that you may run to see the basic library in action:
+
+```
+CLIPSX11 -f2 ./error_handling.bat
+```
 
 ## Documentation
 

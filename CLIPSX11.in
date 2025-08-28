@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+case "$1" in
+  -v|-V|--version)
+    echo "CLIPSX11 @VERSION@"
+    exit 0
+    ;;
+esac
+exec "@REAL@" "$@"
