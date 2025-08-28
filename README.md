@@ -18,13 +18,15 @@ functions available in it.
 
 ### clipsmwm Window Manager
 
-There are two files that provide an example window manager
+There are three files that provide an example window manager
 based on [mwm](https://github.com/lslvr/mwm).
 The first file `clipsmwm.multifield.clp` takes the output from
 X11 functions and returns them as CLIPS Multifields
 and asserts implied Facts.
 The second file `clipsmwm.fact.clp` asserts them directly as CLIPS Facts.
 The `deftemplates.clp` file is necessary if you use the `clipsmwm.fact.clp` file.
+The third file `clipsmwm.instance.clp` makes them as CLIPS Instances.
+The `defclasses.clp` file is necessary if you use the `clipsmwm.instance.clp` file.
 
 #### Display Managers
 
