@@ -24,10 +24,10 @@ To take this a step further, you can install the executable
 
 ## Examples
 
-### CLIPSmwm Window Manager
+### CLIPS1wm Window Manager
 
 Check out
-[CLIPSmwm](https://github.com/mrryanjohnston/CLIPSmwm),
+[CLIPS1wm](https://github.com/mrryanjohnston/CLIPS1wm),
 a minimal X11 window manager implemented using CLIPSX11.
 
 ### Misc examples
