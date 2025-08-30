@@ -2499,7 +2499,6 @@ void XCreateGCFunction(
 	Display *display;
 	Drawable drawable;
 	unsigned long valuemask;
-	// we just discard this
 	XGCValues values;
 	UDFValue theArg;
 
@@ -2929,17 +2928,17 @@ void LexemeToMaskFunction(
 int MultifieldToMask(
 		Multifield *mf)
 {
-	int event_mask = 0;
+	int mask = 0;
 	int to_add;
 	for (int x = 0; x < mf->length; x++)
 	{
 		to_add = StringToMask(mf->contents[x].lexemeValue->contents);
 		if (to_add != -1)
 		{
-			event_mask |= to_add;
+			mask |= to_add;
 		}
 	}
-	return event_mask;
+	return mask;
 }
 
 void MultifieldToMaskFunction(
@@ -6796,7 +6795,7 @@ void MultifieldToXEvent(Environment *theEnv, Multifield *mf, XEvent *event)
 		else
 		if (0 == strcmp(mf->contents[0].lexemeValue->contents, "MotionNotify"))
 		{
-			event->xmotion.type = ButtonRelease;
+			event->xmotion.type = MotionNotify;
 			MultifieldToXMotionEvent(theEnv, mf, &(event->xmotion));
 		}
 		else
@@ -7554,7 +7553,7 @@ void FactToXEvent(Environment *theEnv, Fact *f, XEvent *event)
 	else
 	if (0 == strcmp(out.lexemeValue->contents, "MotionNotify"))
 	{
-		event->xmotion.type = ButtonRelease;
+		event->xmotion.type = MotionNotify;
 		FactToXMotionEvent(theEnv, f, &(event->xmotion));
 	}
 	else
@@ -8307,7 +8306,7 @@ void InstanceToXEvent(Environment *theEnv, Instance *i, XEvent *event)
 	else
 	if (0 == strcmp(out.lexemeValue->contents, "MotionNotify"))
 	{
-		event->xmotion.type = ButtonRelease;
+		event->xmotion.type = MotionNotify;
 		InstanceToXMotionEvent(theEnv, i, &(event->xmotion));
 	}
 	else
@@ -8513,8 +8512,21 @@ void XSendEventFunction(
 	UDFNextArgument(context, SYMBOL_BIT, &theArg);
 	propagate = theArg.lexemeValue == theEnv->TrueSymbol;
 
-	UDFNextArgument(context, INTEGER_BIT, &theArg);
-	event_mask = theArg.integerValue->contents;
+	UDFNextArgument(context,INTEGER_BIT|LEXEME_BITS|MULTIFIELD_BIT,&theArg);
+	if (theArg.header->type == INTEGER_TYPE)
+	{
+		event_mask = theArg.integerValue->contents;
+	}
+	else
+	if (theArg.header->type == MULTIFIELD_TYPE)
+	{
+		event_mask = MultifieldToEventMask(theArg.multifieldValue);
+	}
+	else
+	{
+		event_mask = StringToEventMask(theArg.lexemeValue->contents);
+	}
+
 
 	UDFNextArgument(context, FACT_ADDRESS_BIT|INSTANCE_BITS|MULTIFIELD_BIT, &theArg);
 	switch (theArg.header->type)
@@ -8524,6 +8536,18 @@ void XSendEventFunction(
 			break;
 		case FACT_ADDRESS_TYPE:
 			FactToXEvent(theEnv, theArg.factValue, &event);
+			break;
+		case INSTANCE_NAME_TYPE:
+			Instance *i = FindInstance(theEnv, NULL, theArg.lexemeValue->contents, true);
+			if (i == NULL)
+			{
+				WriteString(theEnv, STDERR, "Instance ");
+				WriteString(theEnv, STDERR, theArg.lexemeValue->contents);
+				WriteString(theEnv, STDERR, " not found.\n");
+				returnValue->integerValue = CreateInteger(theEnv, 0);
+				return;
+			}
+			InstanceToXEvent(theEnv, i, &event);
 			break;
 		case INSTANCE_ADDRESS_TYPE:
 			InstanceToXEvent(theEnv, theArg.instanceValue, &event);
@@ -8893,8 +8917,20 @@ void XGrabButtonFunction(
 	UDFNextArgument(context,INTEGER_BIT,&theArg);
 	button = theArg.integerValue->contents;
 
-	UDFNextArgument(context,INTEGER_BIT,&theArg);
-	modifiers = theArg.integerValue->contents;
+	UDFNextArgument(context,INTEGER_BIT|LEXEME_BITS|MULTIFIELD_BIT,&theArg);
+	if (theArg.header->type == INTEGER_TYPE)
+	{
+		modifiers = theArg.integerValue->contents;
+	}
+	else
+	if (theArg.header->type == MULTIFIELD_TYPE)
+	{
+		modifiers = MultifieldToMask(theArg.multifieldValue);
+	}
+	else
+	{
+		modifiers = StringToMask(theArg.lexemeValue->contents);
+	}
 
 	UDFNextArgument(context,INTEGER_BIT,&theArg);
 	grab_window = (Window)theArg.integerValue->contents;
@@ -8902,8 +8938,21 @@ void XGrabButtonFunction(
 	UDFNextArgument(context,BOOLEAN_BIT,&theArg);
 	owner_events = theArg.lexemeValue == theEnv->TrueSymbol;
 
-	UDFNextArgument(context,INTEGER_BIT,&theArg);
-	event_mask = theArg.integerValue->contents;
+	UDFNextArgument(context,INTEGER_BIT|LEXEME_BITS|MULTIFIELD_BIT,&theArg);
+	if (theArg.header->type == INTEGER_TYPE)
+	{
+		event_mask = theArg.integerValue->contents;
+	}
+	else
+	if (theArg.header->type == MULTIFIELD_TYPE)
+	{
+		event_mask = MultifieldToEventMask(theArg.multifieldValue);
+	}
+	else
+	{
+		event_mask = StringToEventMask(theArg.lexemeValue->contents);
+	}
+
 
 	UDFNextArgument(context,SYMBOL_BIT,&theArg);
 	if (0 == strcmp(theArg.lexemeValue->contents, "GrabModeSync"))
@@ -8951,8 +9000,20 @@ void XUngrabButtonFunction(
 	UDFNextArgument(context,INTEGER_BIT,&theArg);
 	button = theArg.integerValue->contents;
 
-	UDFNextArgument(context,INTEGER_BIT,&theArg);
-	modifiers = theArg.integerValue->contents;
+	UDFNextArgument(context,INTEGER_BIT|LEXEME_BITS|MULTIFIELD_BIT,&theArg);
+	if (theArg.header->type == INTEGER_TYPE)
+	{
+		modifiers = theArg.integerValue->contents;
+	}
+	else
+	if (theArg.header->type == MULTIFIELD_TYPE)
+	{
+		modifiers = MultifieldToMask(theArg.multifieldValue);
+	}
+	else
+	{
+		modifiers = StringToMask(theArg.lexemeValue->contents);
+	}
 
 	UDFNextArgument(context,INTEGER_BIT,&theArg);
 	grab_window = (Window)theArg.integerValue->contents;
@@ -8980,8 +9041,20 @@ void XGrabKeyFunction(
 	UDFNextArgument(context,INTEGER_BIT,&theArg);
 	keycode = theArg.integerValue->contents;
 
-	UDFNextArgument(context,INTEGER_BIT,&theArg);
-	modifiers = theArg.integerValue->contents;
+	UDFNextArgument(context,INTEGER_BIT|LEXEME_BITS|MULTIFIELD_BIT,&theArg);
+	if (theArg.header->type == INTEGER_TYPE)
+	{
+		modifiers = theArg.integerValue->contents;
+	}
+	else
+	if (theArg.header->type == MULTIFIELD_TYPE)
+	{
+		modifiers = MultifieldToMask(theArg.multifieldValue);
+	}
+	else
+	{
+		modifiers = StringToMask(theArg.lexemeValue->contents);
+	}
 
 	UDFNextArgument(context,INTEGER_BIT,&theArg);
 	grab_window = (Window)theArg.integerValue->contents;
@@ -9029,8 +9102,20 @@ void XUngrabKeyFunction(
 	UDFNextArgument(context,INTEGER_BIT,&theArg);
 	keycode = theArg.integerValue->contents;
 
-	UDFNextArgument(context,INTEGER_BIT,&theArg);
-	modifiers = theArg.integerValue->contents;
+	UDFNextArgument(context,INTEGER_BIT|LEXEME_BITS|MULTIFIELD_BIT,&theArg);
+	if (theArg.header->type == INTEGER_TYPE)
+	{
+		modifiers = theArg.integerValue->contents;
+	}
+	else
+	if (theArg.header->type == MULTIFIELD_TYPE)
+	{
+		modifiers = MultifieldToMask(theArg.multifieldValue);
+	}
+	else
+	{
+		modifiers = StringToMask(theArg.lexemeValue->contents);
+	}
 
 	UDFNextArgument(context,INTEGER_BIT,&theArg);
 	grab_window = (Window)theArg.integerValue->contents;
@@ -9062,8 +9147,20 @@ void XGrabPointerFunction(
 	UDFNextArgument(context,BOOLEAN_BIT,&theArg);
 	owner_events = theArg.lexemeValue == theEnv->TrueSymbol;
 
-	UDFNextArgument(context,INTEGER_BIT,&theArg);
-	event_mask = theArg.integerValue->contents;
+	UDFNextArgument(context,INTEGER_BIT|LEXEME_BITS|MULTIFIELD_BIT,&theArg);
+	if (theArg.header->type == INTEGER_TYPE)
+	{
+		event_mask = theArg.integerValue->contents;
+	}
+	else
+	if (theArg.header->type == MULTIFIELD_TYPE)
+	{
+		event_mask = MultifieldToEventMask(theArg.multifieldValue);
+	}
+	else
+	{
+		event_mask = StringToEventMask(theArg.lexemeValue->contents);
+	}
 
 	UDFNextArgument(context,SYMBOL_BIT,&theArg);
 	if (0 == strcmp(theArg.lexemeValue->contents, "GrabModeSync"))
@@ -10484,7 +10581,7 @@ void UserFunctions(
 	  AddUDF(env,"x-next-event","bm",1,1,";e",XNextEventFunction,"XNextEventFunction",NULL);
 	  AddUDF(env,"x-next-event-to-fact","bf",1,1,";e",XNextEventToFactFunction,"XNextEventToFactFunction",NULL);
 	  AddUDF(env,"x-next-event-to-instance","bi",1,2,";e;sy",XNextEventToInstanceFunction,"XNextEventToInstanceFunction",NULL);
-	  AddUDF(env,"x-send-event","l",5,5,";e;l;b;l;fim",XSendEventFunction,"XSendEventFunction",NULL);
+	  AddUDF(env,"x-send-event","l",5,5,";e;l;b;lmsy;fimn",XSendEventFunction,"XSendEventFunction",NULL);
 
 	  AddUDF(env,"x-draw-arc","v",9,9,";e;l;e;l;l;l;l;l;l",XDrawArcFunction,"XDrawArcFunction",NULL);
 	  AddUDF(env,"x-draw-line","v",7,7,";e;l;e;l;l;l;l",XDrawLineFunction,"XDrawLineFunction",NULL);
@@ -10501,11 +10598,11 @@ void UserFunctions(
 
 	  AddUDF(env,"x-grab-server","l",1,1,";e",XGrabServerFunction,"XGrabServerFunction",NULL);
 
-	  AddUDF(env,"x-grab-button","l",10,10,";e;l;l;l;b;l;l;l;l;l",XGrabButtonFunction,"XGrabButtonFunction",NULL);
-	  AddUDF(env,"x-ungrab-button","v",4,4,";e;l;l;l",XUngrabButtonFunction,"XUngrabButtonFunction",NULL);
-	  AddUDF(env,"x-grab-key","l",7,7,";e;l;l;l;b;y;y",XGrabKeyFunction,"XGrabKeyFunction",NULL);
-	  AddUDF(env,"x-ungrab-key","v",4,4,";e;l;l;l",XUngrabKeyFunction,"XUngrabKeyFunction",NULL);
-	  AddUDF(env,"x-grab-pointer","l",8,9,";e;l;b;l;l;l;l;l;l",XGrabPointerFunction,"XGrabPointerFunction",NULL);
+	  AddUDF(env,"x-grab-button","l",10,10,";e;l;lmsy;l;b;lmsy;l;l;l;l",XGrabButtonFunction,"XGrabButtonFunction",NULL);
+	  AddUDF(env,"x-ungrab-button","v",4,4,";e;l;lmsy;l",XUngrabButtonFunction,"XUngrabButtonFunction",NULL);
+	  AddUDF(env,"x-grab-key","l",7,7,";e;l;lmsy;l;b;y;y",XGrabKeyFunction,"XGrabKeyFunction",NULL);
+	  AddUDF(env,"x-ungrab-key","v",4,4,";e;l;lmsy;l",XUngrabKeyFunction,"XUngrabKeyFunction",NULL);
+	  AddUDF(env,"x-grab-pointer","l",8,9,";e;l;b;lmsy;l;l;l;l;l",XGrabPointerFunction,"XGrabPointerFunction",NULL);
 	  AddUDF(env,"x-ungrab-pointer","v",1,2,";e;l",XUngrabPointerFunction,"XUngrabPointerFunction",NULL);
 
 	  AddUDF(env,"x-flush","l",1,1,";e",XFlushFunction,"XFlushFunction",NULL);

@@ -1070,7 +1070,10 @@ using `x-select-input`.
 - `<display>` - A c-pointer to the display object to send the event to
 - `<window>` - A window ID to send the event to
 - `<propagate>` - A boolean to determine whether or not to propagate the event if not received.
-- `<event-mask>` - An integer of the event mask
+- `<event-mask>` - One of:
+    - An integer representing the event mask. Use `lexeme-to-event-mask` or `multifield-to-event-mask` to generate an `INTEGER` for this argument.
+    - A symbol or string representing the event mask modifier.
+    - A multifield of symbols or strings representing values to `|` (or) for the event mask modifier
 - `<event>` - A MULTIFIELD, FACT, or INSTANCE that contains the event details
 
 If using FACT or INSTANCE as `<event>`, refer to the
@@ -1298,15 +1301,22 @@ Grabs a specific button (with optional modifier masks) on a given window so that
 
 1. `<display>` - External address to an X11 Display object.
 2. `<button>` - Integer button to grab.
-3. `<modifiers>` - An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+3. `<modifiers>` - One of:
+    - An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+    - A symbol or string representing the mask modifier.
+    - A multifield of symbols or strings representing values to `|` (or) for the mask modifier
 4. `<grab-window>` - Integer representing the X11 window in which the button is to be grabbed.
-5. `<owner-events?>` - Boolean; if TRUE, events are reported as if the grabbing client owned the events (owner_events argument to XGrabKey).
-6. `<pointer-mode-symbol>` - Symbol controlling pointer freezing behavior during the grab. Recognized value:
+5. `<owner-events?>` - Boolean; if TRUE, events are reported as if the grabbing client owned the events (owner_events argument to XGrabButton).
+6. `<event_mask>` - One of:
+    - An integer representing the event mask. Use `lexeme-to-event-mask` or `multifield-to-event-mask` to generate an `INTEGER` for this argument.
+    - A symbol or string representing the event mask modifier.
+    - A multifield of symbols or strings representing values to `|` (or) for the event mask modifier
+7. `<pointer-mode-symbol>` - Symbol controlling pointer freezing behavior during the grab. Recognized value:
      * "GrabModeSync" - pointer is frozen until explicitly released (maps to X11 GrabModeSync)
      * anything else (typically "GrabModeAsync") - pointer operates asynchronously (maps to GrabModeAsync)
-7. `<keyboard-mode-symbol>` - Symbol controlling keyboard freezing behavior during the grab. Same semantics as pointer-mode-symbol.
-8. `<confine_to>` - Window to confine the grab to
-9. `<cursor>` - Specifies the cursor to be displayed
+8. `<keyboard-mode-symbol>` - Symbol controlling keyboard freezing behavior during the grab. Same semantics as pointer-mode-symbol.
+9. `<confine_to>` - Window to confine the grab to
+10. `<cursor>` - Specifies the cursor to be displayed
 
 ##### Example
 
@@ -1331,7 +1341,10 @@ Releases a specific button (with optional modifier masks) on a given window if i
 
 1. `<display>` - External address to an X11 Display object.
 2. `<button>` - Integer button to grab.
-3. `<modifiers>` - An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+3. `<modifiers>` - One of:
+    - An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+    - A symbol or string representing the mask modifier.
+    - A multifield of symbols or strings representing values to `|` (or) for the mask modifier
 4. `<grab-window>` - Integer representing the X11 window in which the button is to be grabbed.
 
 ---
@@ -1350,7 +1363,10 @@ Grabs a specific key (with optional modifier masks) on a given window so that th
 
 1. `<display>` - External address to an X11 Display object.
 2. `<keycode>` - Integer keycode to grab.
-3. `<modifiers>` - An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+3. `<modifiers>` - One of:
+    - An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+    - A symbol or string representing the mask modifier.
+    - A multifield of symbols or strings representing values to `|` (or) for the mask modifier
 4. `<grab-window>` - Integer representing the X11 window in which the key is to be grabbed.
 5. `<owner-events?>` - Boolean; if TRUE, events are reported as if the grabbing client owned the events (owner_events argument to XGrabKey).
 6. `<pointer-mode-symbol>` - Symbol controlling pointer freezing behavior during the grab. Recognized value:
@@ -1381,7 +1397,10 @@ Releases a specific key (with optional modifier masks) on a given window if it w
 
 1. `<display>` - External address to an X11 Display object.
 2. `<keycode>` - Integer keycode to grab.
-3. `<modifiers>` - An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+3. `<modifiers>` - One of:
+    - An integer representing the mask modifier. Use `lexeme-to-mask` or `multifield-to-mask` to generate an `INTEGER` for this argument.
+    - A symbol or string representing the mask modifier.
+    - A multifield of symbols or strings representing values to `|` (or) for the mask modifier
 4. `<grab-window>` - Integer representing the X11 window in which the key is to be grabbed.
 
 ---
@@ -1400,8 +1419,11 @@ Grabs control of the pointer. Further pointer events are reported only to the gr
 
 1. `<display>` - External address to an X11 Display object.
 2. `<grab-window>` - Integer representing the X11 window in which the pointer is to be grabbed.
-3. `<owner-events?>` - Boolean; if TRUE, events are reported as if the grabbing client owned the events (owner_events argument to XGrabKey).
-4. `<event_mask>` - An integer representing the event masks for which Pointer events are reported. See `lexeme-to-event-mask` or `multifield-to-event-mask` for converting names of event masks into an integer.
+3. `<owner-events?>` - Boolean; if TRUE, events are reported as if the grabbing client owned the events (owner_events argument to XGrabPointer).
+4. `<event_mask>` - One of:
+    - An integer representing the event mask. Use `lexeme-to-event-mask` or `multifield-to-event-mask` to generate an `INTEGER` for this argument.
+    - A symbol or string representing the event mask modifier.
+    - A multifield of symbols or strings representing values to `|` (or) for the event mask modifier
 5. `<pointer-mode-symbol>` - Symbol controlling pointer freezing behavior during the grab. Recognized value:
      * "GrabModeSync" - pointer is frozen until explicitly released (maps to X11 GrabModeSync)
      * anything else (typically "GrabModeAsync") - pointer operates asynchronously (maps to GrabModeAsync)

@@ -1,7 +1,7 @@
 PREFIX        ?= /usr/local
 BINDIR        := $(PREFIX)/bin
 DESTINATION   := CLIPSX11
-VERSION       ?= 0.1.0
+VERSION       ?= 0.2.0
 
 # Private, versioned location for the real binary (never on PATH)
 LIBEXECDIR    := $(PREFIX)/libexec/$(DESTINATION)-$(VERSION)
