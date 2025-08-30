@@ -30,17 +30,18 @@ Check out
 [CLIPS1wm](https://github.com/mrryanjohnston/CLIPS1wm),
 a minimal X11 window manager implemented using CLIPSX11.
 
-### Misc examples
+### Misc examples & Tests
 
-There are two other files `program.clp` `program2.clp`
+All example programs and tests are in the `tests` directory.
+
+There are two files `program.clp` `program2.clp`
 showcasing some of the other functions provided by this library.
-
-### Tests
 
 There are a few test `.bat` files that you may run to see the basic library in action:
 
 ```
 CLIPSX11 -f2 ./error_handling.bat
+CLIPSX11 -f2 ./x_send_event_test.bat
 ```
 
 ## Documentation
@@ -693,7 +694,9 @@ Returns multifield whose members are:
 
 ##### Returns
 
-` STRING of the window name
+`STRING` of the window name
+
+---
 
 #### `x-store-name`
 
@@ -712,6 +715,8 @@ Returns multifield whose members are:
 ```clips
 (x-store-name ?window ?display "My new window!")
 ```
+
+---
 
 ### Cursor, Font & Color
 
@@ -2341,6 +2346,8 @@ Returns the X resource instance (res_name) and class (res_class) of a window, us
   (printout t "class=" ?class " name=" ?name crlf))
 ```
 
+---
+
 ### Error Handling
 
 #### `x-start-collecting-errors`
@@ -2526,7 +2533,7 @@ Pop the oldest queued X11 error for a Display, build an X-ERROR instance, and re
 
 ---
 
-#### `x-stop-collecting-errors
+#### `x-stop-collecting-errors`
 
 ```clips
 (x-stop-collecting-errors <display>)  ;; -> TRUE | FALSE
