@@ -1,3 +1,5 @@
+<img width="1800" height="2075" alt="CLIPSX11" src="https://github.com/user-attachments/assets/0c14223a-025f-4461-a7d0-ec0329c0c99f" />
+
 # CLIPSX11
 
 A CLIPS X11 library
@@ -2686,3 +2688,9 @@ A string from the X error database for the given key (empty string if no entry e
 (error-code->symbol 1)          ;; => BadRequest
 (bind ?s (error-code->symbol 99))  ;; prints "99 is not a valid error code" and returns void
 ```
+
+## Logo License Info
+
+This logo was created in GIMP and is based on the CLIPS logo and the 
+[X.Org logo](https://commons.wikimedia.org/wiki/File:X.Org_Logo.svg) ([User:Sven](https://commons.wikimedia.org/wiki/File:X.Org_Logo.svg)
+[CC BY-SA 3.0](http://creativecommons.org/licenses/by-sa/3.0/), via Wikimedia Commons).
